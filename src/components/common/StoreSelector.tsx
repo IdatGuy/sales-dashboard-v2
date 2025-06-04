@@ -1,21 +1,23 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Store } from '../../types';
-import { useDashboard } from '../../context/DashboardContext';
-import { useAuth } from '../../context/AuthContext';
-import { ChevronDown, Store as StoreIcon, Settings } from 'lucide-react';
-import GoalSettingsModal from '../dashboard/GoalSettingsModal';
+import React, { useState, useRef, useEffect } from "react";
+import { Store } from "../../types";
+import { useDashboard } from "../../context/DashboardContext";
+import { useAuth } from "../../context/AuthContext";
+import { ChevronDown, Store as StoreIcon, Settings } from "lucide-react";
+import GoalSettingsModal from "../dashboard/GoalSettingsModal";
 
 const StoreSelector: React.FC = () => {
-  const { availableStores, selectedStore, setSelectedStore, updateStoreGoals } = useDashboard();
+  const { availableStores, selectedStore, setSelectedStore, updateStoreGoals } =
+    useDashboard();
   const { currentUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const isManager = currentUser?.role === 'manager' || currentUser?.role === 'admin';
+  const isManager =
+    currentUser?.role === "manager" || currentUser?.role === "admin";
 
   // Filter stores based on user's storeIds
-  const userStores = currentUser?.storeIds 
-    ? availableStores.filter(store => currentUser.storeIds.includes(store.id))
+  const userStores = currentUser?.storeIds
+    ? availableStores.filter((store) => currentUser.storeIds.includes(store.id))
     : [];
 
   const handleSelect = (store: Store) => {
@@ -23,7 +25,11 @@ const StoreSelector: React.FC = () => {
     setIsOpen(false);
   };
 
-  const handleGoalSave = (goals: { salesGoal: number; accessoryGoal: number; homeConnectGoal: number }) => {
+  const handleGoalSave = (goals: {
+    salesGoal: number;
+    accessoryGoal: number;
+    homeConnectGoal: number;
+  }) => {
     if (selectedStore) {
       updateStoreGoals(selectedStore.id, goals);
     }
@@ -32,14 +38,17 @@ const StoreSelector: React.FC = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -53,14 +62,19 @@ const StoreSelector: React.FC = () => {
           className="inline-flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           onClick={() => setIsOpen(!isOpen)}
         >
-          <StoreIcon size={18} className="mr-2 text-primary-600 dark:text-primary-400" />
+          <StoreIcon
+            size={18}
+            className="mr-2 text-primary-600 dark:text-primary-400"
+          />
           {selectedStore.name}
           <ChevronDown
             size={18}
-            className={`ml-2 transition-transform duration-200 ${isOpen ? 'transform rotate-180' : ''}`}
+            className={`ml-2 transition-transform duration-200 ${
+              isOpen ? "transform rotate-180" : ""
+            }`}
           />
         </button>
-        
+
         {isManager && (
           <button
             onClick={() => setIsGoalModalOpen(true)}
@@ -80,13 +94,15 @@ const StoreSelector: React.FC = () => {
                 key={store.id}
                 className={`w-full text-left block px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 ${
                   selectedStore.id === store.id
-                    ? 'text-primary-600 dark:text-primary-400 font-medium'
-                    : 'text-gray-700 dark:text-gray-200'
+                    ? "text-primary-600 dark:text-primary-400 font-medium"
+                    : "text-gray-700 dark:text-gray-200"
                 }`}
                 onClick={() => handleSelect(store)}
               >
                 {store.name}
-                <span className="block text-xs text-gray-500 dark:text-gray-400">{store.location}</span>
+                <span className="block text-xs text-gray-500 dark:text-gray-400">
+                  {store.location}
+                </span>
               </button>
             ))}
           </div>
