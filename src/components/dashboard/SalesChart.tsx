@@ -37,7 +37,7 @@ const SalesChart: React.FC<SalesChartProps> = ({
 }) => {
   const { timeFrame } = useDashboard();
   const { isDarkMode } = useTheme();
-  const chartRef = React.useRef<ChartJS>(null);
+  const chartRef = React.useRef<ChartJS<"line", number[], string> | null>(null);
 
   // Format data based on time frame
   const data = {
@@ -77,7 +77,7 @@ const SalesChart: React.FC<SalesChartProps> = ({
         bodyColor: "#334155",
         titleFont: {
           size: 14,
-          weight: "bold",
+          weight: "bold" as const,
         },
         bodyFont: {
           size: 14,

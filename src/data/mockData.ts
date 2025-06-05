@@ -156,9 +156,9 @@ export const mockCommissions: Commission[] = [
 export const mockDocuments: Document[] = [
   {
     id: '1',
-    name: 'Current Price Sheet - Q2 2025',
+    name: 'Current Price Sheet - 2025',
     category: 'price',
-    fileUrl: 'https://example.com/price-sheet-q2-2025.pdf',
+    fileUrl: 'https://example.com/price-sheet-2025.pdf',
     uploadedBy: '2',
     uploadedAt: '2025-04-01T10:00:00Z',
   },
@@ -177,14 +177,6 @@ export const mockDocuments: Document[] = [
     fileUrl: 'https://example.com/return-policy.pdf',
     uploadedBy: '2',
     uploadedAt: '2025-04-05T09:15:00Z',
-  },
-  {
-    id: '4',
-    name: 'Summer Schedule 2025',
-    category: 'schedule',
-    fileUrl: 'https://example.com/summer-schedule.pdf',
-    uploadedBy: '2',
-    uploadedAt: '2025-04-10T16:45:00Z',
   },
   {
     id: '5',
