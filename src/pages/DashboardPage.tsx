@@ -18,11 +18,34 @@ import {
 import { DailySales, MonthlySales } from "../types";
 
 const DashboardPage: React.FC = () => {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
   const { selectedStore, timeFrame } = useDashboard();
   const { currentUser } = useAuth();
   const [dailySales, setDailySales] = useState<DailySales[]>([]);
   const [monthlySales, setMonthlySales] = useState<MonthlySales[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const filteredDailySales =
+    timeFrame.period === "month"
+      ? dailySales.filter((sale) => {
+          const saleDate = new Date(`${now.getFullYear()} ${sale.date}`);
+          return (
+            saleDate.getMonth() === currentMonth &&
+            saleDate.getFullYear() === currentYear
+          );
+        })
+      : dailySales;
+
+  // Accumulate daily sales for the current month
+  function accumulateDailySales(dailySales: DailySales[]): DailySales[] {
+    let runningTotal = 0;
+    return dailySales.map((sale) => {
+      runningTotal += sale.amount;
+      return { ...sale, amount: runningTotal };
+    });
+  }
 
   useEffect(() => {
     if (selectedStore) {
@@ -45,7 +68,11 @@ const DashboardPage: React.FC = () => {
 
   const goalProgress = getGoalProgress(selectedStore.id);
   const projectedTotal = getSalesProjection(selectedStore.id);
-  const currentTotal = goalProgress.sales.current;
+  const accumulatedSales = accumulateDailySales(filteredDailySales);
+  const currentTotal =
+    accumulatedSales.length > 0
+      ? accumulatedSales[accumulatedSales.length - 1].amount
+      : 0;
   const userCommission = currentUser ? getUserCommission(currentUser.id) : null;
 
   return (
@@ -66,18 +93,18 @@ const DashboardPage: React.FC = () => {
 
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
-              <div className="md:col-span-2 bg-white rounded-lg shadow-md h-64"></div>
-              <div className="bg-white rounded-lg shadow-md h-64"></div>
-              <div className="bg-white rounded-lg shadow-md h-64"></div>
-              <div className="bg-white rounded-lg shadow-md h-64"></div>
-              <div className="bg-white rounded-lg shadow-md h-64"></div>
+              <div className="md:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-md h-64"></div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-64"></div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-64"></div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-64"></div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-64"></div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Sales Chart - 2/3 width on larger screens */}
               <div className="md:col-span-2 animate-slide-up">
                 <SalesChart
-                  dailySales={dailySales}
+                  dailySales={accumulateDailySales(filteredDailySales)}
                   monthlySales={monthlySales}
                 />
               </div>
@@ -111,6 +138,16 @@ const DashboardPage: React.FC = () => {
                 style={{ animationDelay: "0.3s" }}
               >
                 <CommissionWidget commission={userCommission} />
+              </div>
+
+              {/* Placeholder for additional content */}
+              <div
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-64 animate-slide-up"
+                style={{ animationDelay: "0.4s" }}
+              >
+                <h5 className="p-4 text-lg font-semibold text-gray-900 dark:text-white">
+                  Either leaderboard or daily sales excel like chart
+                </h5>
               </div>
             </div>
           )}

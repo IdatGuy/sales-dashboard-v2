@@ -47,27 +47,23 @@ export const mockStores: Store[] = [
 ];
 
 // Generate daily sales data for the current month
-const generateDailySales = (storeId: string, userId: string): Sale[] => {
+const generateDailySales = (storeId: string): Sale[] => {
   const sales: Sale[] = [];
   const today = new Date();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const currentDay = today.getDate();
-  
-  for (let day = 1; day <= currentDay; day++) {
-    // Only generate data up to the current day
-    const date = new Date(today.getFullYear(), today.getMonth(), day);
+  for (let i = 44; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
     const dateString = date.toISOString().split('T')[0];
-    
-    // Random daily sales between $1000 and $5000
-    const salesAmount = Math.floor(Math.random() * 4000) + 1000;
-    // Random accessory sales between $200 and $1000
-    const accessorySales = Math.floor(Math.random() * 800) + 200;
-    // Random home connects between 0 and 3
-    const homeConnects = Math.floor(Math.random() * 4);
-    
+    // Random daily sales between $800 and $3000
+    const salesAmount = Math.floor(Math.random() * (3000 - 800 + 1)) + 800;
+    // Random accessory sales between $0 and $250
+    const accessorySales = Math.floor(Math.random() * 251);
+    // Random home connects between 1 and 8
+    const homeConnects = Math.floor(Math.random() * 8) + 1;
+
     sales.push({
-      id: `${storeId}-${userId}-${dateString}`,
-      userId,
+      id: `${storeId}-${dateString}`,
+      userId: '', // Not used for store-level sales
       storeId,
       date: dateString,
       salesAmount,
@@ -75,55 +71,50 @@ const generateDailySales = (storeId: string, userId: string): Sale[] => {
       homeConnects,
     });
   }
-  
   return sales;
 };
 
-// Generate monthly sales data for the current year
-const generateMonthlySales = (storeId: string, userId: string): Sale[] => {
-  const sales: Sale[] = [];
-  const today = new Date();
-  const currentMonth = today.getMonth();
-  
-  for (let month = 0; month <= currentMonth; month++) {
-    // Only generate data up to the current month
-    const date = new Date(today.getFullYear(), month, 15);
-    const dateString = date.toISOString().split('T')[0];
-    
-    // Random monthly sales between $30000 and $100000
-    const salesAmount = Math.floor(Math.random() * 70000) + 30000;
-    // Random accessory sales between $6000 and $20000
-    const accessorySales = Math.floor(Math.random() * 14000) + 6000;
-    // Random home connects between 10 and 30
-    const homeConnects = Math.floor(Math.random() * 20) + 10;
-    
-    sales.push({
-      id: `${storeId}-${userId}-${month}`,
-      userId,
-      storeId,
-      date: dateString,
-      salesAmount,
-      accessorySales,
-      homeConnects,
-    });
-  }
-  
-  return sales;
+
+// Helper to group daily sales into monthly totals
+const groupMonthlySales = (dailySales: Sale[]): Sale[] => {
+  const monthlyMap: { [key: string]: Sale } = {};
+  dailySales.forEach((sale) => {
+    const monthKey = sale.date.slice(0, 7); // YYYY-MM
+    if (!monthlyMap[monthKey]) {
+      monthlyMap[monthKey] = {
+        id: `${sale.storeId}-${monthKey}`,
+        userId: '',
+        storeId: sale.storeId,
+        date: `${monthKey}-15`, // Use 15th as a placeholder
+        salesAmount: 0,
+        accessorySales: 0,
+        homeConnects: 0,
+      };
+    }
+    monthlyMap[monthKey].salesAmount += sale.salesAmount;
+    monthlyMap[monthKey].accessorySales += sale.accessorySales;
+    monthlyMap[monthKey].homeConnects += sale.homeConnects;
+  });
+  return Object.values(monthlyMap);
 };
 
-// Mock Sales
+// Generate all sales data per store
+const allDailySales: Sale[] = [
+  ...generateDailySales('1'),
+  ...generateDailySales('2'),
+  ...generateDailySales('3'),
+];
+
+const allMonthlySales: Sale[] = [
+  ...groupMonthlySales(allDailySales.filter(s => s.storeId === '1')),
+  ...groupMonthlySales(allDailySales.filter(s => s.storeId === '2')),
+  ...groupMonthlySales(allDailySales.filter(s => s.storeId === '3')),
+];
+
+// Mock Sales (daily + monthly)
 export const mockSales: Sale[] = [
-  // Employee sales for Store 1
-  ...generateDailySales('1', '1'),
-  ...generateMonthlySales('1', '1'),
-  
-  // Manager sales for all stores
-  ...generateDailySales('1', '2'),
-  ...generateDailySales('2', '2'),
-  ...generateDailySales('3', '2'),
-  ...generateMonthlySales('1', '2'),
-  ...generateMonthlySales('2', '2'),
-  ...generateMonthlySales('3', '2'),
+  ...allDailySales,
+  ...allMonthlySales,
 ];
 
 // Mock Commissions
@@ -190,17 +181,17 @@ export const mockDocuments: Document[] = [
 
 // Helper function to get daily sales data for a store
 export const getDailySalesData = (storeId: string): DailySales[] => {
-  const storeSales = mockSales.filter(sale => 
-    sale.storeId === storeId && 
-    sale.date.includes(new Date().toISOString().split('T')[0].substring(0, 7))
+  // Only include daily sales (not monthly aggregates)
+  const storeSales = mockSales.filter(
+    sale => sale.storeId === storeId && !(sale.date.endsWith('-15') && sale.userId === '')
   );
-  
+
   // Sort by date
   storeSales.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  
-  // Format for chart data
+
+  // Format for chart data (show month+day for clarity)
   return storeSales.map(sale => ({
-    date: new Date(sale.date).toLocaleDateString('en-US', { day: 'numeric' }),
+    date: new Date(sale.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     amount: sale.salesAmount,
   }));
 };
@@ -286,18 +277,28 @@ export const getSalesProjection = (storeId: string): number => {
   const currentYear = today.getFullYear();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const currentDay = today.getDate();
-  
-  const storeSales = mockSales.filter(sale => 
-    sale.storeId === storeId && 
-    sale.date.includes(`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`)
-  );
-  
+
+  // Only include sales up to today in the current month
+  const storeSales = mockSales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    return (
+      sale.storeId === storeId &&
+      saleDate.getFullYear() === currentYear &&
+      saleDate.getMonth() === currentMonth &&
+      saleDate.getDate() <= currentDay
+    );
+  });
+
   const totalSales = storeSales.reduce((sum, sale) => sum + sale.salesAmount, 0);
-  
-  // Calculate daily average and project for whole month
+
+  // Avoid division by zero
+  if (currentDay === 0) return 0;
+
+  // Project based on average daily sales so far, for the rest of the month
   const dailyAverage = totalSales / currentDay;
-  const projection = dailyAverage * daysInMonth;
-  
+  const remainingDays = daysInMonth - currentDay;
+  const projection = totalSales + dailyAverage * remainingDays;
+
   return Math.round(projection);
 };
 
