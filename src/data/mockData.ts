@@ -70,31 +70,6 @@ const generateDailySales = (storeId: string): Sale[] => {
   return sales;
 };
 
-
-// Helper to group daily sales into monthly totals
-const groupMonthlySales = (dailySales: Sale[]): Sale[] => {
-  const monthlyMap: { [key: string]: Sale } = {};
-  dailySales.forEach((sale) => {
-    const monthKey = sale.date.slice(0, 7); // YYYY-MM
-    if (!monthlyMap[monthKey]) {
-      monthlyMap[monthKey] = {
-        id: `${sale.storeId}-${monthKey}`,
-        storeId: sale.storeId,
-        date: `${monthKey}-15`, // Use 15th as a placeholder
-        salesAmount: 0,
-        accessorySales: 0,
-        homeConnects: 0,
-        cleanings: 0,
-        repairs: 0,
-      };
-    }
-    monthlyMap[monthKey].salesAmount += sale.salesAmount;
-    monthlyMap[monthKey].accessorySales += sale.accessorySales;
-    monthlyMap[monthKey].homeConnects += sale.homeConnects;
-  });
-  return Object.values(monthlyMap);
-};
-
 // Generate all sales data per store
 const allDailySales: Sale[] = [
   ...generateDailySales('1'),
@@ -102,16 +77,9 @@ const allDailySales: Sale[] = [
   ...generateDailySales('3'),
 ];
 
-const allMonthlySales: Sale[] = [
-  ...groupMonthlySales(allDailySales.filter(s => s.storeId === '1')),
-  ...groupMonthlySales(allDailySales.filter(s => s.storeId === '2')),
-  ...groupMonthlySales(allDailySales.filter(s => s.storeId === '3')),
-];
-
-// Mock Sales (daily + monthly)
+// Mock Sales (daily)
 export const mockSales: Sale[] = [
   ...allDailySales,
-  ...allMonthlySales,
 ];
 
 // Mock Commissions

@@ -59,23 +59,36 @@ const SalesChart: React.FC<SalesChartProps> = ({ sales = [] }) => {
   let data, ChartComponent;
   if (timeFrame.period === "day") {
     ChartComponent = Bar;
+    // Only show the most recent day
+    const mostRecent =
+      displaySales.length > 0 ? [displaySales[displaySales.length - 1]] : [];
     data = {
-      labels: displaySales.map((sale) => sale.date),
+      labels: mostRecent.map((sale) => sale.date),
       datasets: [
         {
           label: "Sales",
-          data: displaySales.map((sale) => sale.salesAmount),
+          data: mostRecent.map((sale) => sale.salesAmount),
           backgroundColor: isDarkMode ? "#38bdf8" : "#2563eb",
         },
         {
           label: "Accessory Sales",
-          data: displaySales.map((sale) => sale.accessorySales ?? 0),
+          data: mostRecent.map((sale) => sale.accessorySales ?? 0),
           backgroundColor: isDarkMode ? "#fbbf24" : "#f59e42",
         },
         {
           label: "Home Connects",
-          data: displaySales.map((sale) => sale.homeConnects ?? 0),
+          data: mostRecent.map((sale) => sale.homeConnects ?? 0),
           backgroundColor: isDarkMode ? "#34d399" : "#059669",
+        },
+        {
+          label: "Cleanings",
+          data: mostRecent.map((sale) => sale.cleanings ?? 0),
+          backgroundColor: isDarkMode ? "#f87171" : "#ef4444",
+        },
+        {
+          label: "Repairs",
+          data: mostRecent.map((sale) => sale.repairs ?? 0),
+          backgroundColor: isDarkMode ? "#a78bfa" : "#8b5cf6",
         },
       ],
     };
@@ -182,7 +195,7 @@ const SalesChart: React.FC<SalesChartProps> = ({ sales = [] }) => {
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
           {timeFrame.label} Sales
         </h3>
-        {(timeFrame.period === "month" || timeFrame.period === "year") && (
+        {timeFrame.period === "day" && (
           <label className="flex items-center space-x-2 text-sm">
             <input
               type="checkbox"
