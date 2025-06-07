@@ -3,6 +3,7 @@ import { useDashboard } from "../context/DashboardContext";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/common/Navbar";
 import StoreSelector from "../components/common/StoreSelector";
+import PeriodNavigator from "../components/common/PeriodNavigator";
 import TimeFrameToggle from "../components/common/TimeFrameToggle";
 import SalesChart from "../components/dashboard/SalesChart";
 import GoalsProgress from "../components/dashboard/GoalsProgress";
@@ -78,6 +79,11 @@ const DashboardPage: React.FC = () => {
               Sales Dashboard
             </h1>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+              <PeriodNavigator
+                label="June 2025"
+                onPrev={() => {}}
+                onNext={() => {}}
+              />
               <TimeFrameToggle />
               <StoreSelector />
             </div>
