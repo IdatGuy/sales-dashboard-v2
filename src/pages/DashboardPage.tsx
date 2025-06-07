@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { useDashboard } from "../context/DashboardContext";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/common/Navbar";
@@ -13,62 +13,69 @@ import {
   getGoalProgress,
   getSalesProjection,
   getUserCommission,
-  getStoreDailySales,
-  getStoreMonthlySales,
 } from "../data/mockData";
-import { Sale } from "../types";
 
 const DashboardPage: React.FC = () => {
-  const now = new Date();
-  const { selectedStore, timeFrame } = useDashboard();
+  const {
+    selectedStore,
+    timeFrame,
+    currentDate,
+    handlePrev,
+    handleNext,
+    getSalesForPeriod,
+    isLoading,
+  } = useDashboard();
   const { currentUser } = useAuth();
-  const [dailySales, setDailySales] = useState<Sale[]>([]);
-  const [monthlySales, setMonthlySales] = useState<Sale[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Get the current month in "YYYY-MM" format
-  const currentMonthStr = now.toISOString().slice(0, 7);
-  const currentYearStr = now.getFullYear().toString();
-
-  useEffect(() => {
-    if (selectedStore) {
-      setIsLoading(true);
-
-      const timer = setTimeout(() => {
-        setDailySales(getStoreDailySales(selectedStore.id, currentMonthStr));
-        setMonthlySales(getStoreMonthlySales(selectedStore.id, currentYearStr));
-        setIsLoading(false);
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [selectedStore, currentMonthStr, currentYearStr]);
 
   if (!selectedStore) {
     return <div>Loading...</div>;
   }
 
-  // For daily/accumulated view, you can use the accumulateDailySales helper if needed
-  // Example: const accumulatedSales = accumulateDailySales(dailySales);
+  // Get filtered sales data for the current period
+  const salesData = getSalesForPeriod();
 
-  // Filter daily sales for the current month if needed (already done in getStoreDailySales)
-  const filteredDailySales = dailySales;
+  // Memoize expensive calculations
+  const goalProgress = useMemo(() => {
+    const goalYear = currentDate.getFullYear();
+    const goalMonth = currentDate.getMonth() + 1;
+    const currentMonthStrForGoals = `${goalYear}-${goalMonth
+      .toString()
+      .padStart(2, "0")}`;
+    return getGoalProgress(selectedStore.id, currentMonthStrForGoals);
+  }, [selectedStore, currentDate]);
 
-  // For SalesChart, pass the correct data based on timeFrame
-  let salesData: Sale[] = [];
-  if (timeFrame.period === "day" || timeFrame.period === "month") {
-    salesData = filteredDailySales;
-  } else if (timeFrame.period === "year") {
-    salesData = monthlySales;
-  }
-
-  const goalProgress = getGoalProgress(selectedStore.id, currentMonthStr);
-  const projectedTotal = getSalesProjection(selectedStore.id);
-  const currentTotal = salesData.reduce(
-    (sum, sale) => sum + sale.salesAmount,
-    0
+  const projectedTotal = useMemo(
+    () => getSalesProjection(selectedStore.id),
+    [selectedStore]
   );
-  const userCommission = currentUser ? getUserCommission(currentUser.id) : null;
+
+  const currentTotal = useMemo(
+    () => salesData.reduce((sum, sale) => sum + sale.salesAmount, 0),
+    [salesData]
+  );
+
+  const userCommission = useMemo(
+    () => (currentUser ? getUserCommission(currentUser.id) : null),
+    [currentUser]
+  );
+
+  const periodLabel = useMemo(() => {
+    if (timeFrame.period === "day") {
+      return currentDate.toLocaleString("default", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } else if (timeFrame.period === "month") {
+      return currentDate.toLocaleString("default", {
+        month: "long",
+        year: "numeric",
+      });
+    } else if (timeFrame.period === "year") {
+      return currentDate.getFullYear().toString();
+    }
+    return "";
+  }, [timeFrame.period, currentDate]);
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -82,9 +89,9 @@ const DashboardPage: React.FC = () => {
             </h1>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
               <PeriodNavigator
-                label="June 2025"
-                onPrev={() => {}}
-                onNext={() => {}}
+                label={periodLabel}
+                onPrev={handlePrev}
+                onNext={handleNext}
               />
               <TimeFrameToggle />
               <StoreSelector />

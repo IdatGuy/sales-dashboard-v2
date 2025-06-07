@@ -32,7 +32,7 @@ interface SalesChartProps {
   sales: Sale[];
 }
 
-const SalesChart: React.FC<SalesChartProps> = ({ sales = [] }) => {
+const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
   const { timeFrame } = useDashboard();
   const { isDarkMode } = useTheme();
   const [showAccumulated, setShowAccumulated] = useState(true);
@@ -283,6 +283,6 @@ const SalesChart: React.FC<SalesChartProps> = ({ sales = [] }) => {
       </div>
     </div>
   );
-};
+});
 
 export default SalesChart;

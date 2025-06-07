@@ -63,3 +63,8 @@ export interface TimeFrame {
   period: 'day' | 'month' | 'year';
   label: string;
 }
+
+export interface CacheEntry<T = Sale[]> {
+  data: T;
+  timestamp: number;
+}
