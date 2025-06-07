@@ -64,8 +64,10 @@ const DashboardPage: React.FC = () => {
 
   const goalProgress = getGoalProgress(selectedStore.id, currentMonthStr);
   const projectedTotal = getSalesProjection(selectedStore.id);
-  const currentTotal =
-    salesData.length > 0 ? salesData[salesData.length - 1].salesAmount : 0;
+  const currentTotal = salesData.reduce(
+    (sum, sale) => sum + sale.salesAmount,
+    0
+  );
   const userCommission = currentUser ? getUserCommission(currentUser.id) : null;
 
   return (

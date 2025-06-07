@@ -59,23 +59,40 @@ const SalesChart: React.FC<SalesChartProps> = ({ sales = [] }) => {
   let data, ChartComponent;
   if (timeFrame.period === "day") {
     ChartComponent = Bar;
+    const mostRecent =
+      displaySales.length > 0 ? [displaySales[displaySales.length - 1]] : [];
     data = {
-      labels: displaySales.map((sale) => sale.date),
+      labels: mostRecent.map((sale) => sale.date),
       datasets: [
         {
           label: "Sales",
-          data: displaySales.map((sale) => sale.salesAmount),
+          data: mostRecent.map((sale) => sale.salesAmount),
           backgroundColor: isDarkMode ? "#38bdf8" : "#2563eb",
+          yAxisID: "y-dollars",
         },
         {
           label: "Accessory Sales",
-          data: displaySales.map((sale) => sale.accessorySales ?? 0),
+          data: mostRecent.map((sale) => sale.accessorySales ?? 0),
           backgroundColor: isDarkMode ? "#fbbf24" : "#f59e42",
+          yAxisID: "y-dollars",
         },
         {
           label: "Home Connects",
-          data: displaySales.map((sale) => sale.homeConnects ?? 0),
+          data: mostRecent.map((sale) => sale.homeConnects ?? 0),
           backgroundColor: isDarkMode ? "#34d399" : "#059669",
+          yAxisID: "y-counts",
+        },
+        {
+          label: "Cleanings",
+          data: mostRecent.map((sale) => sale.cleanings ?? 0),
+          backgroundColor: isDarkMode ? "#f87171" : "#ef4444",
+          yAxisID: "y-counts",
+        },
+        {
+          label: "Repairs",
+          data: mostRecent.map((sale) => sale.repairs ?? 0),
+          backgroundColor: isDarkMode ? "#a78bfa" : "#8b5cf6",
+          yAxisID: "y-counts",
         },
       ],
     };
@@ -97,10 +114,81 @@ const SalesChart: React.FC<SalesChartProps> = ({ sales = [] }) => {
           pointBackgroundColor: isDarkMode ? "#38bdf8" : "#2563eb",
           pointBorderColor: "white",
           pointBorderWidth: 2,
+          // yAxisID: "y-dollars", // Ensure this is not set or set to the single y-axis
         },
       ],
     };
   }
+
+  const baseScales = {
+    x: {
+      grid: { display: false },
+      ticks: { color: isDarkMode ? "#cbd5e1" : "#64748b" },
+    },
+  };
+
+  const scalesConfig =
+    timeFrame.period === "day"
+      ? {
+          ...baseScales,
+          "y-dollars": {
+            type: "linear" as const,
+            position: "left" as const,
+            beginAtZero: true,
+            grid: {
+              color: isDarkMode
+                ? "rgba(51, 65, 85, 0.5)"
+                : "rgba(203, 213, 225, 0.5)",
+            },
+            ticks: {
+              color: isDarkMode ? "#cbd5e1" : "#64748b",
+              callback: (value: any) => `$${value.toLocaleString()}`,
+            },
+            title: {
+              display: true,
+              text: "Dollars",
+              color: isDarkMode ? "#cbd5e1" : "#64748b",
+            },
+          },
+          "y-counts": {
+            type: "linear" as const,
+            position: "right" as const,
+            beginAtZero: true,
+            grid: { display: false }, // Keep grid lines off for the secondary axis for clarity
+            ticks: {
+              color: isDarkMode ? "#cbd5e1" : "#64748b",
+              callback: (value: any) => value.toLocaleString(),
+            },
+            title: {
+              display: true,
+              text: "Count",
+              color: isDarkMode ? "#cbd5e1" : "#64748b",
+            },
+          },
+        }
+      : {
+          ...baseScales,
+          y: {
+            // Single Y-axis for month/year view
+            type: "linear" as const,
+            position: "left" as const,
+            beginAtZero: true,
+            grid: {
+              color: isDarkMode
+                ? "rgba(51, 65, 85, 0.5)"
+                : "rgba(203, 213, 225, 0.5)",
+            },
+            ticks: {
+              color: isDarkMode ? "#cbd5e1" : "#64748b",
+              callback: (value: any) => `$${value.toLocaleString()}`,
+            },
+            title: {
+              display: true,
+              text: "Sales Amount",
+              color: isDarkMode ? "#cbd5e1" : "#64748b",
+            },
+          },
+        };
 
   const options = {
     responsive: true,
@@ -130,37 +218,28 @@ const SalesChart: React.FC<SalesChartProps> = ({ sales = [] }) => {
         displayColors: true,
         callbacks: {
           label: function (context: any) {
-            return `${
-              context.dataset.label
-            }: ${context.parsed.y.toLocaleString()}`;
+            let label = context.dataset.label || "";
+            if (label) {
+              label += ": ";
+            }
+            if (context.parsed.y !== null) {
+              // For month/year view, or y-dollars in day view
+              if (
+                context.dataset.yAxisID === "y-dollars" ||
+                (!context.dataset.yAxisID && timeFrame.period !== "day")
+              ) {
+                label += `$${context.parsed.y.toLocaleString()}`;
+              } else {
+                // For y-counts in day view
+                label += context.parsed.y.toLocaleString();
+              }
+            }
+            return label;
           },
         },
       },
     },
-    scales: {
-      x: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          color: isDarkMode ? "#cbd5e1" : "#64748b",
-        },
-      },
-      y: {
-        beginAtZero: true,
-        grid: {
-          color: isDarkMode
-            ? "rgba(51, 65, 85, 0.5)"
-            : "rgba(203, 213, 225, 0.5)",
-        },
-        ticks: {
-          color: isDarkMode ? "#cbd5e1" : "#64748b",
-          callback: function (value: any) {
-            return value.toLocaleString();
-          },
-        },
-      },
-    },
+    scales: scalesConfig,
     interaction: {
       mode: "index" as const,
       intersect: false,
@@ -183,7 +262,7 @@ const SalesChart: React.FC<SalesChartProps> = ({ sales = [] }) => {
           {timeFrame.label} Sales
         </h3>
         {(timeFrame.period === "month" || timeFrame.period === "year") && (
-          <label className="flex items-center space-x-2 text-sm">
+          <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
             <input
               type="checkbox"
               checked={showAccumulated}
@@ -198,7 +277,7 @@ const SalesChart: React.FC<SalesChartProps> = ({ sales = [] }) => {
         <ChartComponent
           ref={chartRef as any}
           data={data}
-          options={options}
+          options={options as any}
           className="animate-fade-in"
         />
       </div>
