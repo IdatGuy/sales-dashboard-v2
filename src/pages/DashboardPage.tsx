@@ -9,70 +9,62 @@ import GoalsProgress from "../components/dashboard/GoalsProgress";
 import SalesProjection from "../components/dashboard/SalesProjection";
 import CommissionWidget from "../components/dashboard/CommissionWidget";
 import {
-  getDailySalesData,
-  getMonthlySalesData,
   getGoalProgress,
   getSalesProjection,
   getUserCommission,
+  getStoreDailySales,
+  getStoreMonthlySales,
 } from "../data/mockData";
-import { DailySales, MonthlySales } from "../types";
+import { Sale } from "../types";
 
 const DashboardPage: React.FC = () => {
   const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
   const { selectedStore, timeFrame } = useDashboard();
   const { currentUser } = useAuth();
-  const [dailySales, setDailySales] = useState<DailySales[]>([]);
-  const [monthlySales, setMonthlySales] = useState<MonthlySales[]>([]);
+  const [dailySales, setDailySales] = useState<Sale[]>([]);
+  const [monthlySales, setMonthlySales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const filteredDailySales =
-    timeFrame.period === "month"
-      ? dailySales.filter((sale) => {
-          const saleDate = new Date(`${now.getFullYear()} ${sale.date}`);
-          return (
-            saleDate.getMonth() === currentMonth &&
-            saleDate.getFullYear() === currentYear
-          );
-        })
-      : dailySales;
-
-  // Accumulate daily sales for the current month
-  function accumulateDailySales(dailySales: DailySales[]): DailySales[] {
-    let runningTotal = 0;
-    return dailySales.map((sale) => {
-      runningTotal += sale.amount;
-      return { ...sale, amount: runningTotal };
-    });
-  }
+  // Get the current month in "YYYY-MM" format
+  const currentMonthStr = now.toISOString().slice(0, 7);
+  const currentYearStr = now.getFullYear().toString();
 
   useEffect(() => {
     if (selectedStore) {
       setIsLoading(true);
 
-      // Simulate API fetch delay
       const timer = setTimeout(() => {
-        setDailySales(getDailySalesData(selectedStore.id));
-        setMonthlySales(getMonthlySalesData(selectedStore.id));
+        setDailySales(getStoreDailySales(selectedStore.id, currentMonthStr));
+        setMonthlySales(getStoreMonthlySales(selectedStore.id, currentYearStr));
         setIsLoading(false);
       }, 500);
 
       return () => clearTimeout(timer);
     }
-  }, [selectedStore]);
+  }, [selectedStore, currentMonthStr, currentYearStr]);
 
   if (!selectedStore) {
     return <div>Loading...</div>;
   }
 
-  const goalProgress = getGoalProgress(selectedStore.id);
+  // For daily/accumulated view, you can use the accumulateDailySales helper if needed
+  // Example: const accumulatedSales = accumulateDailySales(dailySales);
+
+  // Filter daily sales for the current month if needed (already done in getStoreDailySales)
+  const filteredDailySales = dailySales;
+
+  // For SalesChart, pass the correct data based on timeFrame
+  let salesData: Sale[] = [];
+  if (timeFrame.period === "day" || timeFrame.period === "month") {
+    salesData = filteredDailySales;
+  } else if (timeFrame.period === "year") {
+    salesData = monthlySales;
+  }
+
+  const goalProgress = getGoalProgress(selectedStore.id, currentMonthStr);
   const projectedTotal = getSalesProjection(selectedStore.id);
-  const accumulatedSales = accumulateDailySales(filteredDailySales);
   const currentTotal =
-    accumulatedSales.length > 0
-      ? accumulatedSales[accumulatedSales.length - 1].amount
-      : 0;
+    salesData.length > 0 ? salesData[salesData.length - 1].salesAmount : 0;
   const userCommission = currentUser ? getUserCommission(currentUser.id) : null;
 
   return (
@@ -103,10 +95,7 @@ const DashboardPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Sales Chart - 2/3 width on larger screens */}
               <div className="md:col-span-2 animate-slide-up">
-                <SalesChart
-                  dailySales={accumulateDailySales(filteredDailySales)}
-                  monthlySales={monthlySales}
-                />
+                <SalesChart sales={salesData} />
               </div>
 
               {/* Sales Projection - 1/3 width */}
@@ -126,7 +115,6 @@ const DashboardPage: React.FC = () => {
                 style={{ animationDelay: "0.2s" }}
               >
                 <GoalsProgress
-                  salesProgress={goalProgress.sales}
                   accessoryProgress={goalProgress.accessory}
                   homeConnectProgress={goalProgress.homeConnect}
                 />

@@ -10,9 +10,6 @@ export interface Store {
   id: string;
   name: string;
   location: string;
-  salesGoal: number;
-  accessoryGoal: number;
-  homeConnectGoal: number;
 }
 
 export interface StoreGoal {
@@ -26,12 +23,13 @@ export interface StoreGoal {
 
 export interface Sale {
   id: string;
-  userId: string;
   storeId: string;
   date: string;
   salesAmount: number;
   accessorySales: number;
   homeConnects: number;
+  cleanings: number; // New property for cleanings
+  repairs: number; // New property for repairs
 }
 
 export interface Commission {
@@ -40,9 +38,9 @@ export interface Commission {
   month: string;
   total: number;
   breakdown: {
-    base: number;
-    bonus: number;
-    incentives: number;
+    accessorySales: number; // New property for accessory sales
+    homeConnects: number; // New property for Home Connect sales
+    residuals: number; // New property for residuals
   };
 }
 
@@ -55,16 +53,6 @@ export interface Document {
   uploadedAt: string;
 }
 
-export interface DailySales {
-  date: string;
-  amount: number;
-}
-
-export interface MonthlySales {
-  month: string;
-  amount: number;
-}
-
 export interface GoalProgress {
   current: number;
   goal: number;
@@ -72,6 +60,6 @@ export interface GoalProgress {
 }
 
 export interface TimeFrame {
-  period: 'month' | 'year';
+  period: 'day' | 'month' | 'year';
   label: string;
 }

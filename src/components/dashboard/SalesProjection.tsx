@@ -1,4 +1,5 @@
 import React from "react";
+import ProgressBar from "../common/ProgressBar";
 import { TrendingUp } from "lucide-react";
 import { useDashboard } from "../../context/DashboardContext";
 
@@ -14,17 +15,20 @@ const SalesProjection: React.FC<SalesProjectionProps> = ({
   const { timeFrame } = useDashboard();
 
   // Calculate percentage of goal (this would come from your data)
-  const targetGoal = 100000; // Example goal
-  const percentageOfGoal = Math.round((projectedTotal / targetGoal) * 100);
+  const targetGoal = 53000; // Example goal
+  const projectedSalesPercentage = Math.round(
+    (projectedTotal / targetGoal) * 100
+  );
+  const currentSalesPercentage = Math.round((currentTotal / targetGoal) * 100);
 
   // Determine if we're on track, behind, or ahead
   let statusColor = "text-warning-500";
   let statusText = "On Track";
 
-  if (percentageOfGoal >= 110) {
+  if (projectedSalesPercentage >= 110) {
     statusColor = "text-success-500";
     statusText = "Ahead of Goal";
-  } else if (percentageOfGoal < 90) {
+  } else if (projectedSalesPercentage < 90) {
     statusColor = "text-error-500";
     statusText = "Behind Goal";
   }
@@ -62,27 +66,16 @@ const SalesProjection: React.FC<SalesProjectionProps> = ({
           </p>
         </div>
       </div>
-
-      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500 dark:text-gray-300">
-            Goal Progress
-          </span>
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-            {percentageOfGoal}%
-          </span>
-        </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2.5 mt-1">
-          <div
-            className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${
-              percentageOfGoal >= 100
-                ? "bg-success-500 dark:bg-success-400"
-                : percentageOfGoal >= 90
-                ? "bg-warning-500 dark:bg-warning-400"
-                : "bg-error-500 dark:bg-error-400"
-            }`}
-            style={{ width: `${Math.min(100, percentageOfGoal)}%` }}
-          ></div>
+      <div className="my-4" />
+      <div>
+        <ProgressBar
+          percentage={currentSalesPercentage}
+          label="Sales Goal"
+          color="bg-secondary-500 dark:bg-secondary-400"
+        />
+        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-300 mt-1">
+          <span>${currentTotal.toLocaleString()}</span>
+          <span>${targetGoal.toLocaleString()}</span>
         </div>
       </div>
     </div>

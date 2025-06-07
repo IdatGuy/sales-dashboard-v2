@@ -1,4 +1,4 @@
-import { User, Store, Sale, Commission, Document, DailySales, MonthlySales } from '../types';
+import { User, Store, StoreGoal, Sale, Commission, Document } from '../types';
 
 // Mock Users
 export const mockUsers: User[] = [
@@ -24,25 +24,16 @@ export const mockStores: Store[] = [
     id: '1',
     name: 'Downtown Store',
     location: '123 Main St',
-    salesGoal: 60000,
-    accessoryGoal: 2500,
-    homeConnectGoal: 30,
   },
   {
     id: '2',
     name: 'Westside Location',
     location: '456 West Ave',
-    salesGoal: 38000,
-    accessoryGoal: 1000,
-    homeConnectGoal: 15,
   },
   {
     id: '3',
     name: 'Eastside Branch',
     location: '789 East Blvd',
-    salesGoal: 53000,
-    accessoryGoal: 2500,
-    homeConnectGoal: 15,
   },
 ];
 
@@ -60,15 +51,20 @@ const generateDailySales = (storeId: string): Sale[] => {
     const accessorySales = Math.floor(Math.random() * 251);
     // Random home connects between 1 and 8
     const homeConnects = Math.floor(Math.random() * 8) + 1;
+    // Random cleanings between 0 and 6
+    const cleanings = Math.floor(Math.random() * 7);
+    // Random repairs between 10 and 25
+    const repairs = Math.floor(Math.random() * (25 - 10 + 1)) + 10;
 
     sales.push({
       id: `${storeId}-${dateString}`,
-      userId: '', // Not used for store-level sales
       storeId,
       date: dateString,
       salesAmount,
       accessorySales,
       homeConnects,
+      cleanings,
+      repairs,
     });
   }
   return sales;
@@ -83,12 +79,13 @@ const groupMonthlySales = (dailySales: Sale[]): Sale[] => {
     if (!monthlyMap[monthKey]) {
       monthlyMap[monthKey] = {
         id: `${sale.storeId}-${monthKey}`,
-        userId: '',
         storeId: sale.storeId,
         date: `${monthKey}-15`, // Use 15th as a placeholder
         salesAmount: 0,
         accessorySales: 0,
         homeConnects: 0,
+        cleanings: 0,
+        repairs: 0,
       };
     }
     monthlyMap[monthKey].salesAmount += sale.salesAmount;
@@ -122,23 +119,14 @@ export const mockCommissions: Commission[] = [
   {
     id: '1',
     userId: '1',
-    month: new Date().toISOString().split('T')[0].substring(0, 7), // Current month in YYYY-MM format
-    total: 3500,
-    breakdown: {
-      base: 2000,
-      bonus: 1000,
-      incentives: 500,
-    },
-  },
-  {
-    id: '2',
-    userId: '2',
     month: new Date().toISOString().split('T')[0].substring(0, 7),
-    total: 5200,
     breakdown: {
-      base: 3000,
-      bonus: 1500,
-      incentives: 700,
+      accessorySales: 60,
+      homeConnects: 40,
+      residuals: 20,
+    },
+    get total() {
+      return this.breakdown.accessorySales + this.breakdown.homeConnects + this.breakdown.residuals;
     },
   },
 ];
@@ -179,88 +167,130 @@ export const mockDocuments: Document[] = [
   },
 ];
 
-// Helper function to get daily sales data for a store
-export const getDailySalesData = (storeId: string): DailySales[] => {
-  // Only include daily sales (not monthly aggregates)
-  const storeSales = mockSales.filter(
-    sale => sale.storeId === storeId && !(sale.date.endsWith('-15') && sale.userId === '')
-  );
-
-  // Sort by date
-  storeSales.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  // Format for chart data (show month+day for clarity)
-  return storeSales.map(sale => ({
-    date: new Date(sale.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    amount: sale.salesAmount,
-  }));
-};
-
-// Helper function to get monthly sales data for a store
-export const getMonthlySalesData = (storeId: string): MonthlySales[] => {
-  const currentYear = new Date().getFullYear();
-  const storeSales = mockSales.filter(sale => 
-    sale.storeId === storeId && 
-    sale.date.includes(currentYear.toString())
-  );
-  
-  // Group by month
-  const monthlyData: { [key: string]: number } = {};
-  storeSales.forEach(sale => {
-    const month = new Date(sale.date).getMonth();
-    if (!monthlyData[month]) {
-      monthlyData[month] = 0;
-    }
-    monthlyData[month] += sale.salesAmount;
+// Helper to accumulate daily sales
+function accumulateDailySales(sales: Sale[]): Sale[] {
+  let runningTotal = 0;
+  return sales.map((sale) => {
+    runningTotal += sale.salesAmount;
+    return { ...sale, salesAmount: runningTotal };
   });
-  
-  // Format for chart data
-  return Object.entries(monthlyData).map(([month, amount]) => ({
-    month: new Date(currentYear, parseInt(month), 1).toLocaleDateString('en-US', { month: 'short' }),
-    amount,
-  }));
+}
+
+// Get daily sales for a store and month, optionally accumulated
+export const getStoreDailySales = (
+  storeId: string,
+  month: string, // "YYYY-MM"
+  accumulated: boolean = false
+): Sale[] => {
+  const dailySales = mockSales
+    .filter(
+      sale =>
+        sale.storeId === storeId &&
+        sale.date.startsWith(month) &&
+        sale.date.length === 10 // ensure it's a daily sale, not monthly aggregate
+    )
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  return accumulated ? accumulateDailySales(dailySales) : dailySales;
 };
+
+// Get monthly sales for a store and year
+export const getStoreMonthlySales = (
+  storeId: string,
+  year?: string // "YYYY"
+): Sale[] => {
+  const yearStr = year || new Date().getFullYear().toString();
+  const sales = mockSales.filter(
+    sale =>
+      sale.storeId === storeId &&
+      sale.date.startsWith(yearStr) &&
+      sale.date.length === 10 // only daily sales
+  );
+
+  const monthlyMap: { [key: string]: Sale } = {};
+
+  sales.forEach(sale => {
+    const monthKey = sale.date.slice(0, 7); // YYYY-MM
+    if (!monthlyMap[monthKey]) {
+      monthlyMap[monthKey] = {
+        id: `${storeId}-${monthKey}`,
+        storeId,
+        date: `${monthKey}-01`,
+        salesAmount: 0,
+        accessorySales: 0,
+        homeConnects: 0,
+        cleanings: 0,
+        repairs: 0,
+      };
+    }
+    monthlyMap[monthKey].salesAmount += sale.salesAmount;
+    monthlyMap[monthKey].accessorySales += sale.accessorySales;
+    monthlyMap[monthKey].homeConnects += sale.homeConnects;
+    monthlyMap[monthKey].cleanings += sale.cleanings;
+    monthlyMap[monthKey].repairs += sale.repairs;
+  });
+
+  return Object.values(monthlyMap).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+};
+
+// Example mock goals (add this near your other mock data)
+export const mockStoreGoals: StoreGoal[] = [
+  {
+    id: 'goal-1-2025-06',
+    storeId: '1',
+    month: '2025-06',
+    salesGoal: 100000,
+    accessoryGoal: 15000,
+    homeConnectGoal: 80,
+  },
+  {
+    id: 'goal-2-2025-06',
+    storeId: '2',
+    month: '2025-06',
+    salesGoal: 90000,
+    accessoryGoal: 12000,
+    homeConnectGoal: 60,
+  },
+];
 
 // Helper to get goal progress for a store
-export const getGoalProgress = (storeId: string): { 
-  sales: GoalProgress; 
-  accessory: GoalProgress; 
-  homeConnect: GoalProgress; 
+export const getGoalProgress = (storeId: string, month?: string): {
+  sales: GoalProgress;
+  accessory: GoalProgress;
+  homeConnect: GoalProgress;
 } => {
-  const store = mockStores.find(s => s.id === storeId);
-  if (!store) {
-    return {
-      sales: { current: 0, goal: 0, percentage: 0 },
-      accessory: { current: 0, goal: 0, percentage: 0 },
-      homeConnect: { current: 0, goal: 0, percentage: 0 },
-    };
-  }
-  
-  const currentMonth = new Date().toISOString().split('T')[0].substring(0, 7);
-  const storeSales = mockSales.filter(sale => 
-    sale.storeId === storeId && 
-    sale.date.includes(currentMonth)
+  // Default to current month if not provided
+  const targetMonth = month || new Date().toISOString().slice(0, 7);
+
+  // Find the goal for this store and month
+  const goal = mockStoreGoals.find(
+    (g) => g.storeId === storeId && g.month === targetMonth
   );
-  
+
+  // Get sales for this store and month
+  const storeSales = mockSales.filter(
+    (sale) => sale.storeId === storeId && sale.date.startsWith(targetMonth)
+  );
+
   const totalSales = storeSales.reduce((sum, sale) => sum + sale.salesAmount, 0);
   const totalAccessory = storeSales.reduce((sum, sale) => sum + sale.accessorySales, 0);
   const totalHomeConnect = storeSales.reduce((sum, sale) => sum + sale.homeConnects, 0);
-  
+
   return {
     sales: {
       current: totalSales,
-      goal: store.salesGoal,
-      percentage: Math.min(100, Math.round((totalSales / store.salesGoal) * 100)),
+      goal: goal?.salesGoal ?? 0,
+      percentage: goal ? Math.min(100, Math.round((totalSales / goal.salesGoal) * 100)) : 0,
     },
     accessory: {
       current: totalAccessory,
-      goal: store.accessoryGoal,
-      percentage: Math.min(100, Math.round((totalAccessory / store.accessoryGoal) * 100)),
+      goal: goal?.accessoryGoal ?? 0,
+      percentage: goal ? Math.min(100, Math.round((totalAccessory / goal.accessoryGoal) * 100)) : 0,
     },
     homeConnect: {
       current: totalHomeConnect,
-      goal: store.homeConnectGoal,
-      percentage: Math.min(100, Math.round((totalHomeConnect / store.homeConnectGoal) * 100)),
+      goal: goal?.homeConnectGoal ?? 0,
+      percentage: goal ? Math.min(100, Math.round((totalHomeConnect / goal.homeConnectGoal) * 100)) : 0,
     },
   };
 };

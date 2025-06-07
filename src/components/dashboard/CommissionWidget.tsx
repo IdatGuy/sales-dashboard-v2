@@ -5,9 +5,9 @@ interface CommissionWidgetProps {
   commission: {
     total: number;
     breakdown: {
-      base: number;
-      bonus: number;
-      incentives: number;
+      accessorySales: number;
+      homeConnects: number;
+      residuals: number;
     };
   } | null;
 }
@@ -15,8 +15,8 @@ interface CommissionWidgetProps {
 const CommissionWidget: React.FC<CommissionWidgetProps> = ({ commission }) => {
   if (!commission) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
           Your Commission
         </h3>
         <div className="flex items-center justify-center h-32">
@@ -29,7 +29,7 @@ const CommissionWidget: React.FC<CommissionWidgetProps> = ({ commission }) => {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
       <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-        Your Commission
+        Your Commission all data aproximate
       </h3>
 
       <div className="flex items-center justify-center mb-4">
@@ -52,26 +52,26 @@ const CommissionWidget: React.FC<CommissionWidgetProps> = ({ commission }) => {
       <div className="space-y-2">
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-600 dark:text-gray-300">
-            Base Commission
+            Accessory Sales
           </span>
           <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
-            ${commission.breakdown.base.toLocaleString()}
+            ${commission.breakdown.accessorySales.toLocaleString()}
           </span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-600 dark:text-gray-300">
-            Performance Bonus
+            Home Connects
           </span>
           <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
-            ${commission.breakdown.bonus.toLocaleString()}
+            ${commission.breakdown.homeConnects.toLocaleString()}
           </span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-600 dark:text-gray-300">
-            Special Incentives
+            Residuals
           </span>
           <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
-            ${commission.breakdown.incentives.toLocaleString()}
+            ${commission.breakdown.residuals.toLocaleString()}
           </span>
         </div>
       </div>

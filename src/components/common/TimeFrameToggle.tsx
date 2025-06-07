@@ -4,26 +4,32 @@ import { useDashboard } from "../../context/DashboardContext";
 const TimeFrameToggle: React.FC = () => {
   const { timeFrame, setTimeFrame } = useDashboard();
 
-  const handleToggle = () => {
-    const today = new Date();
-    const isMonthly = timeFrame.period === "month";
+  const today = new Date();
 
-    // Toggle between month and year view
-    if (isMonthly) {
-      setTimeFrame({
-        period: "year",
-        label: today.getFullYear().toString(),
-      });
-    } else {
-      setTimeFrame({
-        period: "month",
-        label: today.toLocaleDateString("en-US", {
-          month: "long",
-          year: "numeric",
-        }),
-      });
-    }
-  };
+  const setDaily = () =>
+    setTimeFrame({
+      period: "day",
+      label: today.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }),
+    });
+
+  const setMonthly = () =>
+    setTimeFrame({
+      period: "month",
+      label: today.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      }),
+    });
+
+  const setYearly = () =>
+    setTimeFrame({
+      period: "year",
+      label: today.getFullYear().toString(),
+    });
 
   return (
     <div className="inline-flex shadow-sm rounded-md">
@@ -31,15 +37,25 @@ const TimeFrameToggle: React.FC = () => {
         type="button"
         className={`relative inline-flex items-center px-4 py-2 rounded-l-md border text-sm font-medium transition-colors
           ${
+            timeFrame.period === "day"
+              ? "bg-primary-500 text-white border-primary-500 dark:bg-primary-400 dark:text-gray-900 dark:border-primary-400"
+              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+          }`}
+        onClick={setDaily}
+      >
+        Daily
+      </button>
+      <button
+        type="button"
+        className={`relative inline-flex items-center px-4 py-2 border-t border-b border-r text-sm font-medium transition-colors
+          ${
             timeFrame.period === "month"
               ? "bg-primary-500 text-white border-primary-500 dark:bg-primary-400 dark:text-gray-900 dark:border-primary-400"
               : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
           }`}
-        onClick={() => {
-          if (timeFrame.period !== "month") handleToggle();
-        }}
+        onClick={setMonthly}
       >
-        Month
+        Monthly
       </button>
       <button
         type="button"
@@ -49,11 +65,9 @@ const TimeFrameToggle: React.FC = () => {
               ? "bg-primary-500 text-white border-primary-500 dark:bg-primary-400 dark:text-gray-900 dark:border-primary-400"
               : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
           }`}
-        onClick={() => {
-          if (timeFrame.period !== "year") handleToggle();
-        }}
+        onClick={setYearly}
       >
-        Year
+        Yearly
       </button>
     </div>
   );
