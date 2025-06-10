@@ -15,9 +15,13 @@ const StoreSelector: React.FC = () => {
   const isManager =
     currentUser?.role === "manager" || currentUser?.role === "admin";
 
-  // Filter stores based on user's storeIds
-  const userStores = currentUser?.storeIds
-    ? availableStores.filter((store) => currentUser.storeIds.includes(store.id))
+  // Filter stores based on user's userStoreAccess
+  const userStores = currentUser?.userStoreAccess
+    ? availableStores.filter((store) =>
+        currentUser.userStoreAccess.some(
+          (access) => access.storeId === store.id
+        )
+      )
     : [];
 
   const handleSelect = (store: Store) => {
@@ -115,6 +119,7 @@ const StoreSelector: React.FC = () => {
           isOpen={isGoalModalOpen}
           onClose={() => setIsGoalModalOpen(false)}
           onSave={handleGoalSave}
+          currentMonth={new Date().toISOString().slice(0, 7)}
         />
       )}
     </div>

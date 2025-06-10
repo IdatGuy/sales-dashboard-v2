@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useDashboard } from "../context/DashboardContext";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/common/Navbar";
@@ -9,11 +9,8 @@ import SalesChart from "../components/dashboard/SalesChart";
 import GoalsProgress from "../components/dashboard/GoalsProgress";
 import SalesProjection from "../components/dashboard/SalesProjection";
 import CommissionWidget from "../components/dashboard/CommissionWidget";
-import {
-  getGoalProgress,
-  getSalesProjection,
-  getUserCommission,
-} from "../data/mockData";
+import { getSalesProjection, getUserCommission } from "../data/mockData";
+import { goalsService } from "../services/api/goals";
 
 const DashboardPage: React.FC = () => {
   const {
@@ -27,6 +24,30 @@ const DashboardPage: React.FC = () => {
   } = useDashboard();
   const { currentUser } = useAuth();
 
+  const [storeGoals, setStoreGoals] = useState({
+    salesGoal: 53000,
+    accessoryGoal: 5000,
+    homeConnectGoal: 20,
+  });
+
+  // Load store goals when store or date changes
+  useEffect(() => {
+    if (selectedStore) {
+      const currentMonth = `${currentDate.getFullYear()}-${(
+        currentDate.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}`;
+      goalsService
+        .getStoreGoals(selectedStore.id, currentMonth)
+        .then((goals) => {
+          if (goals) {
+            setStoreGoals(goals);
+          }
+        });
+    }
+  }, [selectedStore, currentDate]);
+
   if (!selectedStore) {
     return <div>Loading...</div>;
   }
@@ -36,13 +57,34 @@ const DashboardPage: React.FC = () => {
 
   // Memoize expensive calculations
   const goalProgress = useMemo(() => {
-    const goalYear = currentDate.getFullYear();
-    const goalMonth = currentDate.getMonth() + 1;
-    const currentMonthStrForGoals = `${goalYear}-${goalMonth
-      .toString()
-      .padStart(2, "0")}`;
-    return getGoalProgress(selectedStore.id, currentMonthStrForGoals);
-  }, [selectedStore, currentDate]);
+    // Get sales for current month
+    const storeSales = salesData;
+    const totalAccessory = storeSales.reduce(
+      (sum, sale) => sum + sale.accessorySales,
+      0
+    );
+    const totalHomeConnect = storeSales.reduce(
+      (sum, sale) => sum + sale.homeConnects,
+      0
+    );
+
+    return {
+      accessory: {
+        current: totalAccessory,
+        goal: storeGoals.accessoryGoal,
+        percentage: Math.round(
+          (totalAccessory / storeGoals.accessoryGoal) * 100
+        ),
+      },
+      homeConnect: {
+        current: totalHomeConnect,
+        goal: storeGoals.homeConnectGoal,
+        percentage: Math.round(
+          (totalHomeConnect / storeGoals.homeConnectGoal) * 100
+        ),
+      },
+    };
+  }, [salesData, storeGoals]);
 
   const projectedTotal = useMemo(
     () => getSalesProjection(selectedStore.id),
@@ -61,14 +103,15 @@ const DashboardPage: React.FC = () => {
 
   // Calculate sales progress for goals
   const salesProgress = useMemo(() => {
-    const salesGoal = 53000; // This should come from your goal settings
-    const salesPercentage = Math.round((currentTotal / salesGoal) * 100);
+    const salesPercentage = Math.round(
+      (currentTotal / storeGoals.salesGoal) * 100
+    );
     return {
       current: currentTotal,
-      goal: salesGoal,
+      goal: storeGoals.salesGoal,
       percentage: salesPercentage,
     };
-  }, [currentTotal]);
+  }, [currentTotal, storeGoals.salesGoal]);
 
   const periodLabel = useMemo(() => {
     if (timeFrame.period === "day") {

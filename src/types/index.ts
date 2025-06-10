@@ -3,7 +3,7 @@ export interface User {
   name: string;
   email: string;
   role: 'employee' | 'manager' | 'admin';
-  storeIds: string[];
+  userStoreAccess: UserStoreAccess[]; // Updated to use UserStoreAccess
 }
 
 export interface Store {
@@ -67,4 +67,10 @@ export interface TimeFrame {
 export interface CacheEntry<T = Sale[]> {
   data: T;
   timestamp: number;
+}
+
+export interface UserStoreAccess {
+  userId: string;
+  storeId: string;
+  accessLevel: 'employee' | 'manager' | 'admin';
 }

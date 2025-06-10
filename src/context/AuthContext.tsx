@@ -1,11 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '../types';
-import { mockUsers } from '../data/mockData';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { User } from "../types";
+import { mockUsers, mockUserStoreAccess } from "../data/mockData";
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -15,7 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -30,31 +36,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Check for saved user in localStorage
-    const savedUser = localStorage.getItem('currentUser');
+    const savedUser = localStorage.getItem("currentUser");
     if (savedUser) {
       setCurrentUser(JSON.parse(savedUser));
     }
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string): Promise<void> => {
     setLoading(true);
     try {
       // In a real app, this would be an API call
       // For demo purposes, we'll use mock data
-      const user = mockUsers.find(u => u.email === email);
-      
+      const user = mockUsers.find((u) => u.email === email);
       if (!user) {
-        throw new Error('Invalid email or password');
+        throw new Error("Invalid email or password");
       }
-      
+      // Attach userStoreAccess
+      const userWithAccess = {
+        ...user,
+        userStoreAccess: mockUserStoreAccess.filter(
+          (a) => a.userId === user.id
+        ),
+      };
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      setCurrentUser(user);
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      setCurrentUser(userWithAccess);
+      localStorage.setItem("currentUser", JSON.stringify(userWithAccess));
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -63,7 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = (): void => {
     setCurrentUser(null);
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem("currentUser");
   };
 
   const value = {
@@ -74,9 +84,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!currentUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

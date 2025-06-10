@@ -1,20 +1,27 @@
-import { User, Store, StoreGoal, Sale, Commission, Document } from '../types';
+import { User, Store, StoreGoal, Sale, Commission, Document, UserStoreAccess } from '../types';
 
 // Mock Users
+export const mockUserStoreAccess: UserStoreAccess[] = [
+  { userId: '1', storeId: '1', accessLevel: 'employee' },
+  { userId: '2', storeId: '1', accessLevel: 'manager' },
+  { userId: '2', storeId: '2', accessLevel: 'manager' },
+  { userId: '2', storeId: '3', accessLevel: 'manager' },
+];
+
 export const mockUsers: User[] = [
   {
     id: '1',
     name: 'John Employee',
     email: 'employee@example.com',
     role: 'employee',
-    storeIds: ['1'],
+    userStoreAccess: mockUserStoreAccess.filter(a => a.userId === '1'),
   },
   {
     id: '2',
     name: 'Mary Manager',
     email: 'manager@example.com',
     role: 'manager',
-    storeIds: ['1', '2', '3'],
+    userStoreAccess: mockUserStoreAccess.filter(a => a.userId === '2'),
   },
 ];
 
