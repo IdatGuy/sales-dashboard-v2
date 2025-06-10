@@ -9,6 +9,7 @@ import SalesChart from "../components/dashboard/SalesChart";
 import GoalsProgress from "../components/dashboard/GoalsProgress";
 import SalesProjection from "../components/dashboard/SalesProjection";
 import CommissionWidget from "../components/dashboard/CommissionWidget";
+import Leaderboard from "../components/dashboard/Leaderboard";
 import { getSalesProjection, getUserCommission } from "../data/mockData";
 import { goalsService } from "../services/api/goals";
 
@@ -167,7 +168,7 @@ const DashboardPage: React.FC = () => {
                 <SalesChart sales={salesData} />
               </div>
 
-              {/* Sales Projection - 1/3 width */}
+              {/* Sales Projection & Goals Progress - 1/3 width */}
               <div
                 className="animate-slide-up"
                 style={{ animationDelay: "0.1s" }}
@@ -176,37 +177,34 @@ const DashboardPage: React.FC = () => {
                   currentTotal={currentTotal}
                   projectedTotal={projectedTotal}
                 />
-              </div>
-
-              {/* Goals Progress - 1/3 width */}
-              <div
-                className="animate-slide-up"
-                style={{ animationDelay: "0.2s" }}
-              >
-                <GoalsProgress
-                  salesProgress={salesProgress}
-                  accessoryProgress={goalProgress.accessory}
-                  homeConnectProgress={goalProgress.homeConnect}
-                />
+                <div className="mt-6">
+                  <GoalsProgress
+                    salesProgress={salesProgress}
+                    accessoryProgress={goalProgress.accessory}
+                    homeConnectProgress={goalProgress.homeConnect}
+                  />
+                </div>
               </div>
 
               {/* Commission Widget - 1/3 width */}
-              <div
-                className="animate-slide-up"
-                style={{ animationDelay: "0.3s" }}
-              >
-                <CommissionWidget commission={userCommission} />
-              </div>
+              {currentUser && currentUser.role !== "manager" && (
+                <div
+                  className="animate-slide-up"
+                  style={{ animationDelay: "0.3s" }}
+                >
+                  <CommissionWidget commission={userCommission} />
+                </div>
+              )}
 
-              {/* Placeholder for additional content */}
-              <div
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-64 animate-slide-up"
-                style={{ animationDelay: "0.4s" }}
-              >
-                <h5 className="p-4 text-lg font-semibold text-gray-900 dark:text-white">
-                  Either leaderboard or daily sales excel like chart
-                </h5>
-              </div>
+              {/* Leaderboard - 1/3 width, hidden for managers */}
+              {currentUser && currentUser.role !== "manager" && (
+                <div
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-64 animate-slide-up"
+                  style={{ animationDelay: "0.4s" }}
+                >
+                  <Leaderboard month={currentDate.toISOString().slice(0, 7)} />
+                </div>
+              )}
             </div>
           )}
         </div>
