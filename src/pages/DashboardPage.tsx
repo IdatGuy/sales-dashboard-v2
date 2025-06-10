@@ -59,6 +59,17 @@ const DashboardPage: React.FC = () => {
     [currentUser]
   );
 
+  // Calculate sales progress for goals
+  const salesProgress = useMemo(() => {
+    const salesGoal = 53000; // This should come from your goal settings
+    const salesPercentage = Math.round((currentTotal / salesGoal) * 100);
+    return {
+      current: currentTotal,
+      goal: salesGoal,
+      percentage: salesPercentage,
+    };
+  }, [currentTotal]);
+
   const periodLabel = useMemo(() => {
     if (timeFrame.period === "day") {
       return currentDate.toLocaleString("default", {
@@ -130,6 +141,7 @@ const DashboardPage: React.FC = () => {
                 style={{ animationDelay: "0.2s" }}
               >
                 <GoalsProgress
+                  salesProgress={salesProgress}
                   accessoryProgress={goalProgress.accessory}
                   homeConnectProgress={goalProgress.homeConnect}
                 />

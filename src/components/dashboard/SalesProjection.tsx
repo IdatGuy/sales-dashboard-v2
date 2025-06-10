@@ -1,5 +1,4 @@
 import React from "react";
-import ProgressBar from "../common/ProgressBar";
 import { TrendingUp } from "lucide-react";
 import { useDashboard } from "../../context/DashboardContext";
 
@@ -16,9 +15,6 @@ const SalesProjection: React.FC<SalesProjectionProps> = React.memo(
     const targetGoal = 53000; // Example goal
     const projectedSalesPercentage = Math.round(
       (projectedTotal / targetGoal) * 100
-    );
-    const currentSalesPercentage = Math.round(
-      (currentTotal / targetGoal) * 100
     );
 
     // Determine if we're on track, behind, or ahead
@@ -64,18 +60,6 @@ const SalesProjection: React.FC<SalesProjectionProps> = React.memo(
             <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
               ${projectedTotal.toLocaleString()}
             </p>
-          </div>
-        </div>
-        <div className="my-4" />
-        <div>
-          <ProgressBar
-            percentage={currentSalesPercentage}
-            label="Sales Goal"
-            color="bg-secondary-500 dark:bg-secondary-400"
-          />
-          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-300 mt-1">
-            <span>${currentTotal.toLocaleString()}</span>
-            <span>${targetGoal.toLocaleString()}</span>
           </div>
         </div>
       </div>
