@@ -1,17 +1,23 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { DashboardProvider } from './context/DashboardContext';
-import { ThemeProvider } from './context/ThemeContext';
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import PriceSheetPage from './pages/PriceSheetPage';
-import DocumentsPage from './pages/DocumentsPage';
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { DashboardProvider } from "./context/DashboardContext";
+import { ThemeProvider } from "./context/ThemeContext";
+import LoginPage from "./pages/LoginPage";
+import DashboardPage from "./pages/DashboardPage";
+import PriceSheetPage from "./pages/PriceSheetPage";
+import DocumentsPage from "./pages/DocumentsPage";
+import InviteUserPage from "./pages/InviteUserPage";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
-  
+
   // Show loading state while checking authentication
   if (loading) {
     return (
@@ -23,49 +29,59 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-  
+
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };
 
 // Main app component
 const AppContent = () => {
   const { isAuthenticated } = useAuth();
-  
+
   return (
     <Routes>
-      <Route 
-        path="/login" 
-        element={isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />} 
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />}
       />
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <DashboardProvider>
               <DashboardPage />
             </DashboardProvider>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/prices" 
+      <Route
+        path="/prices"
         element={
           <ProtectedRoute>
             <DashboardProvider>
               <PriceSheetPage />
             </DashboardProvider>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/documents" 
+      <Route
+        path="/documents"
         element={
           <ProtectedRoute>
             <DashboardProvider>
               <DocumentsPage />
             </DashboardProvider>
           </ProtectedRoute>
-        } 
+        }
+      />
+      <Route
+        path="/invite"
+        element={
+          <ProtectedRoute>
+            <DashboardProvider>
+              <InviteUserPage />
+            </DashboardProvider>
+          </ProtectedRoute>
+        }
       />
       <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>

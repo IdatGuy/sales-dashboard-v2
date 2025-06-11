@@ -162,22 +162,52 @@ const DashboardPage: React.FC = () => {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-64"></div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Sales Chart - 2/3 width on larger screens */}
-              <div className="md:col-span-2 animate-slide-up">
-                <SalesChart sales={salesData} />
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Left Column */}
+              <div className="flex-1 flex flex-col">
+                {/* Sales Chart */}
+                <div className="animate-slide-up mb-6">
+                  <SalesChart sales={salesData} />
+                </div>
+
+                {/* Commission & Leaderboard row (only for non-managers) */}
+                {currentUser && currentUser.role !== "manager" && (
+                  <div className="flex flex-col sm:flex-row gap-6">
+                    <div
+                      className="flex-1 animate-slide-up"
+                      style={{ animationDelay: "0.3s" }}
+                    >
+                      <CommissionWidget commission={userCommission} />
+                    </div>
+                    <div
+                      className="flex-1 animate-slide-up"
+                      style={{ animationDelay: "0.4s" }}
+                    >
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-64">
+                        <Leaderboard
+                          month={currentDate.toISOString().slice(0, 7)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Sales Projection & Goals Progress - 1/3 width */}
-              <div
-                className="animate-slide-up"
-                style={{ animationDelay: "0.1s" }}
-              >
-                <SalesProjection
-                  currentTotal={currentTotal}
-                  projectedTotal={projectedTotal}
-                />
-                <div className="mt-6">
+              {/* Right Column */}
+              <div className="w-full lg:w-80 flex flex-col gap-6">
+                <div
+                  className="animate-slide-up"
+                  style={{ animationDelay: "0.1s" }}
+                >
+                  <SalesProjection
+                    currentTotal={currentTotal}
+                    projectedTotal={projectedTotal}
+                  />
+                </div>
+                <div
+                  className="animate-slide-up"
+                  style={{ animationDelay: "0.2s" }}
+                >
                   <GoalsProgress
                     salesProgress={salesProgress}
                     accessoryProgress={goalProgress.accessory}
@@ -185,26 +215,6 @@ const DashboardPage: React.FC = () => {
                   />
                 </div>
               </div>
-
-              {/* Commission Widget - 1/3 width */}
-              {currentUser && currentUser.role !== "manager" && (
-                <div
-                  className="animate-slide-up"
-                  style={{ animationDelay: "0.3s" }}
-                >
-                  <CommissionWidget commission={userCommission} />
-                </div>
-              )}
-
-              {/* Leaderboard - 1/3 width, hidden for managers */}
-              {currentUser && currentUser.role !== "manager" && (
-                <div
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-64 animate-slide-up"
-                  style={{ animationDelay: "0.4s" }}
-                >
-                  <Leaderboard month={currentDate.toISOString().slice(0, 7)} />
-                </div>
-              )}
             </div>
           )}
         </div>

@@ -1,8 +1,8 @@
-import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
-import { LogOut, BarChart, FileText, Menu, X, Sun, Moon } from 'lucide-react';
+import React from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
+import { LogOut, BarChart, FileText, Menu, X, Sun, Moon } from "lucide-react";
 
 const Navbar: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -12,7 +12,7 @@ const Navbar: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   const toggleMobileMenu = () => {
@@ -22,26 +22,35 @@ const Navbar: React.FC = () => {
   if (!currentUser) return null;
 
   const navLinks = [
-    { to: '/dashboard', icon: <BarChart size={18} />, label: 'Dashboard' },
-    { to: '/prices', icon: <FileText size={18} />, label: 'Price Sheets' },
-    { to: '/documents', icon: <FileText size={18} />, label: 'Documents' },
+    { to: "/dashboard", icon: <BarChart size={18} />, label: "Dashboard" },
+    { to: "/prices", icon: <FileText size={18} />, label: "Price Sheets" },
+    { to: "/documents", icon: <FileText size={18} />, label: "Documents" },
   ];
+
+  // Add Invite User tab for managers and admins
+  if (
+    currentUser &&
+    (currentUser.role === "manager" || currentUser.role === "admin")
+  ) {
+    navLinks.push({
+      to: "/invite",
+      icon: <FileText size={18} />,
+      label: "Invite User",
+    });
+  }
 
   return (
     <nav className="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link 
-              to="/dashboard" 
-              className="flex-shrink-0 flex items-center"
-            >
+            <Link to="/dashboard" className="flex-shrink-0 flex items-center">
               <BarChart className="h-8 w-8 text-primary-600" />
               <span className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">
                 SalesDash
               </span>
             </Link>
-            
+
             {/* Desktop navigation */}
             <div className="hidden md:ml-6 md:flex md:space-x-4">
               {navLinks.map((link) => (
@@ -56,7 +65,7 @@ const Navbar: React.FC = () => {
               ))}
             </div>
           </div>
-          
+
           <div className="flex items-center">
             <div className="hidden md:flex items-center">
               <button
@@ -77,7 +86,7 @@ const Navbar: React.FC = () => {
                 Logout
               </button>
             </div>
-            
+
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center space-x-2">
               <button
@@ -102,9 +111,9 @@ const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Mobile menu */}
-      <div className={`md:hidden ${mobileMenuOpen ? 'block' : 'hidden'}`}>
+      <div className={`md:hidden ${mobileMenuOpen ? "block" : "hidden"}`}>
         <div className="pt-2 pb-3 space-y-1 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-800">
           {navLinks.map((link) => (
             <Link
