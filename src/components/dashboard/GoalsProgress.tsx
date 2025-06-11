@@ -21,6 +21,24 @@ interface GoalsProgressProps {
 
 const GoalsProgress: React.FC<GoalsProgressProps> = React.memo(
   ({ salesProgress, accessoryProgress, homeConnectProgress }) => {
+    // Handle no data: if all goals are 0, show a message
+    if (
+      (!salesProgress.goal || salesProgress.goal === 0) &&
+      (!accessoryProgress.goal || accessoryProgress.goal === 0) &&
+      (!homeConnectProgress.goal || homeConnectProgress.goal === 0)
+    ) {
+      return (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-64 flex flex-col items-center justify-center">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            Goals Progress
+          </h3>
+          <div className="flex items-center justify-center h-32">
+            <p className="text-gray-500">No goal data available</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">

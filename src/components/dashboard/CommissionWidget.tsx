@@ -30,7 +30,7 @@ const CommissionWidget: React.FC<CommissionWidgetProps> = React.memo(
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-          Your Commission all data aproximate
+          Your Commission (all data aproximate)
         </h3>
 
         <div className="flex items-center justify-center mb-4">

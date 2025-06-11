@@ -255,6 +255,20 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     }
   }, [timeFrame, sales]);
 
+  // Handle no data
+  if (!sales || sales.length === 0) {
+    return (
+      <div className="rounded-lg shadow-md p-4 bg-white dark:bg-gray-800 h-64 flex flex-col items-center justify-center">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+          Sales
+        </h3>
+        <div className="flex items-center justify-center h-32">
+          <p className="text-gray-500">No sales data available</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg shadow-md p-4 bg-white dark:bg-gray-800">
       <div className="flex justify-between items-center mb-4">

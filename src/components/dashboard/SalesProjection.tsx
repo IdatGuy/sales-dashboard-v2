@@ -11,6 +11,20 @@ const SalesProjection: React.FC<SalesProjectionProps> = React.memo(
   ({ currentTotal, projectedTotal }) => {
     const { timeFrame } = useDashboard();
 
+    // Handle no data
+    if (!currentTotal && !projectedTotal) {
+      return (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-64 flex flex-col items-center justify-center">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            {timeFrame.period === "month" ? "Monthly" : "Yearly"} Projection
+          </h3>
+          <div className="flex items-center justify-center h-32">
+            <p className="text-gray-500">No projection data available</p>
+          </div>
+        </div>
+      );
+    }
+
     // Calculate percentage of goal (this would come from your data)
     const targetGoal = 53000; // Example goal
     const projectedSalesPercentage = Math.round(
