@@ -49,10 +49,6 @@ const DashboardPage: React.FC = () => {
     }
   }, [selectedStore, currentDate]);
 
-  if (!selectedStore) {
-    return <div>Loading...</div>;
-  }
-
   // Get filtered sales data for the current period
   const salesData = getSalesForPeriod();
 
@@ -88,7 +84,7 @@ const DashboardPage: React.FC = () => {
   }, [salesData, storeGoals]);
 
   const projectedTotal = useMemo(
-    () => getSalesProjection(selectedStore.id),
+    () => getSalesProjection(selectedStore?.id ?? ""),
     [selectedStore]
   );
 
@@ -131,6 +127,10 @@ const DashboardPage: React.FC = () => {
     }
     return "";
   }, [timeFrame.period, currentDate]);
+
+  if (!selectedStore) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">

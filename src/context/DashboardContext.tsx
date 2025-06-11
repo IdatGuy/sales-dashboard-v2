@@ -1,10 +1,14 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
 import { Store, TimeFrame, Sale, CacheEntry } from "../types";
-import {
-  mockStores,
-  getStoreDailySales,
-  getStoreMonthlySales,
-} from "../data/mockData";
+import { getStoreDailySales, getStoreMonthlySales } from "../data/mockData";
+import { getStoresByIds } from "../services/api/stores";
+import { useAuth } from "../context/AuthContext";
 
 interface SalesData {
   daily: Sale[];
@@ -52,7 +56,8 @@ interface DashboardProviderProps {
 export const DashboardProvider: React.FC<DashboardProviderProps> = ({
   children,
 }) => {
-  const [stores, setStores] = useState<Store[]>(mockStores);
+  const { currentUser } = useAuth();
+  const [stores, setStores] = useState<Store[]>([]);
   const [selectedStore, setSelectedStore] = useState<Store | null>(
     stores[0] || null
   );
@@ -217,6 +222,32 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
       setSelectedStore({ ...selectedStore, ...goals });
     }
   };
+
+  useEffect(() => {
+    const fetchStores = async () => {
+      if (currentUser && currentUser.userStoreAccess) {
+        const storeIds = currentUser.userStoreAccess.map(
+          (a: { storeId: string }) => a.storeId
+        );
+        const stores = await getStoresByIds(storeIds);
+        setStores(stores);
+      } else {
+        setStores([]);
+      }
+    };
+    fetchStores();
+  }, [currentUser]);
+
+  // Ensure selectedStore is set when stores are loaded
+  useEffect(() => {
+    if (stores.length > 0 && !selectedStore) {
+      setSelectedStore(stores[0]);
+    }
+    // If stores is empty, also clear selectedStore
+    if (stores.length === 0 && selectedStore) {
+      setSelectedStore(null);
+    }
+  }, [stores, selectedStore]);
 
   const value = {
     selectedStore,

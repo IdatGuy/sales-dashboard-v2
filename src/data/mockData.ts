@@ -2,10 +2,10 @@ import { User, Store, StoreGoal, Sale, Commission, Document, UserStoreAccess } f
 
 // Mock Users
 export const mockUserStoreAccess: UserStoreAccess[] = [
-  { userId: '1', storeId: '1', accessLevel: 'employee' },
-  { userId: '2', storeId: '1', accessLevel: 'manager' },
-  { userId: '2', storeId: '2', accessLevel: 'manager' },
-  { userId: '2', storeId: '3', accessLevel: 'manager' },
+  { userId: '1', storeId: '1'},
+  { userId: '2', storeId: '1' },
+  { userId: '2', storeId: '2' },
+  { userId: '2', storeId: '3' },
 ];
 
 export const mockUsers: User[] = [

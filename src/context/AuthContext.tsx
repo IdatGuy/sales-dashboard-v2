@@ -5,13 +5,13 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
+import { supabase } from "../lib/supabase";
 import { User } from "../types";
-import { mockUsers, mockUserStoreAccess } from "../data/mockData";
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
-  login: (email: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -43,27 +43,61 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email: string): Promise<void> => {
+  const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
-      // In a real app, this would be an API call
-      // For demo purposes, we'll use mock data
-      const user = mockUsers.find((u) => u.email === email);
-      if (!user) {
+      // 1. Supabase Auth
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({ email, password });
+      if (authError || !authData.user) {
         throw new Error("Invalid email or password");
       }
-      // Attach userStoreAccess
-      const userWithAccess = {
-        ...user,
-        userStoreAccess: mockUserStoreAccess.filter(
-          (a) => a.userId === user.id
-        ),
+      const userId = authData.user.id;
+
+      // 2. Fetch profile
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+      if (profileError || !profile) {
+        throw new Error(
+          "No profile found for this user. Please contact an administrator."
+        );
+      }
+
+      // 3. Fetch store access (just user_id and store_id)
+      const { data: accessRows, error: accessError } = await supabase
+        .from("user_store_access")
+        .select("store_id")
+        .eq("user_id", userId);
+      if (accessError) {
+        throw new Error("Error fetching store access.");
+      }
+      if (!accessRows || accessRows.length === 0) {
+        throw new Error(
+          "No store access found for this user. Please contact an administrator."
+        );
+      }
+
+      // 4. Build userStoreAccess array (no accessLevel)
+      const userStoreAccess = accessRows.map((row: any) => ({
+        userId,
+        storeId: row.store_id,
+      }));
+
+      // 5. Build User object
+      const user: User = {
+        id: userId,
+        name: profile.username,
+        email: email,
+        role: profile.role,
+        userStoreAccess,
       };
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setCurrentUser(userWithAccess);
-      localStorage.setItem("currentUser", JSON.stringify(userWithAccess));
-    } catch (error) {
+
+      setCurrentUser(user);
+      localStorage.setItem("currentUser", JSON.stringify(user));
+    } catch (error: any) {
       console.error("Login error:", error);
       throw error;
     } finally {

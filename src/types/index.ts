@@ -72,5 +72,4 @@ export interface CacheEntry<T = Sale[]> {
 export interface UserStoreAccess {
   userId: string;
   storeId: string;
-  accessLevel: 'employee' | 'manager' | 'admin';
 }
