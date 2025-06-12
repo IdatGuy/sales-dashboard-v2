@@ -42,26 +42,53 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     string
   > | null>(null);
 
-  // Accumulate sales if toggle is on and period is "month" or "year"
+  // Filter and process sales based on timeframe
   let displaySales = sales;
+
+  // For yearly: aggregate daily sales into monthly totals
+  if (timeFrame.period === "year") {
+    const monthlyMap: { [key: string]: Sale } = {};
+    sales.forEach((sale) => {
+      const monthKey = sale.date.substring(0, 7); // YYYY-MM
+      if (!monthlyMap[monthKey]) {
+        monthlyMap[monthKey] = {
+          id: `${sale.storeId}-${monthKey}`,
+          storeId: sale.storeId,
+          date: `${monthKey}-01`,
+          salesAmount: 0,
+          accessorySales: 0,
+          homeConnects: 0,
+          homePlus: 0,
+          cleanings: 0,
+          repairs: 0,
+        };
+      }
+      monthlyMap[monthKey].salesAmount += sale.salesAmount;
+    });
+    displaySales = Object.values(monthlyMap).sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+  }
+
+  // Accumulate sales if toggle is on and period is "month" or "year"
   if (
     (timeFrame.period === "month" || timeFrame.period === "year") &&
     showAccumulated
   ) {
     let runningTotal = 0;
-    displaySales = sales.map((sale) => {
+    displaySales = displaySales.map((sale) => {
       runningTotal += sale.salesAmount;
       return { ...sale, salesAmount: runningTotal };
     });
   }
 
   // Prepare data based on time frame
-  let data, ChartComponent;
-  const dateLabels = displaySales.map((sale) => sale.date);
+  let data, ChartComponent, dateLabels: string[];
   if (timeFrame.period === "day") {
     ChartComponent = Bar;
     const mostRecent =
       displaySales.length > 0 ? [displaySales[displaySales.length - 1]] : [];
+    dateLabels = mostRecent.map((sale) => sale.date);
     data = {
       labels: mostRecent.map((sale) => {
         const date = new Date(sale.date);
@@ -87,6 +114,12 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
           yAxisID: "y-counts",
         },
         {
+          label: "Home Plus",
+          data: mostRecent.map((sale) => sale.homePlus ?? 0),
+          backgroundColor: isDarkMode ? "#f472b6" : "#ec4899",
+          yAxisID: "y-counts",
+        },
+        {
           label: "Cleanings",
           data: mostRecent.map((sale) => sale.cleanings ?? 0),
           backgroundColor: isDarkMode ? "#f87171" : "#ef4444",
@@ -102,9 +135,18 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     };
   } else {
     ChartComponent = Line;
+    dateLabels = displaySales.map((sale) => sale.date);
     data = {
       labels: displaySales.map((sale) => {
-        const date = new Date(sale.date);
+        if (timeFrame.period === "year") {
+          const [year, month] = sale.date.split("-").map(Number);
+          const date = new Date(year, month - 1, 1);
+          return date.toLocaleDateString(undefined, {
+            month: "short",
+          });
+        }
+        const [year, month, day] = sale.date.split("-").map(Number);
+        const date = new Date(year, month - 1, day);
         return date.toLocaleDateString(undefined, { weekday: "short" });
       }),
       datasets: [
@@ -228,8 +270,9 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
             const idx = context[0].dataIndex;
             // Use dateLabels to get the original date string
             const dateStr = dateLabels[idx];
-            // Format as 'Apr 23' or 'Apr 23, 2025'
-            const date = new Date(dateStr);
+            // Parse date safely to avoid timezone issues
+            const [year, month, day] = dateStr.split("-").map(Number);
+            const date = new Date(year, month - 1, day); // month is 0-indexed
             return date.toLocaleDateString(undefined, {
               month: "short",
               day: "numeric",

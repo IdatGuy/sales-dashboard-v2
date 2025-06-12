@@ -28,6 +28,7 @@ export interface Sale {
   salesAmount: number;
   accessorySales: number;
   homeConnects: number;
+  homePlus: number; // New property for Home Plus sales
   cleanings: number; // New property for cleanings
   repairs: number; // New property for repairs
 }

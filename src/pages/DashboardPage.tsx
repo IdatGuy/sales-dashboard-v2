@@ -26,9 +26,9 @@ const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
 
   const [storeGoals, setStoreGoals] = useState({
-    salesGoal: 53000,
-    accessoryGoal: 5000,
-    homeConnectGoal: 20,
+    salesGoal: 0,
+    accessoryGoal: 0,
+    homeConnectGoal: 0,
   });
 
   // Load store goals when store or date changes
@@ -44,6 +44,13 @@ const DashboardPage: React.FC = () => {
         .then((goals) => {
           if (goals) {
             setStoreGoals(goals);
+          } else {
+            // Reset to zeros when no goals found
+            setStoreGoals({
+              salesGoal: 0,
+              accessoryGoal: 0,
+              homeConnectGoal: 0,
+            });
           }
         });
     }

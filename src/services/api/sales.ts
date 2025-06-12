@@ -20,6 +20,7 @@ function transformDbSaleToSale(dbSale: Sale): UISale {
     accessorySales: dbSale.accessory_sales ?? 0,
     
     homeConnects: dbSale.home_connects ?? 0,
+    homePlus: dbSale.home_plus ?? 0,
     cleanings: dbSale.cleanings ?? 0,
     repairs: dbSale.repairs ?? 0,
   };

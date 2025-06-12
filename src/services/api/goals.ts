@@ -16,10 +16,15 @@ export const goalsService = {
       .select('*')
       .eq('store_id', storeId)
       .eq('month', month)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching store goals:', error);
+      return null;
+    }
+
+    // If no goal exists for this store/month, return null
+    if (!data) {
       return null;
     }
 
