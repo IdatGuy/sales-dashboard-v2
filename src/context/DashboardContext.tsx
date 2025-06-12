@@ -6,7 +6,10 @@ import React, {
   useEffect,
 } from "react";
 import { Store, TimeFrame, Sale, CacheEntry } from "../types";
-import { getStoreDailySales, getStoreMonthlySales } from "../data/mockData";
+import {
+  getStoreDailySales,
+  getStoreMonthlySales,
+} from "../services/api/sales";
 import { getStoresByIds } from "../services/api/stores";
 import { useAuth } from "../context/AuthContext";
 
@@ -126,28 +129,34 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
       }
 
       setIsLoading(true);
+      try {
+        // Fetch data from API (await the async calls)
+        const daily = cachedDaily || (await getStoreDailySales(storeId, month));
+        const monthly =
+          cachedMonthly || (await getStoreMonthlySales(storeId, year));
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 200));
+        console.log("Fetched sales data:", { daily, monthly });
 
-      const daily = cachedDaily || getStoreDailySales(storeId, month);
-      const monthly = cachedMonthly || getStoreMonthlySales(storeId, year);
+        // Update cache
+        if (!cachedDaily) {
+          setCachedData(dailySalesCache, setDailySalesCache, dailyKey, daily);
+        }
+        if (!cachedMonthly) {
+          setCachedData(
+            monthlySalesCache,
+            setMonthlySalesCache,
+            monthlyKey,
+            monthly
+          );
+        }
 
-      // Update cache
-      if (!cachedDaily) {
-        setCachedData(dailySalesCache, setDailySalesCache, dailyKey, daily);
+        setSalesData({ daily, monthly });
+      } catch (error) {
+        console.error("Error fetching sales data:", error);
+        setSalesData({ daily: [], monthly: [] });
+      } finally {
+        setIsLoading(false);
       }
-      if (!cachedMonthly) {
-        setCachedData(
-          monthlySalesCache,
-          setMonthlySalesCache,
-          monthlyKey,
-          monthly
-        );
-      }
-
-      setSalesData({ daily, monthly });
-      setIsLoading(false);
     },
     [dailySalesCache, monthlySalesCache]
   );

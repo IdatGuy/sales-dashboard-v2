@@ -1,7 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import { Database } from '../../lib/database.types';
 
-type StoreGoals = Database['public']['Tables']['store_goals']['Row'];
 type StoreGoalsInsert = Database['public']['Tables']['store_goals']['Insert'];
 
 export interface GoalsData {
