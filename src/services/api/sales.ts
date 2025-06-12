@@ -18,6 +18,7 @@ function transformDbSaleToSale(dbSale: Sale): UISale {
     date: dbSale.date,
     salesAmount: dbSale.sales_amount ?? 0,
     accessorySales: dbSale.accessory_sales ?? 0,
+    
     homeConnects: dbSale.home_connects ?? 0,
     cleanings: dbSale.cleanings ?? 0,
     repairs: dbSale.repairs ?? 0,
@@ -28,18 +29,12 @@ export async function getStoreDailySales(storeId: string, month: string): Promis
   const [year, monthNum] = month.split('-').map(Number);
   const start = `${year}-${monthNum.toString().padStart(2, '0')}-01`;
   const end = getLastDayOfMonth(year, monthNum);
-
-  console.log('[sales.ts] getStoreDailySales - Query Params:', { storeId, month, start, end });
-
   const { data, error } = await supabase
     .from('sales')
     .select('*')
     .eq('store_id', storeId)
     .gte('date', start)
     .lte('date', end);
-
-  console.log('[sales.ts] getStoreDailySales - Supabase Response:', { data, error });
-
   if (error) {
     console.error(error);
     return [];
@@ -50,18 +45,12 @@ export async function getStoreDailySales(storeId: string, month: string): Promis
 export async function getStoreMonthlySales(storeId: string, year: string): Promise<UISale[]> {
   const start = `${year}-01-01`;
   const end = `${year}-12-31`;
-
-  console.log('[sales.ts] getStoreMonthlySales - Query Params:', { storeId, year, start, end });
-
   const { data, error } = await supabase
     .from('sales')
     .select('*')
     .eq('store_id', storeId)
     .gte('date', start)
     .lte('date', end);
-
-  console.log('[sales.ts] getStoreMonthlySales - Supabase Response:', { data, error });
-
   if (error) {
     console.error(error);
     return [];

@@ -258,6 +258,29 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     }
   }, [stores, selectedStore]);
 
+  // Update timeFrame.label whenever currentDate or timeFrame.period changes
+  useEffect(() => {
+    let label = "";
+    if (timeFrame.period === "day") {
+      label = currentDate.toLocaleDateString(undefined, {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+    } else if (timeFrame.period === "month") {
+      label = currentDate.toLocaleDateString(undefined, {
+        month: "long",
+        year: "numeric",
+      });
+    } else if (timeFrame.period === "year") {
+      label = currentDate.getFullYear().toString();
+    }
+    if (label !== timeFrame.label) {
+      setTimeFrame({ ...timeFrame, label });
+    }
+  }, [currentDate, timeFrame.period]);
+
   const value = {
     selectedStore,
     timeFrame,

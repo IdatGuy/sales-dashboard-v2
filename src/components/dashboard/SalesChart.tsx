@@ -57,12 +57,16 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
 
   // Prepare data based on time frame
   let data, ChartComponent;
+  const dateLabels = displaySales.map((sale) => sale.date);
   if (timeFrame.period === "day") {
     ChartComponent = Bar;
     const mostRecent =
       displaySales.length > 0 ? [displaySales[displaySales.length - 1]] : [];
     data = {
-      labels: mostRecent.map((sale) => sale.date),
+      labels: mostRecent.map((sale) => {
+        const date = new Date(sale.date);
+        return date.toLocaleDateString(undefined, { weekday: "short" });
+      }),
       datasets: [
         {
           label: "Sales",
@@ -99,7 +103,10 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
   } else {
     ChartComponent = Line;
     data = {
-      labels: displaySales.map((sale) => sale.date),
+      labels: displaySales.map((sale) => {
+        const date = new Date(sale.date);
+        return date.toLocaleDateString(undefined, { weekday: "short" });
+      }),
       datasets: [
         {
           label: showAccumulated ? "Accumulated Sales" : "Sales",
@@ -114,7 +121,6 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
           pointBackgroundColor: isDarkMode ? "#38bdf8" : "#2563eb",
           pointBorderColor: "white",
           pointBorderWidth: 2,
-          // yAxisID: "y-dollars", // Ensure this is not set or set to the single y-axis
         },
       ],
     };
@@ -217,6 +223,18 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
         borderWidth: 1,
         displayColors: true,
         callbacks: {
+          title: function (context: any) {
+            // context[0].dataIndex gives the index in the data array
+            const idx = context[0].dataIndex;
+            // Use dateLabels to get the original date string
+            const dateStr = dateLabels[idx];
+            // Format as 'Apr 23' or 'Apr 23, 2025'
+            const date = new Date(dateStr);
+            return date.toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            });
+          },
           label: function (context: any) {
             let label = context.dataset.label || "";
             if (label) {
@@ -269,11 +287,16 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     );
   }
 
+  // Use the timeFrame.label directly for the chart title
+  function getChartTitle() {
+    return `${timeFrame.label} Sales`;
+  }
+
   return (
     <div className="rounded-lg shadow-md p-4 bg-white dark:bg-gray-800">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-          {timeFrame.label} Sales
+          {getChartTitle()}
         </h3>
         {(timeFrame.period === "month" || timeFrame.period === "year") && (
           <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
