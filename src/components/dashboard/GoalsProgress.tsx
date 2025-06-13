@@ -17,6 +17,7 @@ interface GoalsProgressProps {
     goal: number;
     percentage: number;
   };
+  timeFramePeriod: "day" | "month" | "year";
 }
 
 const GoalsProgress: React.FC<GoalsProgressProps> = React.memo(
@@ -41,9 +42,14 @@ const GoalsProgress: React.FC<GoalsProgressProps> = React.memo(
 
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-          Goals Progress
-        </h3>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">
+            Goals Progress
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Monthly Goals Progress
+          </p>
+        </div>
 
         <div className="mb-4">
           <ProgressBar
@@ -53,7 +59,7 @@ const GoalsProgress: React.FC<GoalsProgressProps> = React.memo(
           />
           <div className="flex justify-between text-xs text-gray-500 dark:text-gray-300 mt-1">
             <span>${salesProgress.current.toLocaleString()}</span>
-            <span>${salesProgress.goal.toLocaleString()}</span>
+            <span>Goal: ${salesProgress.goal.toLocaleString()}</span>
           </div>
         </div>
 
@@ -65,7 +71,7 @@ const GoalsProgress: React.FC<GoalsProgressProps> = React.memo(
           />
           <div className="flex justify-between text-xs text-gray-500 dark:text-gray-300 mt-1">
             <span>${accessoryProgress.current.toLocaleString()}</span>
-            <span>${accessoryProgress.goal.toLocaleString()}</span>
+            <span>Goal: ${accessoryProgress.goal.toLocaleString()}</span>
           </div>
         </div>
 
@@ -77,7 +83,7 @@ const GoalsProgress: React.FC<GoalsProgressProps> = React.memo(
           />
           <div className="flex justify-between text-xs text-gray-500 dark:text-gray-300 mt-1">
             <span>{homeConnectProgress.current} units</span>
-            <span>{homeConnectProgress.goal} units</span>
+            <span>Goal: {homeConnectProgress.goal} units</span>
           </div>
         </div>
       </div>

@@ -21,6 +21,7 @@ const DashboardPage: React.FC = () => {
     handlePrev,
     handleNext,
     getSalesForPeriod,
+    salesData: contextSalesData,
     isLoading,
   } = useDashboard();
   const { currentUser } = useAuth();
@@ -31,9 +32,9 @@ const DashboardPage: React.FC = () => {
     homeConnectGoal: 0,
   });
 
-  // Load store goals when store or date changes
+  // Load store goals when store or date changes (skip for yearly view)
   useEffect(() => {
-    if (selectedStore) {
+    if (selectedStore && timeFrame.period !== "year") {
       const currentMonth = `${currentDate.getFullYear()}-${(
         currentDate.getMonth() + 1
       )
@@ -53,21 +54,28 @@ const DashboardPage: React.FC = () => {
             });
           }
         });
+    } else if (timeFrame.period === "year") {
+      // Reset goals when in yearly view
+      setStoreGoals({
+        salesGoal: 0,
+        accessoryGoal: 0,
+        homeConnectGoal: 0,
+      });
     }
-  }, [selectedStore, currentDate]);
+  }, [selectedStore, currentDate, timeFrame.period]);
 
   // Get filtered sales data for the current period
   const salesData = getSalesForPeriod();
 
   // Memoize expensive calculations
   const goalProgress = useMemo(() => {
-    // Get sales for current month
-    const storeSales = salesData;
-    const totalAccessory = storeSales.reduce(
+    // Always use full month's sales data for goal calculations
+    const monthlySales = contextSalesData.daily;
+    const totalAccessory = monthlySales.reduce(
       (sum, sale) => sum + sale.accessorySales,
       0
     );
-    const totalHomeConnect = storeSales.reduce(
+    const totalHomeConnect = monthlySales.reduce(
       (sum, sale) => sum + sale.homeConnects,
       0
     );
@@ -76,19 +84,21 @@ const DashboardPage: React.FC = () => {
       accessory: {
         current: totalAccessory,
         goal: storeGoals.accessoryGoal,
-        percentage: Math.round(
-          (totalAccessory / storeGoals.accessoryGoal) * 100
-        ),
+        percentage:
+          storeGoals.accessoryGoal > 0
+            ? Math.round((totalAccessory / storeGoals.accessoryGoal) * 100)
+            : 0,
       },
       homeConnect: {
         current: totalHomeConnect,
         goal: storeGoals.homeConnectGoal,
-        percentage: Math.round(
-          (totalHomeConnect / storeGoals.homeConnectGoal) * 100
-        ),
+        percentage:
+          storeGoals.homeConnectGoal > 0
+            ? Math.round((totalHomeConnect / storeGoals.homeConnectGoal) * 100)
+            : 0,
       },
     };
-  }, [salesData, storeGoals]);
+  }, [contextSalesData.daily, storeGoals]);
 
   const projectedTotal = useMemo(
     () => getSalesProjection(selectedStore?.id ?? ""),
@@ -96,8 +106,9 @@ const DashboardPage: React.FC = () => {
   );
 
   const currentTotal = useMemo(
-    () => salesData.reduce((sum, sale) => sum + sale.salesAmount, 0),
-    [salesData]
+    () =>
+      contextSalesData.daily.reduce((sum, sale) => sum + sale.salesAmount, 0),
+    [contextSalesData.daily]
   );
 
   const userCommission = useMemo(
@@ -105,11 +116,12 @@ const DashboardPage: React.FC = () => {
     [currentUser]
   );
 
-  // Calculate sales progress for goals
+  // Calculate sales progress for goals - always use monthly total
   const salesProgress = useMemo(() => {
-    const salesPercentage = Math.round(
-      (currentTotal / storeGoals.salesGoal) * 100
-    );
+    const salesPercentage =
+      storeGoals.salesGoal > 0
+        ? Math.round((currentTotal / storeGoals.salesGoal) * 100)
+        : 0;
     return {
       current: currentTotal,
       goal: storeGoals.salesGoal,
@@ -211,16 +223,20 @@ const DashboardPage: React.FC = () => {
                     projectedTotal={projectedTotal}
                   />
                 </div>
-                <div
-                  className="animate-slide-up"
-                  style={{ animationDelay: "0.2s" }}
-                >
-                  <GoalsProgress
-                    salesProgress={salesProgress}
-                    accessoryProgress={goalProgress.accessory}
-                    homeConnectProgress={goalProgress.homeConnect}
-                  />
-                </div>
+                {/* Goals Progress - show for daily and monthly views */}
+                {timeFrame.period !== "year" && (
+                  <div
+                    className="animate-slide-up"
+                    style={{ animationDelay: "0.2s" }}
+                  >
+                    <GoalsProgress
+                      salesProgress={salesProgress}
+                      accessoryProgress={goalProgress.accessory}
+                      homeConnectProgress={goalProgress.homeConnect}
+                      timeFramePeriod={timeFrame.period}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
