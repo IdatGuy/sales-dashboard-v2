@@ -6,8 +6,13 @@ import { ChevronDown, Store as StoreIcon, Settings } from "lucide-react";
 import GoalSettingsModal from "../dashboard/GoalSettingsModal";
 
 const StoreSelector: React.FC = () => {
-  const { availableStores, selectedStore, setSelectedStore, updateStoreGoals } =
-    useDashboard();
+  const {
+    availableStores,
+    selectedStore,
+    setSelectedStore,
+    updateStoreGoals,
+    currentDate,
+  } = useDashboard();
   const { currentUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
@@ -119,7 +124,11 @@ const StoreSelector: React.FC = () => {
           isOpen={isGoalModalOpen}
           onClose={() => setIsGoalModalOpen(false)}
           onSave={handleGoalSave}
-          currentMonth={new Date().toISOString().slice(0, 7)}
+          currentMonth={`${currentDate.getFullYear()}-${(
+            currentDate.getMonth() + 1
+          )
+            .toString()
+            .padStart(2, "0")}`}
         />
       )}
     </div>

@@ -204,8 +204,11 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Monthly Home Connect Goal (units)
+                    Monthly Home Connect + Plus Goal (units)
                   </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Combined goal for Home Connect and Home Plus units
+                  </p>
                   <input
                     type="text"
                     inputMode="numeric"

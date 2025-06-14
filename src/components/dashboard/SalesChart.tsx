@@ -35,12 +35,26 @@ interface SalesChartProps {
 const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
   const { timeFrame } = useDashboard();
   const { isDarkMode } = useTheme();
-  const [showAccumulated, setShowAccumulated] = useState(true);
+
+  // Initialize showAccumulated from localStorage, defaulting to true
+  const [showAccumulated, setShowAccumulated] = useState(() => {
+    const saved = localStorage.getItem("salesChart-showAccumulated");
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
   const chartRef = React.useRef<ChartJS<
     "line" | "bar",
     number[],
     string
   > | null>(null);
+
+  // Save showAccumulated to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(
+      "salesChart-showAccumulated",
+      JSON.stringify(showAccumulated)
+    );
+  }, [showAccumulated]);
 
   // Filter and process sales based on timeframe
   let displaySales = sales;
@@ -346,7 +360,7 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
             <input
               type="checkbox"
               checked={showAccumulated}
-              onChange={() => setShowAccumulated((v) => !v)}
+              onChange={() => setShowAccumulated((v: boolean) => !v)}
               className="form-checkbox"
             />
             <span>Accumulated</span>

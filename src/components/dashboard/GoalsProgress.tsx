@@ -78,7 +78,7 @@ const GoalsProgress: React.FC<GoalsProgressProps> = React.memo(
         <div>
           <ProgressBar
             percentage={homeConnectProgress.percentage}
-            label="Home Connect Goal"
+            label="Home Connect + Plus Goal"
             color="bg-accent-500 dark:bg-accent-400"
           />
           <div className="flex justify-between text-xs text-gray-500 dark:text-gray-300 mt-1">

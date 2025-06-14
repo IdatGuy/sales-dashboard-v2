@@ -79,6 +79,11 @@ const DashboardPage: React.FC = () => {
       (sum, sale) => sum + sale.homeConnects,
       0
     );
+    const totalHomePlus = monthlySales.reduce(
+      (sum, sale) => sum + (sale.homePlus || 0),
+      0
+    );
+    const totalHomeConnectAndPlus = totalHomeConnect + totalHomePlus;
 
     return {
       accessory: {
@@ -90,11 +95,13 @@ const DashboardPage: React.FC = () => {
             : 0,
       },
       homeConnect: {
-        current: totalHomeConnect,
+        current: totalHomeConnectAndPlus,
         goal: storeGoals.homeConnectGoal,
         percentage:
           storeGoals.homeConnectGoal > 0
-            ? Math.round((totalHomeConnect / storeGoals.homeConnectGoal) * 100)
+            ? Math.round(
+                (totalHomeConnectAndPlus / storeGoals.homeConnectGoal) * 100
+              )
             : 0,
       },
     };
