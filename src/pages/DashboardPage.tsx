@@ -10,7 +10,7 @@ import GoalsProgress from "../components/dashboard/GoalsProgress";
 import SalesProjection from "../components/dashboard/SalesProjection";
 import CommissionWidget from "../components/dashboard/CommissionWidget";
 import Leaderboard from "../components/dashboard/Leaderboard";
-import { getSalesProjection, getUserCommission } from "../data/mockData";
+import { getUserCommission } from "../data/mockData";
 import { goalsService } from "../services/api/goals";
 
 const DashboardPage: React.FC = () => {
@@ -106,11 +106,6 @@ const DashboardPage: React.FC = () => {
       },
     };
   }, [contextSalesData.daily, storeGoals]);
-
-  const projectedTotal = useMemo(
-    () => getSalesProjection(selectedStore?.id ?? ""),
-    [selectedStore]
-  );
 
   const currentTotal = useMemo(
     () =>
@@ -225,10 +220,7 @@ const DashboardPage: React.FC = () => {
                   className="animate-slide-up"
                   style={{ animationDelay: "0.1s" }}
                 >
-                  <SalesProjection
-                    currentTotal={currentTotal}
-                    projectedTotal={projectedTotal}
-                  />
+                  <SalesProjection storeGoals={storeGoals} />
                 </div>
                 {/* Goals Progress - show for daily and monthly views */}
                 {timeFrame.period !== "year" && (
