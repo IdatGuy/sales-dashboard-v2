@@ -10,9 +10,10 @@ import { DashboardProvider } from "./context/DashboardContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
-import PriceSheetPage from "./pages/PriceSheetPage";
-import DocumentsPage from "./pages/DocumentsPage";
-import InviteUserPage from "./pages/InviteUserPage";
+// Non-functional pages commented out for portfolio
+// import PriceSheetPage from "./pages/PriceSheetPage";
+// import DocumentsPage from "./pages/DocumentsPage";
+// import InviteUserPage from "./pages/InviteUserPage";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -53,6 +54,8 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
+      {/* Non-functional routes commented out for portfolio */}
+      {/* 
       <Route
         path="/prices"
         element={
@@ -83,6 +86,7 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
+      */}
       <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>
   );

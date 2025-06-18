@@ -1,76 +1,45 @@
 import React from "react";
-import { Sale } from "../../types";
-import { mockUsers, mockSales } from "../../data/mockData";
+// import { Sale } from "../../types";
+// Mock data imports removed for portfolio build
 
-// Helper to get user name by id
-const getUserName = (userId: string) => {
-  const user = mockUsers.find((u) => u.id === userId);
-  return user ? user.name : "Unknown";
-};
-
-// Points calculation rules
-function calculatePoints(sale: Sale) {
-  return (
-    Math.floor(sale.salesAmount / 100) * 1 +
-    sale.accessorySales * 2 +
-    sale.homeConnects * 3 +
-    sale.cleanings * 1 +
-    sale.repairs * 0.5
-  );
-}
-
-// Aggregate points by user for the current month
-const getLeaderboardData = (month: string) => {
-  // For demo, randomly assign sales to users for mockup
-  const salesWithUser = mockSales.map((sale, idx) => ({
-    ...sale,
-    userId: mockUsers[idx % mockUsers.length].id,
-  }));
-  const filtered = salesWithUser.filter((sale) => sale.date.startsWith(month));
-  const leaderboard: { [userId: string]: number } = {};
-  filtered.forEach((sale) => {
-    leaderboard[sale.userId] =
-      (leaderboard[sale.userId] || 0) + calculatePoints(sale);
-  });
-  return Object.entries(leaderboard)
-    .map(([userId, totalPoints]) => ({ userId, totalPoints }))
-    .sort((a, b) => b.totalPoints - a.totalPoints);
-};
-
+// Placeholder component for portfolio - full implementation would connect to real data
 interface LeaderboardProps {
   month: string;
 }
 
 const Leaderboard: React.FC<LeaderboardProps> = ({ month }) => {
-  const data = getLeaderboardData(month);
+  // Placeholder data for demonstration
+  const placeholderData = [
+    { userId: "1", name: "John Employee", totalPoints: 125 },
+    { userId: "2", name: "Mary Manager", totalPoints: 98 },
+    { userId: "3", name: "Bob Sales", totalPoints: 87 },
+  ];
+
   return (
     <div className="p-4">
       <h5 className="text-lg font-semibold mb-4">
         Leaderboard (Points System)
       </h5>
-      <table className="min-w-full text-sm">
-        <thead>
-          <tr>
-            <th className="text-left py-1">Rank</th>
-            <th className="text-left py-1">Name</th>
-            <th className="text-right py-1">Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((entry, idx) => (
-            <tr key={entry.userId} className={idx === 0 ? "font-bold" : ""}>
-              <td className="py-1">{idx + 1}</td>
-              <td className="py-1">{getUserName(entry.userId)}</td>
-              <td className="py-1 text-right">{entry.totalPoints}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="mt-4 text-xs text-gray-500">
-        <div>
-          Points: 1pt per $100 sales, 2pt/accessory, 3pt/home connect,
-          1pt/cleaning, 0.5pt/repair
-        </div>
+      <div className="space-y-2">
+        {placeholderData.map((user, idx) => (
+          <div
+            key={user.userId}
+            className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded"
+          >
+            <div className="flex items-center">
+              <span className="w-6 h-6 bg-primary-500 text-white text-xs font-bold rounded-full flex items-center justify-center mr-3">
+                {idx + 1}
+              </span>
+              <span className="text-sm font-medium">{user.name}</span>
+            </div>
+            <span className="text-sm font-semibold text-primary-600 dark:text-primary-400">
+              {user.totalPoints} pts
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
+        Demo data - Full implementation would use real sales data
       </div>
     </div>
   );

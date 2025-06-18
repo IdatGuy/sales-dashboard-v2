@@ -10,8 +10,9 @@ import GoalsProgress from "../components/dashboard/GoalsProgress";
 import SalesProjection from "../components/dashboard/SalesProjection";
 import CommissionWidget from "../components/dashboard/CommissionWidget";
 import Leaderboard from "../components/dashboard/Leaderboard";
-import { getUserCommission } from "../data/mockData";
 import { goalsService } from "../services/api/goals";
+import { commissionService } from "../services/api/commission";
+import { Commission } from "../types";
 
 const DashboardPage: React.FC = () => {
   const {
@@ -31,6 +32,8 @@ const DashboardPage: React.FC = () => {
     accessoryGoal: 0,
     homeConnectGoal: 0,
   });
+
+  const [userCommission, setUserCommission] = useState<Commission | null>(null);
 
   // Load store goals when store or date changes (skip for yearly view)
   useEffect(() => {
@@ -113,10 +116,24 @@ const DashboardPage: React.FC = () => {
     [contextSalesData.daily]
   );
 
-  const userCommission = useMemo(
-    () => (currentUser ? getUserCommission(currentUser.id) : null),
-    [currentUser]
-  );
+  // Load user commission data
+  useEffect(() => {
+    if (currentUser && timeFrame.period !== "year") {
+      const currentMonth = `${currentDate.getFullYear()}-${(
+        currentDate.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}`;
+
+      commissionService
+        .getUserCommission(currentUser.id, currentMonth)
+        .then((commission) => {
+          setUserCommission(commission);
+        });
+    } else {
+      setUserCommission(null);
+    }
+  }, [currentUser, currentDate, timeFrame.period]);
 
   // Calculate sales progress for goals - always use monthly total
   const salesProgress = useMemo(() => {

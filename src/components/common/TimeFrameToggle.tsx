@@ -6,15 +6,12 @@ const TimeFrameToggle: React.FC = () => {
 
   const today = new Date();
 
-  const setDaily = () =>
+  const setDaily = () => {
     setTimeFrame({
       period: "day",
-      label: today.toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }),
+      label: "", // Label will be updated by the context based on the actual date
     });
+  };
 
   const setMonthly = () =>
     setTimeFrame({

@@ -105,7 +105,8 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     dateLabels = mostRecent.map((sale) => sale.date);
     data = {
       labels: mostRecent.map((sale) => {
-        const date = new Date(sale.date);
+        const [year, month, day] = sale.date.split("-").map(Number);
+        const date = new Date(year, month - 1, day);
         return date.toLocaleDateString(undefined, { weekday: "short" });
       }),
       datasets: [

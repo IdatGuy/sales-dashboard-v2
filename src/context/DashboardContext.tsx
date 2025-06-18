@@ -38,6 +38,7 @@ interface DashboardContextType {
   salesData: SalesData;
   isLoading: boolean;
   getSalesForPeriod: () => Sale[];
+  getMostRecentSalesDate: () => Date | null;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -135,8 +136,6 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
         const monthly =
           cachedMonthly || (await getStoreMonthlySales(storeId, year));
 
-        console.log("Fetched sales data:", { daily, monthly });
-
         // Update cache
         if (!cachedDaily) {
           setCachedData(dailySalesCache, setDailySalesCache, dailyKey, daily);
@@ -184,6 +183,40 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     }
     return [];
   }, [salesData, timeFrame.period, currentDate]);
+
+  const getMostRecentSalesDate = React.useCallback((): Date | null => {
+    if (salesData.daily.length === 0) {
+      return null;
+    }
+
+    // Find the most recent date with sales data
+    const sortedDates = salesData.daily
+      .map((sale) => sale.date)
+      .sort((a, b) => b.localeCompare(a)); // Sort descending (newest first)
+
+    if (sortedDates.length === 0) {
+      return null;
+    }
+
+    // Parse the most recent date safely
+    const [year, month, day] = sortedDates[0].split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }, [salesData.daily]);
+
+  const setTimeFrameWithDate = React.useCallback(
+    (newTimeFrame: TimeFrame) => {
+      setTimeFrame(newTimeFrame);
+
+      // If switching to daily view, also update currentDate to most recent sales date
+      if (newTimeFrame.period === "day") {
+        const mostRecentDate = getMostRecentSalesDate();
+        if (mostRecentDate) {
+          setCurrentDate(mostRecentDate);
+        }
+      }
+    },
+    [getMostRecentSalesDate]
+  );
 
   const handlePrev = () => {
     setCurrentDate((prevDate) => {
@@ -285,7 +318,7 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     selectedStore,
     timeFrame,
     setSelectedStore,
-    setTimeFrame,
+    setTimeFrame: setTimeFrameWithDate,
     availableStores: stores,
     updateStoreGoals,
     currentDate,
@@ -294,6 +327,7 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     salesData,
     isLoading,
     getSalesForPeriod,
+    getMostRecentSalesDate,
   };
 
   return (
