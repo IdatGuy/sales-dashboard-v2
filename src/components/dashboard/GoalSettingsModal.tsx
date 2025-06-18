@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 import { Store } from "../../types";
-import { goalsService } from "../../services/api/goals";
+import { goalsService, ValidationError } from "../../services/api/goals";
 
 interface GoalSettingsModalProps {
   store: Store;
@@ -32,6 +32,9 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
   const [isLoadingGoals, setIsLoadingGoals] = useState(false);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [existingGoals, setExistingGoals] = useState<any>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
 
   // Generate month/year options (current month + 4 years back)
   const generateMonthOptions = () => {
@@ -57,6 +60,12 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
   };
 
   const monthOptions = generateMonthOptions();
+
+  // Helper function to get error message for a specific field
+  const getFieldError = (fieldName: string): string | null => {
+    const error = validationErrors.find((err) => err.field === fieldName);
+    return error ? error.message : null;
+  };
 
   // Load existing goals when modal opens or month changes
   React.useEffect(() => {
@@ -86,6 +95,9 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Clear previous validation errors
+    setValidationErrors([]);
+
     // Check if goals already exist and ask for confirmation
     if (existingGoals && !showOverwriteConfirm) {
       setShowOverwriteConfirm(true);
@@ -94,16 +106,20 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
 
     setIsLoading(true);
 
-    const success = await goalsService.saveStoreGoals(
+    const result = await goalsService.saveStoreGoals(
       store.id,
       selectedMonth,
       goals
     );
 
-    if (success) {
+    if (result.success) {
       onSave(goals);
       alert("Goals saved successfully!");
       onClose();
+    } else if (result.validation && !result.validation.isValid) {
+      // Handle validation errors
+      setValidationErrors(result.validation.errors);
+      alert("Please fix the validation errors and try again.");
     } else {
       alert("Failed to save goals. Please try again.");
     }
@@ -133,6 +149,19 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4">
+          {validationErrors.length > 0 && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-md">
+              <h4 className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">
+                Please fix the following errors:
+              </h4>
+              <ul className="text-sm text-red-700 dark:text-red-300 list-disc pl-4">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>{error.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -140,8 +169,15 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
               </label>
               <select
                 value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value);
+                  setValidationErrors([]); // Clear errors when changing month
+                }}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white ${
+                  getFieldError("month")
+                    ? "border-red-300 dark:border-red-600"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}
                 disabled={isLoadingGoals}
               >
                 {monthOptions.map((option) => (
@@ -150,6 +186,11 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
                   </option>
                 ))}
               </select>
+              {getFieldError("month") && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {getFieldError("month")}
+                </p>
+              )}
             </div>
 
             {isLoadingGoals ? (
@@ -162,6 +203,9 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Monthly Sales Goal ($)
                   </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Must be between $0 and $100,000
+                  </p>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -172,18 +216,31 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
                         ...goals,
                         salesGoal: value ? Number(value) : 0,
                       });
+                      setValidationErrors([]); // Clear errors when changing values
                     }}
                     onFocus={(e) => e.target.select()}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                      getFieldError("salesGoal")
+                        ? "border-red-300 dark:border-red-600"
+                        : "border-gray-300 dark:border-gray-600"
+                    }`}
                     placeholder="0"
                     required
                   />
+                  {getFieldError("salesGoal") && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {getFieldError("salesGoal")}
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Monthly Accessory Goal ($)
                   </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Must be between $0 and $5,000
+                  </p>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -194,12 +251,22 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
                         ...goals,
                         accessoryGoal: value ? Number(value) : 0,
                       });
+                      setValidationErrors([]); // Clear errors when changing values
                     }}
                     onFocus={(e) => e.target.select()}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                      getFieldError("accessoryGoal")
+                        ? "border-red-300 dark:border-red-600"
+                        : "border-gray-300 dark:border-gray-600"
+                    }`}
                     placeholder="0"
                     required
                   />
+                  {getFieldError("accessoryGoal") && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {getFieldError("accessoryGoal")}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -207,7 +274,7 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
                     Monthly Home Connect + Plus Goal (units)
                   </label>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    Combined goal for Home Connect and Home Plus units
+                    Combined goal for Home Connect and Home Plus units (0-30)
                   </p>
                   <input
                     type="text"
@@ -219,12 +286,22 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
                         ...goals,
                         homeConnectGoal: value ? Number(value) : 0,
                       });
+                      setValidationErrors([]); // Clear errors when changing values
                     }}
                     onFocus={(e) => e.target.select()}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                      getFieldError("homeConnectGoal")
+                        ? "border-red-300 dark:border-red-600"
+                        : "border-gray-300 dark:border-gray-600"
+                    }`}
                     placeholder="0"
                     required
                   />
+                  {getFieldError("homeConnectGoal") && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {getFieldError("homeConnectGoal")}
+                    </p>
+                  )}
                 </div>
               </>
             )}

@@ -9,6 +9,86 @@ export interface GoalsData {
   homeConnectGoal: number;
 }
 
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+}
+
+// Validation function for store goals
+export function validateStoreGoals(month: string, goals: GoalsData): ValidationResult {
+  const errors: ValidationError[] = [];
+  
+  // Validate year (must be 2025)
+  const year = parseInt(month.split('-')[0]);
+  if (year !== 2025) {
+    errors.push({
+      field: 'month',
+      message: 'Goals can only be set for the year 2025'
+    });
+  }
+  
+  // Validate monthly sales (0 to 100,000)
+  if (goals.salesGoal < 0 || goals.salesGoal > 100000) {
+    errors.push({
+      field: 'salesGoal',
+      message: 'Monthly sales must be between 0 and 100,000'
+    });
+  }
+  
+  // Validate accessory sales (0 to 5,000)
+  if (goals.accessoryGoal < 0 || goals.accessoryGoal > 5000) {
+    errors.push({
+      field: 'accessoryGoal',
+      message: 'Accessory sales must be between 0 and 5,000'
+    });
+  }
+  
+  // Validate Home Connect and Home Plus values (0 to 30)
+  if (goals.homeConnectGoal < 0 || goals.homeConnectGoal > 30) {
+    errors.push({
+      field: 'homeConnectGoal',
+      message: 'Home Connect and Home Plus values must be between 0 and 30'
+    });
+  }
+  
+  // Validate that all values are numbers
+  if (!Number.isFinite(goals.salesGoal)) {
+    errors.push({
+      field: 'salesGoal',
+      message: 'Sales goal must be a valid number'
+    });
+  }
+  
+  if (!Number.isFinite(goals.accessoryGoal)) {
+    errors.push({
+      field: 'accessoryGoal',
+      message: 'Accessory goal must be a valid number'
+    });
+  }
+  
+  if (!Number.isFinite(goals.homeConnectGoal)) {
+    errors.push({
+      field: 'homeConnectGoal',
+      message: 'Home Connect goal must be a valid number'
+    });
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+export interface SaveGoalsResult {
+  success: boolean;
+  validation?: ValidationResult;
+}
+
 export const goalsService = {
   async getStoreGoals(storeId: string, month: string): Promise<GoalsData | null> {
     const { data, error } = await supabase
@@ -35,7 +115,17 @@ export const goalsService = {
     };
   },
 
-  async saveStoreGoals(storeId: string, month: string, goals: GoalsData): Promise<boolean> {
+  async saveStoreGoals(storeId: string, month: string, goals: GoalsData): Promise<SaveGoalsResult> {
+    // Validate the goals first
+    const validation = validateStoreGoals(month, goals);
+    
+    if (!validation.isValid) {
+      return {
+        success: false,
+        validation
+      };
+    }
+
     const goalsData: StoreGoalsInsert = {
       store_id: storeId,
       month,
@@ -52,9 +142,13 @@ export const goalsService = {
 
     if (error) {
       console.error('Error saving store goals:', error);
-      return false;
+      return {
+        success: false
+      };
     }
 
-    return true;
+    return {
+      success: true
+    };
   }
 };

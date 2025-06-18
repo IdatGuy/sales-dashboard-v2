@@ -21,12 +21,12 @@ const Navbar: React.FC = () => {
 
   if (!currentUser) return null;
 
-  const navLinks = [
-    { to: "/dashboard", icon: <BarChart size={18} />, label: "Dashboard" },
-    // Temporarily commented out for portfolio - these features are not fully implemented
-    // { to: "/prices", icon: <FileText size={18} />, label: "Price Sheets" },
-    // { to: "/documents", icon: <FileText size={18} />, label: "Documents" },
-  ];
+  // Temporarily commented out for portfolio - these features are not fully implemented
+  // const navLinks = [
+  //   { to: "/dashboard", icon: <BarChart size={18} />, label: "Dashboard" },
+  //   { to: "/prices", icon: <FileText size={18} />, label: "Price Sheets" },
+  //   { to: "/documents", icon: <FileText size={18} />, label: "Documents" },
+  // ];
 
   // Add Invite User tab for managers and admins - temporarily commented out for portfolio
   // if (

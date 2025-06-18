@@ -3,11 +3,9 @@ import React from "react";
 // Mock data imports removed for portfolio build
 
 // Placeholder component for portfolio - full implementation would connect to real data
-interface LeaderboardProps {
-  month: string;
-}
+interface LeaderboardProps {}
 
-const Leaderboard: React.FC<LeaderboardProps> = ({ month }) => {
+const Leaderboard: React.FC<LeaderboardProps> = () => {
   // Placeholder data for demonstration
   const placeholderData = [
     { userId: "1", name: "John Employee", totalPoints: 125 },
