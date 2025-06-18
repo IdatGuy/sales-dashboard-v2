@@ -5,6 +5,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { DashboardProvider } from "./context/DashboardContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -98,6 +99,7 @@ function App() {
       <ThemeProvider>
         <AuthProvider>
           <AppContent />
+          <Analytics />
         </AuthProvider>
       </ThemeProvider>
     </Router>
