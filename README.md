@@ -2,6 +2,22 @@
 
 A modern, responsive sales dashboard built with React, TypeScript, and Tailwind CSS. This project demonstrates a comprehensive approach to building a full-stack web application with real-time data visualization, user authentication, and role-based access control.
 
+## 🔗 Live Demo
+
+**[View Live Application](https://sales-dashboard-v2.vercel.app)**
+
+> **Demo Credentials**: Use any email/password combination to access the demo dashboard with sample data.
+
+The live demo includes:
+- ✅ Full dashboard functionality with sample sales data
+- ✅ Interactive charts and data visualization  
+- ✅ Goal tracking and progress indicators
+- ✅ Commission calculations
+- ✅ Responsive design across all devices
+- ✅ Dark/light mode toggle
+
+*Note: The demo uses mock authentication for portfolio purposes.*
+
 ## 🌟 Features
 
 - **Real-time Sales Analytics**: Interactive charts showing daily, monthly, and yearly sales data
@@ -44,7 +60,7 @@ A modern, responsive sales dashboard built with React, TypeScript, and Tailwind 
 
 1. Clone the repository:
    ```bash
-   git clone [repository-url]
+   git clone https://github.com/IdatGuy/sales-dashboard-v2.git
    cd sales-dashboard-v2
    ```
 
@@ -58,18 +74,39 @@ A modern, responsive sales dashboard built with React, TypeScript, and Tailwind 
    cp .env.example .env.local
    ```
    
-   Add your Supabase configuration:
-   ```
-   VITE_SUPABASE_URL=your_supabase_url
+   Then edit `.env.local` with your Supabase credentials:
+   ```env
+   VITE_SUPABASE_URL=https://your-project-id.supabase.co
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
+   
+   **To get your Supabase credentials:**
+   - Create a project at [supabase.com](https://supabase.com/dashboard)
+   - Go to Settings → API in your dashboard
+   - Copy the Project URL and anon public key
 
-4. Start the development server:
+4. Set up the database schema:
+   
+   The project includes a Supabase configuration in the `supabase/` directory. You can:
+   
+   **Option A: Use Supabase CLI (Recommended)**
+   ```bash
+   # Install Supabase CLI
+   npx supabase init
+   npx supabase db push
+   ```
+   
+   **Option B: Manual Setup**
+   - Import the database schema from `src/lib/database.types.ts`
+   - Create the required tables: `profiles`, `stores`, `sales`, `store_goals`, `commissions`
+   - Set up Row Level Security policies for data access
+
+5. Start the development server:
    ```bash
    npm run dev
    ```
 
-5. Build for production:
+6. Build for production:
    ```bash
    npm run build
    ```
@@ -150,7 +187,6 @@ A modern, responsive sales dashboard built with React, TypeScript, and Tailwind 
 - Advanced analytics with trend analysis
 - Export functionality for reports
 - Integration with external CRM systems
-- Mobile app development
 
 ## 📄 License
 
@@ -158,7 +194,7 @@ This project is part of a portfolio demonstration and is not intended for commer
 
 ## 🤝 Contact
 
-For questions about this project or potential collaboration opportunities, please reach out through [your contact information].
+For questions about this project or potential collaboration opportunities, please reach out through email at isaiah.fouse01@gmail.com.
 
 ---
 
