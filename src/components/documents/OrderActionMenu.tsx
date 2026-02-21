@@ -20,7 +20,7 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const statusOptions: Order['status'][] = ['need to order', 'ordered', 'received', 'out of stock', 'distro', 'wrong part', 'repaired'];
+  const statusOptions: Order['status'][] = ['need to order', 'ordered', 'arrived', 'installed', 'completed'];
   
   // Close menu when clicking outside
   useEffect(() => {

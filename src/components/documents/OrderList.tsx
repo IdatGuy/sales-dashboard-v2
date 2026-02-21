@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Order } from '../../services/api/orders';
-import OrderActionMenu from './OrderActionMenu';
 
 interface OrderListProps {
   orders: Order[];
   isLoading?: boolean;
-  onOrderDeleted?: (orderId: number) => void;
-  onOrderUpdated?: (orderId: number, updatedOrder: Partial<Order>) => void;
+  selectedOrderIds: number[];
+  onSelectionChange: (selectedIds: number[]) => void;
 }
 
 const OrderList: React.FC<OrderListProps> = ({
   orders,
   isLoading = false,
-  onOrderDeleted,
-  onOrderUpdated,
+  selectedOrderIds,
+  onSelectionChange,
 }) => {
   const [localOrders, setLocalOrders] = useState<Order[]>(orders);
 
@@ -21,6 +20,22 @@ const OrderList: React.FC<OrderListProps> = ({
   useEffect(() => {
     setLocalOrders(orders);
   }, [orders]);
+
+  const handleSelectOrder = (orderId: number) => {
+    if (selectedOrderIds.includes(orderId)) {
+      onSelectionChange(selectedOrderIds.filter((id) => id !== orderId));
+    } else {
+      onSelectionChange([...selectedOrderIds, orderId]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedOrderIds.length === localOrders.length) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(localOrders.map((order) => order.id));
+    }
+  };
   const getStatusColor = (status: string): string => {
     switch (status) {
       case 'need to order':
@@ -47,20 +62,6 @@ const OrderList: React.FC<OrderListProps> = ({
     });
   };
 
-  const handleOrderDeleted = (orderId: number) => {
-    const updatedOrders = localOrders.filter((o) => o.id !== orderId);
-    setLocalOrders(updatedOrders);
-    onOrderDeleted?.(orderId);
-  };
-
-  const handleStatusUpdate = (orderId: number, newStatus: Order['status']) => {
-    const updatedOrders = localOrders.map((o) =>
-      o.id === orderId ? { ...o, status: newStatus } : o
-    );
-    setLocalOrders(updatedOrders);
-    onOrderUpdated?.(orderId, { status: newStatus });
-  };
-
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-4">
@@ -85,6 +86,14 @@ const OrderList: React.FC<OrderListProps> = ({
         <thead className="bg-gray-50 dark:bg-gray-800">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              <input
+                type="checkbox"
+                checked={selectedOrderIds.length === localOrders.length && localOrders.length > 0}
+                onChange={handleSelectAll}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 cursor-pointer"
+              />
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               WO #
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -108,20 +117,31 @@ const OrderList: React.FC<OrderListProps> = ({
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Home Connect
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-              Actions
-            </th>
           </tr>
         </thead>
         <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
           {localOrders.map((order) => (
-            <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            <tr 
+              key={order.id} 
+              className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer ${
+                selectedOrderIds.includes(order.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+              }`}
+            >
+              <td className="px-6 py-4 whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={selectedOrderIds.includes(order.id)}
+                  onChange={() => handleSelectOrder(order.id)}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 cursor-pointer"
+                />
+              </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <a
                   href={order.wo_link}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 underline"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   {order.wo_number}
                 </a>
@@ -136,6 +156,7 @@ const OrderList: React.FC<OrderListProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 underline"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   {order.part_description}
                 </a>
@@ -164,13 +185,6 @@ const OrderList: React.FC<OrderListProps> = ({
                 ) : (
                   <span className="text-gray-400">No</span>
                 )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right">
-                <OrderActionMenu
-                  order={order}
-                  onDelete={handleOrderDeleted}
-                  onStatusUpdate={handleStatusUpdate}
-                />
               </td>
             </tr>
           ))}

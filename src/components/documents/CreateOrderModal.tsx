@@ -53,59 +53,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     }
   };
 
-  const validateForm = (): boolean => {
-    // WO Number must be 8 digits
-    if (!/^\d{8}$/.test(formData.wo_number)) {
-      setError('WO Number must be exactly 8 digits');
-      return false;
-    }
-
-    // Check required fields
-    if (!formData.check_in_date) {
-      setError('Check-in date is required');
-      return false;
-    }
-    if (!formData.part_description) {
-      setError('Part description is required');
-      return false;
-    }
-    if (!formData.store_id) {
-      setError('Store is required');
-      return false;
-    }
-    if (!formData.cx_name) {
-      setError('Customer name is required');
-      return false;
-    }
-    if (!formData.cx_phone) {
-      setError('Customer phone is required');
-      return false;
-    }
-    if (!/^\d{10}$/.test(formData.cx_phone)) {
-      setError('Customer phone must be exactly 10 digits');
-      return false;
-    }
-    if (!formData.wo_link) {
-      setError('Work order link is required');
-      return false;
-    }
-    if (!formData.part_link) {
-      setError('Part link is required');
-      return false;
-    }
-
-    // Validate URLs
-    try {
-      new URL(formData.wo_link);
-      new URL(formData.part_link);
-    } catch {
-      setError('Both links must be valid URLs');
-      return false;
-    }
-
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
