@@ -81,6 +81,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       setError('Customer phone is required');
       return false;
     }
+    if (!/^\d{10}$/.test(formData.cx_phone)) {
+      setError('Customer phone must be exactly 10 digits');
+      return false;
+    }
     if (!formData.wo_link) {
       setError('Work order link is required');
       return false;
@@ -106,7 +110,49 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     e.preventDefault();
     setError(null);
 
-    if (!validateForm()) {
+    // Format phone number - strip to digits only, max 10
+    const formattedPhone = formData.cx_phone.replace(/\D/g, '').slice(0, 10);
+
+    // Validate all fields
+    if (!formData.wo_number || formData.wo_number.length !== 8) {
+      setError('Work order number must be exactly 8 digits');
+      return;
+    }
+    // if (!formData.order_date) {
+    //   setError('Order date is required');
+    //   return;
+    // }
+    if (!formData.store_id) {
+      setError('Store is required');
+      return;
+    }
+    if (!formData.cx_name) {
+      setError('Customer name is required');
+      return;
+    }
+    if (!formData.cx_phone) {
+      setError('Customer phone is required');
+      return;
+    }
+    if (!/^\d{10}$/.test(formattedPhone)) {
+      setError('Customer phone must contain at least 10 digits');
+      return;
+    }
+    if (!formData.wo_link) {
+      setError('Work order link is required');
+      return;
+    }
+    if (!formData.part_link) {
+      setError('Part link is required');
+      return;
+    }
+
+    // Validate URLs
+    try {
+      new URL(formData.wo_link);
+      new URL(formData.part_link);
+    } catch {
+      setError('Both links must be valid URLs');
       return;
     }
 
@@ -122,7 +168,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         technician: technicianName,
         store_id: formData.store_id,
         cx_name: formData.cx_name,
-        cx_phone: formData.cx_phone,
+        cx_phone: formattedPhone,
         notes: formData.notes || null,
         status: 'need to order',
         wo_link: formData.wo_link,
@@ -314,13 +360,15 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               {/* Customer Phone */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Customer Phone *
+                  Customer Phone * (10 digits)
                 </label>
                 <input
                   type="tel"
                   name="cx_phone"
                   value={formData.cx_phone}
                   onChange={handleInputChange}
+                  placeholder="1234567890"
+                  maxLength={20}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                   required
                 />

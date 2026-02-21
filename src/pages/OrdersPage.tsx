@@ -14,6 +14,7 @@ const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>('all');
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -78,15 +79,31 @@ const OrdersPage: React.FC = () => {
           {/* Orders Table */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {orders.length} order{orders.length !== 1 ? 's' : ''} found
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {orders.filter((o) => statusFilter === 'all' || o.status === statusFilter).length} order{orders.filter((o) => statusFilter === 'all' || o.status === statusFilter).length !== 1 ? 's' : ''} found
+                  </p>
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as Order['status'] | 'all')}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="all">All Status</option>
+                  <option value="need to order">Need to Order</option>
+                  <option value="ordered">Ordered</option>
+                  <option value="arrived">Arrived</option>
+                  <option value="installed">Installed</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
             </div>
             <OrderList
-              orders={orders}
+              orders={orders.filter((o) => statusFilter === 'all' || o.status === statusFilter)}
               isLoading={isLoading}
               onOrderDeleted={handleOrderDeleted}
               onOrderUpdated={handleOrderUpdated}

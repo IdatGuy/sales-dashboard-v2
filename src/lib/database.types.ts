@@ -264,6 +264,71 @@ export type Database = {
           },
         ]
       }
+      order_list: {
+        Row: {
+          id: number
+          created_at: string
+          check_in_date: string
+          order_date: string | null
+          part_eta: string | null
+          home_connect: boolean
+          wo_number: string
+          part_description: string
+          technician: string
+          store_id: string
+          cx_name: string
+          cx_phone: string
+          notes: string | null
+          status: 'need to order' | 'ordered' | 'arrived' | 'installed' | 'completed'
+          wo_link: string
+          part_link: string
+        }
+        Insert: {
+          id?: number
+          created_at?: string
+          check_in_date: string
+          order_date?: string | null
+          part_eta?: string | null
+          home_connect?: boolean
+          wo_number: string
+          part_description: string
+          technician: string
+          store_id?: string
+          cx_name: string
+          cx_phone: string
+          notes?: string | null
+          status?: 'need to order' | 'ordered' | 'arrived' | 'installed' | 'completed'
+          wo_link: string
+          part_link: string
+        }
+        Update: {
+          id?: number
+          created_at?: string
+          check_in_date?: string
+          order_date?: string | null
+          part_eta?: string | null
+          home_connect?: boolean
+          wo_number?: string
+          part_description?: string
+          technician?: string
+          store_id?: string
+          cx_name?: string
+          cx_phone?: string
+          notes?: string | null
+          status?: 'need to order' | 'ordered' | 'arrived' | 'installed' | 'completed'
+          wo_link?: string
+          part_link?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_list_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -272,6 +337,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      part_status: 'need to order' | 'ordered' | 'arrived' | 'installed' | 'completed'
       user_role: "employee" | "manager" | "admin"
     }
     CompositeTypes: {
