@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-import { LogOut, BarChart, Menu, X, Sun, Moon } from "lucide-react";
+import { LogOut, BarChart, Menu, X, Sun, Moon, Package } from "lucide-react";
 
 const Navbar: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -21,24 +21,10 @@ const Navbar: React.FC = () => {
 
   if (!currentUser) return null;
 
-  // Temporarily commented out for portfolio - these features are not fully implemented
-  // const navLinks = [
-  //   { to: "/dashboard", icon: <BarChart size={18} />, label: "Dashboard" },
-  //   { to: "/prices", icon: <FileText size={18} />, label: "Price Sheets" },
-  //   { to: "/documents", icon: <FileText size={18} />, label: "Documents" },
-  // ];
-
-  // Add Invite User tab for managers and admins - temporarily commented out for portfolio
-  // if (
-  //   currentUser &&
-  //   (currentUser.role === "manager" || currentUser.role === "admin")
-  // ) {
-  //   navLinks.push({
-  //     to: "/invite",
-  //     icon: <FileText size={18} />,
-  //     label: "Invite User",
-  //   });
-  // }
+  const navLinks = [
+    { to: "/dashboard", icon: <BarChart size={18} />, label: "Dashboard" },
+    { to: "/orders", icon: <Package size={18} />, label: "Orders" },
+  ];
 
   return (
     <nav className="bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700">
@@ -53,8 +39,7 @@ const Navbar: React.FC = () => {
             </Link>
 
             {/* Desktop navigation */}
-            {/* Temporarily commented out for portfolio - these features are not fully implemented */}
-            {/* <div className="hidden md:ml-6 md:flex md:space-x-4">
+            <div className="hidden md:ml-6 md:flex md:space-x-4">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
@@ -65,7 +50,7 @@ const Navbar: React.FC = () => {
                   <span className="ml-1">{link.label}</span>
                 </Link>
               ))}
-            </div> */}
+            </div>
           </div>
 
           <div className="flex items-center">
@@ -117,8 +102,7 @@ const Navbar: React.FC = () => {
       {/* Mobile menu */}
       <div className={`md:hidden ${mobileMenuOpen ? "block" : "hidden"}`}>
         <div className="pt-2 pb-3 space-y-1 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-800">
-          {/* Temporarily commented out for portfolio - these features are not fully implemented */}
-          {/* {navLinks.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}
@@ -128,7 +112,7 @@ const Navbar: React.FC = () => {
               {link.icon}
               <span className="ml-2">{link.label}</span>
             </Link>
-          ))} */}
+          ))}
           <div className="border-t border-gray-200 dark:border-gray-700 mt-2 pt-2">
             <div className="flex items-center justify-between px-3 py-2">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-200">

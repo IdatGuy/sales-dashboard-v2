@@ -11,6 +11,7 @@ import { DashboardProvider } from "./context/DashboardContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
+import OrdersPage from "./pages/OrdersPage";
 // Non-functional pages commented out for portfolio
 // import PriceSheetPage from "./pages/PriceSheetPage";
 // import DocumentsPage from "./pages/DocumentsPage";
@@ -51,6 +52,16 @@ const AppContent = () => {
           <ProtectedRoute>
             <DashboardProvider>
               <DashboardPage />
+            </DashboardProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/orders"
+        element={
+          <ProtectedRoute>
+            <DashboardProvider>
+              <OrdersPage />
             </DashboardProvider>
           </ProtectedRoute>
         }
