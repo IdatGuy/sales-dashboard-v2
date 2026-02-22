@@ -12,6 +12,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import OrdersPage from "./pages/OrdersPage";
+import PriceSheetPage from "./pages/PriceSheetPage";
 import AdminPage from "./pages/AdminPage";
 // Non-functional pages commented out for portfolio
 // import PriceSheetPage from "./pages/PriceSheetPage";
@@ -63,6 +64,16 @@ const AppContent = () => {
           <ProtectedRoute>
             <DashboardProvider>
               <OrdersPage />
+            </DashboardProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/prices"
+        element={
+          <ProtectedRoute>
+            <DashboardProvider>
+              <PriceSheetPage />
             </DashboardProvider>
           </ProtectedRoute>
         }
