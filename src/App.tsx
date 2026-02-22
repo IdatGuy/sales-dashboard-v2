@@ -12,6 +12,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import OrdersPage from "./pages/OrdersPage";
+import AdminPage from "./pages/AdminPage";
 // Non-functional pages commented out for portfolio
 // import PriceSheetPage from "./pages/PriceSheetPage";
 // import DocumentsPage from "./pages/DocumentsPage";
@@ -38,7 +39,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Main app component
 const AppContent = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, currentUser } = useAuth();
 
   return (
     <Routes>
@@ -62,6 +63,16 @@ const AppContent = () => {
           <ProtectedRoute>
             <DashboardProvider>
               <OrdersPage />
+            </DashboardProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <DashboardProvider>
+              {currentUser?.role === 'admin' ? <AdminPage /> : <Navigate to="/dashboard" />}
             </DashboardProvider>
           </ProtectedRoute>
         }
