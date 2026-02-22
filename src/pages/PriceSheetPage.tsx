@@ -34,25 +34,23 @@ const PriceSheetPage: React.FC = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Device</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Service</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Price</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Active</th>
                   </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-sm text-gray-500">Loading...</td>
+                    <td colSpan={3} className="px-6 py-4 text-sm text-gray-500">Loading...</td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-sm text-gray-500">No price sheet rows found</td>
+                    <td colSpan={3} className="px-6 py-4 text-sm text-gray-500">No price sheet rows found</td>
                   </tr>
                 ) : (
                   rows.map((r) => (
                     <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                       <td className="px-6 py-3 text-sm text-gray-900 dark:text-white">{r.device_name ?? r.device_id}</td>
                       <td className="px-6 py-3 text-sm text-gray-900 dark:text-white">{r.service_name ?? r.service_id}</td>
-                      <td className="px-6 py-3 text-sm text-gray-900 dark:text-white">${r.price}</td>
-                      <td className="px-6 py-3 text-sm">{r.is_active ? 'Yes' : 'No'}</td>
+                      <td className="px-6 py-3 text-sm text-gray-900 dark:text-white">{r.price == null ? 'N/A' : `$${r.price}`}</td>
                     </tr>
                   ))
                 )}
