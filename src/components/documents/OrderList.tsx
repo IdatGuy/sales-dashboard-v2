@@ -66,6 +66,46 @@ const OrderList: React.FC<OrderListProps> = ({
     });
   };
 
+  const getDateColor = (dateString: string | null): React.CSSProperties | undefined => {
+    if (!dateString) return undefined;
+    
+    const date = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    
+    const daysAgo = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Green (16, 185, 129) to Red (239, 68, 68) over 28 days
+    let r, g, b;
+    
+    if (daysAgo <= 0) {
+      // Future or today: full green
+      r = 16;
+      g = 185;
+      b = 129;
+    } else if (daysAgo >= 28) {
+      // 4 weeks or more: full red
+      r = 239;
+      g = 68;
+      b = 68;
+    } else {
+      // Interpolate between green and red
+      const ratio = daysAgo / 28;
+      r = Math.round(16 + (239 - 16) * ratio);
+      g = Math.round(185 + (68 - 185) * ratio);
+      b = Math.round(129 + (68 - 129) * ratio);
+    }
+    
+    return {
+      backgroundColor: `rgba(${r}, ${g}, ${b}, 0.15)`,
+      color: `rgb(${r}, ${g}, ${b})`,
+      fontWeight: '500',
+      padding: '0.5rem',
+      borderRadius: '0.375rem',
+    };
+  };
+
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-4">
@@ -107,9 +147,6 @@ const OrderList: React.FC<OrderListProps> = ({
               Part
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-              Notes
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Technician
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -119,10 +156,16 @@ const OrderList: React.FC<OrderListProps> = ({
               Check-in Date
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              Order Date
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               ETA
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Home Connect
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              Notes
             </th>
           </tr>
         </thead>
@@ -168,13 +211,6 @@ const OrderList: React.FC<OrderListProps> = ({
                   {order.part_description}
                 </a>
               </td>
-              <td className="px-6 py-4 text-sm max-w-xs truncate text-gray-700 dark:text-gray-300">
-                {order.notes ? (
-                  <span className="block truncate max-w-[18rem]">{order.notes}</span>
-                ) : (
-                  <span className="text-gray-400">-</span>
-                )}
-              </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                 {order.technician}
               </td>
@@ -187,17 +223,33 @@ const OrderList: React.FC<OrderListProps> = ({
                   {order.status}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                {formatDate(order.check_in_date)}
+              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <span style={getDateColor(order.check_in_date)}>
+                  {formatDate(order.check_in_date)}
+                </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                {formatDate(order.part_eta)}
+              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <span style={getDateColor(order.order_date)}>
+                  {formatDate(order.order_date)}
+                </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <span style={getDateColor(order.part_eta)}>
+                  {formatDate(order.part_eta)}
+                </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 {order.home_connect ? (
                   <span className="text-green-600 dark:text-green-400 font-semibold">Yes</span>
                 ) : (
                   <span className="text-gray-400">No</span>
+                )}
+              </td>
+              <td className="px-6 py-4 text-sm max-w-xs truncate text-gray-700 dark:text-gray-300">
+                {order.notes ? (
+                  <span className="block truncate max-w-[18rem]">{order.notes}</span>
+                ) : (
+                  <span className="text-gray-400">-</span>
                 )}
               </td>
             </tr>
