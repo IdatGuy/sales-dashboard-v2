@@ -14,7 +14,7 @@ export interface Order {
   cx_name: string;
   cx_phone: string;
   notes: string | null;
-  status: 'need to order' | 'ordered' | 'arrived' | 'installed' | 'completed';
+  status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed';
   wo_link: string;
   part_link: string;
 }

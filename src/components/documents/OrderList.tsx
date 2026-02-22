@@ -42,10 +42,14 @@ const OrderList: React.FC<OrderListProps> = ({
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       case 'ordered':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'arrived':
+      case 'received':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'installed':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      case 'out of stock':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+      case 'distro':
+        return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
+      case 'return required':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
       case 'completed':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       default:
@@ -101,6 +105,9 @@ const OrderList: React.FC<OrderListProps> = ({
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Part
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              Notes
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Technician
@@ -160,6 +167,13 @@ const OrderList: React.FC<OrderListProps> = ({
                 >
                   {order.part_description}
                 </a>
+              </td>
+              <td className="px-6 py-4 text-sm max-w-xs truncate text-gray-700 dark:text-gray-300">
+                {order.notes ? (
+                  <span className="block truncate max-w-[18rem]">{order.notes}</span>
+                ) : (
+                  <span className="text-gray-400">-</span>
+                )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                 {order.technician}

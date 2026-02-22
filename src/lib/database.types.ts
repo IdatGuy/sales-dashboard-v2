@@ -279,7 +279,7 @@ export type Database = {
           cx_name: string
           cx_phone: string
           notes: string | null
-          status: 'need to order' | 'ordered' | 'arrived' | 'installed' | 'completed'
+          status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed'
           wo_link: string
           part_link: string
         }
@@ -297,7 +297,7 @@ export type Database = {
           cx_name: string
           cx_phone: string
           notes?: string | null
-          status?: 'need to order' | 'ordered' | 'arrived' | 'installed' | 'completed'
+          status?: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed'
           wo_link: string
           part_link: string
         }
@@ -315,7 +315,7 @@ export type Database = {
           cx_name?: string
           cx_phone?: string
           notes?: string | null
-          status?: 'need to order' | 'ordered' | 'arrived' | 'installed' | 'completed'
+          status?: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed'
           wo_link?: string
           part_link?: string
         }
@@ -337,7 +337,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      part_status: 'need to order' | 'ordered' | 'arrived' | 'installed' | 'completed'
+      part_status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed'
       user_role: "employee" | "manager" | "admin"
     }
     CompositeTypes: {

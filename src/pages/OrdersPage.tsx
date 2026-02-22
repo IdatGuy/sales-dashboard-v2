@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/common/Navbar';
 import StoreSelector from '../components/common/StoreSelector';
@@ -14,7 +14,22 @@ const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>('all');
+  // Multi-select status filter
+  const statusOptions = [
+    'need to order',
+    'ordered',
+    'received',
+    'out of stock',
+    'distro',
+    'return required',
+    'completed',
+  ] as const;
+  type Status = typeof statusOptions[number];
+  const [statusFilters, setStatusFilters] = useState<Status[]>([]); // empty = all
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
+  const statusButtonRef = useRef<HTMLButtonElement | null>(null);
+  const statusMenuRef = useRef<HTMLDivElement | null>(null);
+  const [statusMenuStyle, setStatusMenuStyle] = useState<{ top: number; left: number; width: number } | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<Order['status']>('need to order');
@@ -79,6 +94,45 @@ const OrdersPage: React.FC = () => {
     }
   };
 
+  // Visible orders according to status multi-filters
+  const visibleOrders = orders.filter((o) => statusFilters.length === 0 || statusFilters.includes(o.status));
+
+  // Position the status menu when opened and close on outside click
+  useEffect(() => {
+    const updateMenuPosition = () => {
+      const btn = statusButtonRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const menuWidth = 256; // matches w-64
+      let left = rect.right - menuWidth;
+      if (left < 8) left = 8;
+      if (left + menuWidth > window.innerWidth - 8) left = window.innerWidth - menuWidth - 8;
+      const top = rect.bottom + 8;
+      setStatusMenuStyle({ top, left, width: menuWidth });
+    };
+
+    const handleOutside = (e: MouseEvent) => {
+      const menu = statusMenuRef.current;
+      const btn = statusButtonRef.current;
+      if (!menu || !btn) return;
+      if (!(menu.contains(e.target as Node) || btn.contains(e.target as Node))) {
+        setIsStatusFilterOpen(false);
+      }
+    };
+
+    if (isStatusFilterOpen) {
+      updateMenuPosition();
+      window.addEventListener('resize', updateMenuPosition);
+      window.addEventListener('scroll', updateMenuPosition, true);
+      document.addEventListener('mousedown', handleOutside);
+      return () => {
+        window.removeEventListener('resize', updateMenuPosition);
+        window.removeEventListener('scroll', updateMenuPosition, true);
+        document.removeEventListener('mousedown', handleOutside);
+      };
+    }
+  }, [isStatusFilterOpen, statusButtonRef, statusMenuRef]);
+
   if (!currentUser) {
     return <div>Loading...</div>;
   }
@@ -108,57 +162,93 @@ const OrdersPage: React.FC = () => {
           {/* Orders Table */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
-                  </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {orders.filter((o) => statusFilter === 'all' || o.status === statusFilter).length} order{orders.filter((o) => statusFilter === 'all' || o.status === statusFilter).length !== 1 ? 's' : ''} found
-                    {selectedOrderIds.length > 0 && ` • ${selectedOrderIds.length} selected`}
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as Order['status'] | 'all')}
-                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="need to order">Need to Order</option>
-                    <option value="ordered">Ordered</option>
-                    <option value="arrived">Arrived</option>
-                    <option value="installed">Installed</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                  {selectedOrderIds.length > 0 && (
-                    <>
-                      <button
-                        onClick={() => setIsStatusModalOpen(true)}
-                        className="flex items-center justify-center px-3 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium text-sm gap-2"
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      {visibleOrders.length} order{visibleOrders.length !== 1 ? 's' : ''} found
+                      {selectedOrderIds.length > 0 && ` • ${selectedOrderIds.length} selected`}
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-center relative">
+                    <button
+                      ref={statusButtonRef}
+                      onClick={() => setIsStatusFilterOpen((s) => !s)}
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none flex items-center gap-2"
+                      title="Filter by status"
+                    >
+                      Status
+                      <span className="text-sm text-gray-500">{statusFilters.length === 0 ? 'All' : statusFilters.join(', ')}</span>
+                    </button>
+
+                    {isStatusFilterOpen && (
+                      <div
+                        ref={statusMenuRef}
+                        style={
+                          statusMenuStyle
+                            ? { position: 'fixed', top: statusMenuStyle.top, left: statusMenuStyle.left, width: statusMenuStyle.width }
+                            : { position: 'fixed' }
+                        }
+                        className="bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700 p-2 max-h-64 overflow-auto"
                       >
-                        <Edit3 size={16} />
-                        Change Status
-                      </button>
-                      <button
-                        onClick={handleBulkDelete}
-                        disabled={isDeleting}
-                        className="flex items-center justify-center px-3 py-2 bg-red-600 dark:bg-red-700 text-white rounded-md hover:bg-red-700 dark:hover:bg-red-600 disabled:bg-red-400 transition-colors font-medium text-sm gap-2"
-                      >
-                        <Trash2 size={16} />
-                        Delete ({selectedOrderIds.length})
-                      </button>
-                    </>
-                  )}
+                        <div className="flex justify-between items-center px-2 py-1 text-sm text-primary-600">
+                          <button onClick={() => setStatusFilters(statusOptions.slice() as Status[])} className="underline">Check All</button>
+                          <button onClick={() => setStatusFilters([])} className="underline">Uncheck All</button>
+                        </div>
+                        <div className="mt-2 space-y-1">
+                          {statusOptions.map((s) => (
+                            <label key={s} className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                              <input
+                                type="checkbox"
+                                checked={statusFilters.includes(s)}
+                                onChange={() =>
+                                  setStatusFilters((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
+                                }
+                                className="h-4 w-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-200">{s}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedOrderIds.length > 0 && (
+                      <>
+                        <button
+                          onClick={() => setIsStatusModalOpen(true)}
+                          className="flex items-center justify-center px-3 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium text-sm gap-2"
+                        >
+                          <Edit3 size={16} />
+                          Change Status
+                        </button>
+                        <button
+                          onClick={handleBulkDelete}
+                          disabled={isDeleting}
+                          className="flex items-center justify-center px-3 py-2 bg-red-600 dark:bg-red-700 text-white rounded-md hover:bg-red-700 dark:hover:bg-red-600 disabled:bg-red-400 transition-colors font-medium text-sm gap-2"
+                        >
+                          <Trash2 size={16} />
+                          Delete ({selectedOrderIds.length})
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            <OrderList
-              orders={orders.filter((o) => statusFilter === 'all' || o.status === statusFilter)}
-              isLoading={isLoading}
-              selectedOrderIds={selectedOrderIds}
-              onSelectionChange={setSelectedOrderIds}
-            />
+              {/* compute visible orders according to multi-select filters */}
+              {/** visibleOrders computed here to reuse in count and list below **/}
+              {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                null
+              }
+              <OrderList
+                orders={visibleOrders}
+                isLoading={isLoading}
+                selectedOrderIds={selectedOrderIds}
+                onSelectionChange={setSelectedOrderIds}
+              />
           </div>
         </div>
       </main>
@@ -177,7 +267,15 @@ const OrdersPage: React.FC = () => {
                   Change Status for {selectedOrderIds.length} Order{selectedOrderIds.length !== 1 ? 's' : ''}
                 </h3>
                 <div className="space-y-3">
-                  {(['need to order', 'ordered', 'arrived', 'installed', 'completed'] as const).map((status) => (
+                  {([
+                    'need to order',
+                    'ordered',
+                    'received',
+                    'out of stock',
+                    'distro',
+                    'return required',
+                    'completed',
+                  ] as const).map((status) => (
                     <label key={status} className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                       <input
                         type="radio"
