@@ -34,6 +34,8 @@ const OrdersPage: React.FC = () => {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<Order['status']>('need to order');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showErrorNotification, setShowErrorNotification] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -73,6 +75,9 @@ const OrdersPage: React.FC = () => {
       setIsStatusModalOpen(false);
       setNewStatus('need to order');
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update order status';
+      setErrorMessage(message);
+      setShowErrorNotification(true);
       console.error('Error updating orders:', error);
     }
   };
@@ -88,6 +93,9 @@ const OrdersPage: React.FC = () => {
       setOrders((prev) => prev.filter((order) => !selectedOrderIds.includes(order.id)));
       setSelectedOrderIds([]);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete orders';
+      setErrorMessage(message);
+      setShowErrorNotification(true);
       console.error('Error deleting orders:', error);
     } finally {
       setIsDeleting(false);
@@ -148,7 +156,7 @@ const OrdersPage: React.FC = () => {
               Work Orders & Parts Management
             </h1>
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-              <StoreSelector />
+              <StoreSelector showGoalSettings={false} />
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors font-medium"
@@ -317,6 +325,47 @@ const OrdersPage: React.FC = () => {
         availableStores={availableStores}
         technicianName={currentUser.name}
       />
+
+      {/* Error Notification Popup */}
+      {showErrorNotification && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 transition-opacity"
+              onClick={() => setShowErrorNotification(false)}
+            ></div>
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+              <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <div className="flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30">
+                      <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0-6a4 4 0 110-8 4 4 0 010 8z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-2">
+                      Update Failed
+                    </h3>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {errorMessage}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  onClick={() => setShowErrorNotification(false)}
+                  className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium text-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { ChevronDown, Store as StoreIcon, Settings } from "lucide-react";
 import GoalSettingsModal from "../dashboard/GoalSettingsModal";
 
-const StoreSelector: React.FC = () => {
+const StoreSelector: React.FC<{ showGoalSettings?: boolean }> = ({ showGoalSettings = true }) => {
   const {
     availableStores,
     selectedStore,
@@ -84,7 +84,7 @@ const StoreSelector: React.FC = () => {
           />
         </button>
 
-        {isManager && (
+        {isManager && showGoalSettings && (
           <button
             onClick={() => setIsGoalModalOpen(true)}
             className="p-2 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
@@ -118,7 +118,7 @@ const StoreSelector: React.FC = () => {
         </div>
       )}
 
-      {isGoalModalOpen && selectedStore && (
+      {isGoalModalOpen && selectedStore && showGoalSettings && (
         <GoalSettingsModal
           store={selectedStore}
           isOpen={isGoalModalOpen}

@@ -96,8 +96,9 @@ export const ordersService = {
 
   /**
    * Update an existing order
+   * Throws an error if RLS denies the update (instead of returning null)
    */
-  async updateOrder(id: number, updates: Partial<Order>): Promise<Order | null> {
+  async updateOrder(id: number, updates: Partial<Order>): Promise<Order> {
     try {
       const { data, error } = await supabase
         .from('order_list')
@@ -107,14 +108,26 @@ export const ordersService = {
         .single();
 
       if (error) {
-        console.error('Error updating order:', error);
-        return null;
+        // Check for RLS/authorization errors
+        // RLS violation typically occurs when .single() can't find the row (update succeeded but select failed due to RLS)
+        // OR when the policy explicitly rejects the update
+        if (error.code === 'PGRST116' || error.message?.includes('No rows found')) {
+          throw new Error('Unauthorized: You do not have permission to update this order in its current status.');
+        }
+        if (error.code === 'PGRST100' || error.message?.includes('new row violates row-level security policy')) {
+          throw new Error('Unauthorized: You do not have permission to update this order in its current status.');
+        }
+        // Generic error handling
+        throw new Error(`Failed to update order: ${error.message || 'Unknown error'}`);
       }
 
       return data as Order;
-    } catch (error) {
-      console.error('Error updating order:', error);
-      return null;
+    } catch (err) {
+      // Re-throw our custom errors
+      if (err instanceof Error) {
+        throw err;
+      }
+      throw new Error(`Failed to update order: ${String(err)}`);
     }
   },
 

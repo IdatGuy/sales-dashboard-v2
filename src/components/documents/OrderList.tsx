@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import { Order } from '../../services/api/orders';
 
 interface OrderListProps {
@@ -15,6 +16,8 @@ const OrderList: React.FC<OrderListProps> = ({
   onSelectionChange,
 }) => {
   const [localOrders, setLocalOrders] = useState<Order[]>(orders);
+  const [sortColumn, setSortColumn] = useState<'check_in_date' | 'order_date' | 'part_eta' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Sync local state with prop changes
   useEffect(() => {
@@ -36,6 +39,50 @@ const OrderList: React.FC<OrderListProps> = ({
       onSelectionChange(localOrders.map((order) => order.id));
     }
   };
+
+  const handleSortClick = (column: 'check_in_date' | 'order_date' | 'part_eta') => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new column and reset to ascending
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortedOrders = () => {
+    if (!sortColumn) return localOrders;
+    
+    const sorted = [...localOrders].sort((a, b) => {
+      const dateA = a[sortColumn] ? new Date(a[sortColumn]!).getTime() : 0;
+      const dateB = b[sortColumn] ? new Date(b[sortColumn]!).getTime() : 0;
+      
+      return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+    });
+    
+    return sorted;
+  };
+
+  const getSortIcon = (column: 'check_in_date' | 'order_date' | 'part_eta') => {
+    if (sortColumn !== column) return null;
+    return sortDirection === 'asc' ? (
+      <ChevronUp className="inline ml-1" size={16} />
+    ) : (
+      <ChevronDown className="inline ml-1" size={16} />
+    );
+  };
+
+  const getHeaderClass = (column: 'check_in_date' | 'order_date' | 'part_eta') => {
+    const baseClass = "px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none";
+    return sortColumn === column ? baseClass + " bg-gray-100 dark:bg-gray-700" : baseClass;
+  };
+
+  const getHeaderWhitespace = (column: 'check_in_date' | 'order_date' | 'part_eta') => {
+    return sortColumn === column ? "" : " whitespace-nowrap";
+  };
+
+  const displayOrders = getSortedOrders();
   const getStatusColor = (status: string): string => {
     switch (status) {
       case 'need to order':
@@ -152,14 +199,14 @@ const OrderList: React.FC<OrderListProps> = ({
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Status
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-              Check-in Date
+            <th className={getHeaderClass('check_in_date')} onClick={() => handleSortClick('check_in_date')}>
+              Check-in Date {getSortIcon('check_in_date')}
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-              Order Date
+            <th className={getHeaderClass('order_date')} onClick={() => handleSortClick('order_date')}>
+              Order Date {getSortIcon('order_date')}
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-              ETA
+            <th className={getHeaderClass('part_eta')} onClick={() => handleSortClick('part_eta')}>
+              ETA {getSortIcon('part_eta')}
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Home Connect
@@ -170,7 +217,7 @@ const OrderList: React.FC<OrderListProps> = ({
           </tr>
         </thead>
         <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-          {localOrders.map((order) => (
+          {displayOrders.map((order) => (
             <tr 
               key={order.id} 
               className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer ${
