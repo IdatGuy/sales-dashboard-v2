@@ -6,7 +6,7 @@ import OrderList from '../components/documents/OrderList';
 import CreateOrderModal from '../components/documents/CreateOrderModal';
 import { ordersService, Order } from '../services/api/orders';
 import { useDashboard } from '../context/DashboardContext';
-import { Plus, Trash2, Edit3 } from 'lucide-react';
+import { Plus, Trash2, Edit3, Grid2x2 } from 'lucide-react';
 
 const OrdersPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -36,12 +36,19 @@ const OrdersPage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorNotification, setShowErrorNotification] = useState(false);
+  const [viewAllStores, setViewAllStores] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
       setIsLoading(true);
       try {
-        const data = await ordersService.getOrders(selectedStore?.id);
+        let data: Order[];
+        if (viewAllStores && currentUser?.userStoreAccess) {
+          const storeIds = currentUser.userStoreAccess.map((access) => access.storeId);
+          data = await ordersService.getOrders(undefined, storeIds);
+        } else {
+          data = await ordersService.getOrders(selectedStore?.id);
+        }
         setOrders(data);
       } catch (error) {
         console.error('Error loading orders:', error);
@@ -52,7 +59,7 @@ const OrdersPage: React.FC = () => {
     };
 
     fetchOrders();
-  }, [selectedStore]);
+  }, [selectedStore, viewAllStores, currentUser]);
 
   const handleOrderCreated = (newOrder: Order) => {
     setOrders((prev) => [newOrder, ...prev]);
@@ -153,10 +160,22 @@ const OrdersPage: React.FC = () => {
         <div className="px-4 sm:px-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4 sm:mb-0">
-              Work Orders & Parts Management
+              Work Orders & Parts Management {viewAllStores && '(All Stores)'}
             </h1>
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-              <StoreSelector showGoalSettings={false} />
+              {!viewAllStores && <StoreSelector showGoalSettings={false} />}
+              <button
+                onClick={() => setViewAllStores(!viewAllStores)}
+                className={`flex items-center justify-center px-4 py-2 rounded-md transition-colors font-medium ${
+                  viewAllStores
+                    ? 'bg-primary-600 text-white hover:bg-primary-700'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+                title={viewAllStores ? 'View single store' : 'View all stores'}
+              >
+                <Grid2x2 size={20} className="mr-2" />
+                {viewAllStores ? 'All Stores' : 'Single Store'}
+              </button>
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors font-medium"
@@ -173,7 +192,7 @@ const OrdersPage: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
+                      {viewAllStores ? 'All Orders' : selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       {visibleOrders.length} order{visibleOrders.length !== 1 ? 's' : ''} found
@@ -256,6 +275,8 @@ const OrdersPage: React.FC = () => {
                 isLoading={isLoading}
                 selectedOrderIds={selectedOrderIds}
                 onSelectionChange={setSelectedOrderIds}
+                showStoreColumn={viewAllStores}
+                availableStores={availableStores}
               />
           </div>
         </div>

@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { Order } from '../../services/api/orders';
+import { Store } from '../../types';
 
 interface OrderListProps {
   orders: Order[];
   isLoading?: boolean;
   selectedOrderIds: number[];
   onSelectionChange: (selectedIds: number[]) => void;
+  showStoreColumn?: boolean;
+  availableStores?: Store[];
 }
 
 const OrderList: React.FC<OrderListProps> = ({
@@ -14,6 +17,8 @@ const OrderList: React.FC<OrderListProps> = ({
   isLoading = false,
   selectedOrderIds,
   onSelectionChange,
+  showStoreColumn = false,
+  availableStores = [],
 }) => {
   const [localOrders, setLocalOrders] = useState<Order[]>(orders);
   const [sortColumn, setSortColumn] = useState<'check_in_date' | 'order_date' | 'part_eta' | null>(null);
@@ -83,6 +88,11 @@ const OrderList: React.FC<OrderListProps> = ({
   };
 
   const displayOrders = getSortedOrders();
+
+  const getStoreName = (storeId: string): string => {
+    return availableStores.find((store) => store.id === storeId)?.name || storeId;
+  };
+
   const getStatusColor = (status: string): string => {
     switch (status) {
       case 'need to order':
@@ -184,6 +194,11 @@ const OrderList: React.FC<OrderListProps> = ({
                 className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 cursor-pointer"
               />
             </th>
+            {showStoreColumn && (
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                Store
+              </th>
+            )}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               WO #
             </th>
@@ -232,6 +247,11 @@ const OrderList: React.FC<OrderListProps> = ({
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 cursor-pointer"
                 />
               </td>
+              {showStoreColumn && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
+                  {getStoreName(order.store_id)}
+                </td>
+              )}
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <a
                   href={order.wo_link}

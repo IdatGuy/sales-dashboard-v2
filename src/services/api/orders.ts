@@ -21,16 +21,18 @@ export interface Order {
 
 export const ordersService = {
   /**
-   * Fetch all orders or orders for a specific store
+   * Fetch all orders or orders for a specific store, or multiple stores
    */
-  async getOrders(storeId?: string): Promise<Order[]> {
+  async getOrders(storeId?: string, storeIds?: string[]): Promise<Order[]> {
     try {
       let query = supabase
         .from('order_list')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (storeId) {
+      if (storeIds && storeIds.length > 0) {
+        query = query.in('store_id', storeIds);
+      } else if (storeId) {
         query = query.eq('store_id', storeId);
       }
 
