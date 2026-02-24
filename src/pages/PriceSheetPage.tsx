@@ -1,22 +1,46 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Search } from 'lucide-react';
 import Navbar from '../components/common/Navbar';
 import { priceSheetService, PriceSheetRowWithNames } from '../services/api/priceSheet';
 import { useAuth } from '../context/AuthContext';
 
 const PriceSheetPage: React.FC = () => {
   const { currentUser } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedTerm, setDebouncedTerm] = useState('');
   const [rows, setRows] = useState<PriceSheetRowWithNames[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Debounce: commit the search term 350ms after the user stops typing
   useEffect(() => {
-    const fetch = async () => {
-      setIsLoading(true);
-      const data = await priceSheetService.getPriceSheetsWithNames();
-      setRows(data);
-      setIsLoading(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedTerm(searchTerm);
+    }, 350);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-    fetch();
-  }, []);
+  }, [searchTerm]);
+
+  // Fetch: runs only after the debounced term changes
+  useEffect(() => {
+    if (!debouncedTerm.trim()) {
+      setRows([]);
+      return;
+    }
+    let cancelled = false;
+    const run = async () => {
+      setIsLoading(true);
+      const data = await priceSheetService.searchPriceSheets(debouncedTerm);
+      if (!cancelled) {
+        setRows(data);
+        setIsLoading(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [debouncedTerm]);
 
   if (!currentUser) return null;
 
@@ -27,23 +51,69 @@ const PriceSheetPage: React.FC = () => {
         <div className="px-4 sm:px-0">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Price Sheet</h1>
 
+          <div className="mb-4 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={18} className="text-gray-400 dark:text-gray-500" />
+            </div>
+            <input
+              type="text"
+              autoFocus
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700
+                         rounded-md leading-5 bg-white dark:bg-gray-800
+                         placeholder-gray-500 dark:placeholder-gray-400
+                         focus:outline-none focus:ring-2 focus:ring-primary-500
+                         focus:border-primary-500 sm:text-sm text-gray-900 dark:text-gray-100"
+              placeholder="Search by device or service name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {debouncedTerm.trim() && !isLoading && rows.length > 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              {rows.length} result{rows.length !== 1 ? 's' : ''}
+              {rows.length === 50 && ' (showing first 50 — refine your search)'}
+            </p>
+          )}
+
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Device</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Service</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Price</th>
-                  </tr>
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Device</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Service</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Price</th>
+                </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={3} className="px-6 py-4 text-sm text-gray-500">Loading...</td>
+                    <td colSpan={3} className="px-6 py-12 text-center">
+                      <div className="flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400">
+                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                        <span className="text-sm">Searching...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : !debouncedTerm.trim() ? (
+                  <tr>
+                    <td colSpan={3} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center gap-2 text-gray-400 dark:text-gray-500">
+                        <Search size={32} />
+                        <p className="text-sm">Type a device or service name to search</p>
+                      </div>
+                    </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-6 py-4 text-sm text-gray-500">No price sheet rows found</td>
+                    <td colSpan={3} className="px-6 py-12 text-center">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No results for "<span className="font-medium">{debouncedTerm}</span>"
+                      </p>
+                    </td>
                   </tr>
                 ) : (
                   rows.map((r) => (
@@ -64,4 +134,3 @@ const PriceSheetPage: React.FC = () => {
 };
 
 export default PriceSheetPage;
-

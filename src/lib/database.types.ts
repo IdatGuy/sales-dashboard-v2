@@ -334,7 +334,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_price_sheet: {
+        Args: { search_term: string }
+        Returns: Array<{
+          id: string
+          device_id: string
+          service_id: string
+          price: string
+          is_active: boolean
+          created_at: string
+          device_name: string | null
+          service_name: string | null
+        }>
+      }
     }
     Enums: {
       part_status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed'

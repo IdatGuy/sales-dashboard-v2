@@ -68,4 +68,20 @@ export const priceSheetService = {
       return [];
     }
   },
+  async searchPriceSheets(searchTerm: string): Promise<PriceSheetRowWithNames[]> {
+    if (!searchTerm.trim()) return [];
+    try {
+      const { data, error } = await supabase.rpc('search_price_sheet', {
+        search_term: searchTerm.trim(),
+      });
+      if (error) {
+        console.error('Error searching price sheet:', error);
+        return [];
+      }
+      return (data || []) as PriceSheetRowWithNames[];
+    } catch (err) {
+      console.error('Error searching price sheet:', err);
+      return [];
+    }
+  },
 };

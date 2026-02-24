@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd \"/mnt/c/Users/Smart Retail Techs/Documents/Projects/sales-dashboard-v2\" && npm run build 2>&1)"
+      "Bash(cd \"/mnt/c/Users/Smart Retail Techs/Documents/Projects/sales-dashboard-v2\" && npm run build 2>&1)",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__list_projects"
     ]
   }
 }
