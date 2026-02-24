@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Calculator } from 'lucide-react';
 import Navbar from '../components/common/Navbar';
 import { priceSheetService, PriceSheetRowWithNames } from '../services/api/priceSheet';
 import { useAuth } from '../context/AuthContext';
+import PriceCalculatorModal from '../components/priceSheet/PriceCalculatorModal';
 
 const PriceSheetPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -10,6 +11,7 @@ const PriceSheetPage: React.FC = () => {
   const [debouncedTerm, setDebouncedTerm] = useState('');
   const [rows, setRows] = useState<PriceSheetRowWithNames[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounce: commit the search term 350ms after the user stops typing
@@ -49,7 +51,17 @@ const PriceSheetPage: React.FC = () => {
       <Navbar />
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Price Sheet</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Price Sheet</h1>
+            <button
+              onClick={() => setShowCalculator(true)}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md
+                         bg-primary-600 hover:bg-primary-700 text-white transition-colors"
+            >
+              <Calculator size={16} />
+              Price Calculator
+            </button>
+          </div>
 
           <div className="mb-4 relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -129,6 +141,10 @@ const PriceSheetPage: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {showCalculator && (
+        <PriceCalculatorModal onClose={() => setShowCalculator(false)} />
+      )}
     </div>
   );
 };
