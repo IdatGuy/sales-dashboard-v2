@@ -174,8 +174,11 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
 
   const getSalesForPeriod = React.useCallback((): Sale[] => {
     if (timeFrame.period === "day") {
-      const currentDayISO = currentDate.toISOString().split("T")[0];
-      return salesData.daily.filter((sale) => sale.date === currentDayISO);
+      const y = currentDate.getFullYear();
+      const m = String(currentDate.getMonth() + 1).padStart(2, "0");
+      const d = String(currentDate.getDate()).padStart(2, "0");
+      const currentDayStr = `${y}-${m}-${d}`;
+      return salesData.daily.filter((sale) => sale.date === currentDayStr);
     } else if (timeFrame.period === "month") {
       return salesData.daily;
     } else if (timeFrame.period === "year") {
@@ -246,6 +249,12 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     });
   };
 
+  const selectStore = (store: Store) => {
+    if (stores.some((s) => s.id === store.id)) {
+      setSelectedStore(store);
+    }
+  };
+
   const updateStoreGoals = (
     storeId: string,
     goals: {
@@ -271,8 +280,13 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
         const storeIds = currentUser.userStoreAccess.map(
           (a: { storeId: string }) => a.storeId
         );
-        const stores = await getStoresByIds(storeIds);
-        setStores(stores);
+        try {
+          const stores = await getStoresByIds(storeIds);
+          setStores(stores);
+        } catch (error) {
+          console.error("Error fetching stores:", error);
+          setStores([]);
+        }
       } else {
         setStores([]);
       }
@@ -317,7 +331,7 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
   const value = {
     selectedStore,
     timeFrame,
-    setSelectedStore,
+    setSelectedStore: selectStore,
     setTimeFrame: setTimeFrameWithDate,
     availableStores: stores,
     updateStoreGoals,

@@ -264,12 +264,6 @@ const OrdersPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              {/* compute visible orders according to multi-select filters */}
-              {/** visibleOrders computed here to reuse in count and list below **/}
-              {
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                null
-              }
               <OrderList
                 orders={visibleOrders}
                 isLoading={isLoading}

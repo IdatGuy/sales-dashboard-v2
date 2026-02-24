@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"/mnt/c/Users/Smart Retail Techs/Documents/Projects/sales-dashboard-v2\" && npm run build 2>&1)"
+    ]
+  }
+}

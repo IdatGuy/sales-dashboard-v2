@@ -83,10 +83,6 @@ const OrderList: React.FC<OrderListProps> = ({
     return sortColumn === column ? baseClass + " bg-gray-100 dark:bg-gray-700" : baseClass;
   };
 
-  const getHeaderWhitespace = (column: 'check_in_date' | 'order_date' | 'part_eta') => {
-    return sortColumn === column ? "" : " whitespace-nowrap";
-  };
-
   const displayOrders = getSortedOrders();
 
   const getStoreName = (storeId: string): string => {

@@ -31,9 +31,16 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingGoals, setIsLoadingGoals] = useState(false);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
-  const [existingGoals, setExistingGoals] = useState<any>(null);
+  const [existingGoals, setExistingGoals] = useState<{
+    salesGoal: number;
+    accessoryGoal: number;
+    homeConnectGoal: number;
+  } | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
+  );
+  const [saveStatus, setSaveStatus] = useState<"success" | "error" | null>(
+    null
   );
 
   // Generate month/year options (current month + 4 years back)
@@ -114,14 +121,14 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
 
     if (result.success) {
       onSave(goals);
-      alert("Goals saved successfully!");
-      onClose();
+      setSaveStatus("success");
+      setTimeout(() => {
+        onClose();
+      }, 1000);
     } else if (result.validation && !result.validation.isValid) {
-      // Handle validation errors
       setValidationErrors(result.validation.errors);
-      alert("Please fix the validation errors and try again.");
     } else {
-      alert("Failed to save goals. Please try again.");
+      setSaveStatus("error");
     }
 
     setIsLoading(false);
@@ -134,7 +141,7 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 transition-opacity flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
         <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -149,6 +156,20 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4">
+          {saveStatus === "success" && (
+            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-md">
+              <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                Goals saved successfully!
+              </p>
+            </div>
+          )}
+          {saveStatus === "error" && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-md">
+              <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                Failed to save goals. Please try again.
+              </p>
+            </div>
+          )}
           {validationErrors.length > 0 && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-md">
               <h4 className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">

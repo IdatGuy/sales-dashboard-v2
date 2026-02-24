@@ -23,15 +23,6 @@ export interface ValidationResult {
 export function validateStoreGoals(month: string, goals: GoalsData): ValidationResult {
   const errors: ValidationError[] = [];
   
-  // Validate year (must be 2025)
-  const year = parseInt(month.split('-')[0]);
-  if (year !== 2025) {
-    errors.push({
-      field: 'month',
-      message: 'Goals can only be set for the year 2025'
-    });
-  }
-  
   // Validate monthly sales (0 to 100,000)
   if (goals.salesGoal < 0 || goals.salesGoal > 100000) {
     errors.push({

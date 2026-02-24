@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Upload, FileText, BookOpen, ClipboardList } from "lucide-react";
+import { Upload, FileText, BookOpen } from "lucide-react";
 import Navbar from "../components/common/Navbar";
 import DocumentList from "../components/documents/DocumentList";
 import { getDocumentsByCategory } from "../data/mockData";

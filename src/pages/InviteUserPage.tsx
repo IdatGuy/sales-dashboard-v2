@@ -2,12 +2,9 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useDashboard } from "../context/DashboardContext";
 import Navbar from "../components/common/Navbar";
-import { useNavigate } from "react-router-dom";
-
 const InviteUserPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { availableStores } = useDashboard();
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("employee");
   const [error, setError] = useState("");

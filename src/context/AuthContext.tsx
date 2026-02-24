@@ -46,6 +46,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
+      // Clear any existing session before authenticating to prevent session leaks
+      await supabase.auth.signOut();
+
       // 1. Supabase Auth
       const { data: authData, error: authError } =
         await supabase.auth.signInWithPassword({ email, password });
@@ -81,7 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // 4. Build userStoreAccess array (no accessLevel)
-      const userStoreAccess = accessRows.map((row: any) => ({
+      const userStoreAccess = accessRows.map((row: { store_id: string }) => ({
         userId,
         storeId: row.store_id,
       }));
@@ -97,7 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setCurrentUser(user);
       localStorage.setItem("currentUser", JSON.stringify(user));
-    } catch (error: any) {
+    } catch (error) {
       console.error("Login error:", error);
       throw error;
     } finally {

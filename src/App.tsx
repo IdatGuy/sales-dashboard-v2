@@ -88,38 +88,9 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
-      {/* Non-functional routes commented out for portfolio */}
-      {/* 
-      <Route
-        path="/prices"
-        element={
-          <ProtectedRoute>
-            <DashboardProvider>
-              <PriceSheetPage />
-            </DashboardProvider>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/documents"
-        element={
-          <ProtectedRoute>
-            <DashboardProvider>
-              <DocumentsPage />
-            </DashboardProvider>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/invite"
-        element={
-          <ProtectedRoute>
-            <DashboardProvider>
-              <InviteUserPage />
-            </DashboardProvider>
-          </ProtectedRoute>
-        }
-      />
+      {/* Routes not yet implemented
+      <Route path="/documents" element={<ProtectedRoute><DashboardProvider><DocumentsPage /></DashboardProvider></ProtectedRoute>} />
+      <Route path="/invite" element={<ProtectedRoute><DashboardProvider><InviteUserPage /></DashboardProvider></ProtectedRoute>} />
       */}
       <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>

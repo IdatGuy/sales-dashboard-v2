@@ -19,7 +19,7 @@ const LoginPage: React.FC = () => {
     try {
       await login(email, password);
       navigate("/dashboard");
-    } catch (err) {
+    } catch {
       setError("Invalid email or password");
     } finally {
       setIsLoading(false);
@@ -41,7 +41,7 @@ const LoginPage: React.FC = () => {
     try {
       await login(demoEmail, demoPassword);
       navigate("/dashboard");
-    } catch (err) {
+    } catch {
       setError("Error logging in with demo account");
     } finally {
       setIsLoading(false);

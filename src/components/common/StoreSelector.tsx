@@ -5,7 +5,11 @@ import { useAuth } from "../../context/AuthContext";
 import { ChevronDown, Store as StoreIcon, Settings } from "lucide-react";
 import GoalSettingsModal from "../dashboard/GoalSettingsModal";
 
-const StoreSelector: React.FC<{ showGoalSettings?: boolean }> = ({ showGoalSettings = true }) => {
+interface StoreSelectorProps {
+  showGoalSettings?: boolean;
+}
+
+const StoreSelector: React.FC<StoreSelectorProps> = ({ showGoalSettings = true }) => {
   const {
     availableStores,
     selectedStore,

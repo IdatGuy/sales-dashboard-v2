@@ -16,9 +16,3 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     },
   },
 })
-
-// Helper for handling Supabase errors
-export const handleSupabaseError = (error: any) => {
-  console.error('Supabase error:', error)
-  throw new Error(error.message || 'An unexpected error occurred')
-}
