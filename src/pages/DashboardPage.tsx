@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { Plus } from "lucide-react";
 import { useDashboard } from "../context/DashboardContext";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/common/Navbar";
@@ -10,6 +11,7 @@ import GoalsProgress from "../components/dashboard/GoalsProgress";
 import SalesProjection from "../components/dashboard/SalesProjection";
 import CommissionWidget from "../components/dashboard/CommissionWidget";
 import Leaderboard from "../components/dashboard/Leaderboard";
+import EnterSalesModal from "../components/dashboard/EnterSalesModal";
 import { goalsService } from "../services/api/goals";
 import { commissionService } from "../services/api/commission";
 import { Commission } from "../types";
@@ -34,6 +36,7 @@ const DashboardPage: React.FC = () => {
   });
 
   const [userCommission, setUserCommission] = useState<Commission | null>(null);
+  const [isEnterSalesOpen, setIsEnterSalesOpen] = useState(false);
 
   // Load store goals when store or date changes (skip for yearly view)
   useEffect(() => {
@@ -188,6 +191,15 @@ const DashboardPage: React.FC = () => {
               />
               <TimeFrameToggle />
               <StoreSelector />
+              {(currentUser?.role === "manager" || currentUser?.role === "admin") && (
+                <button
+                  onClick={() => setIsEnterSalesOpen(true)}
+                  className="inline-flex items-center px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  <Plus size={16} className="mr-1" />
+                  Enter Sales
+                </button>
+              )}
             </div>
           </div>
 
@@ -258,6 +270,12 @@ const DashboardPage: React.FC = () => {
           )}
         </div>
       </main>
+
+      <EnterSalesModal
+        store={selectedStore}
+        isOpen={isEnterSalesOpen}
+        onClose={() => setIsEnterSalesOpen(false)}
+      />
     </div>
   );
 };

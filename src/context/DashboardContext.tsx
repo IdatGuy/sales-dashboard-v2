@@ -39,6 +39,7 @@ interface DashboardContextType {
   isLoading: boolean;
   getSalesForPeriod: () => Sale[];
   getMostRecentSalesDate: () => Date | null;
+  refreshSalesData: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -206,6 +207,17 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     return new Date(year, month - 1, day);
   }, [salesData.daily]);
 
+  const refreshSalesData = React.useCallback(() => {
+    if (!selectedStore) return;
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth() + 1;
+    const dailyKey = `${selectedStore.id}-${year}-${month.toString().padStart(2, '0')}`;
+    const monthlyKey = `${selectedStore.id}-${year}`;
+
+    setDailySalesCache(prev => { const n = new Map(prev); n.delete(dailyKey); return n; });
+    setMonthlySalesCache(prev => { const n = new Map(prev); n.delete(monthlyKey); return n; });
+  }, [selectedStore, currentDate]);
+
   const setTimeFrameWithDate = React.useCallback(
     (newTimeFrame: TimeFrame) => {
       setTimeFrame(newTimeFrame);
@@ -342,6 +354,7 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     isLoading,
     getSalesForPeriod,
     getMostRecentSalesDate,
+    refreshSalesData,
   };
 
   return (

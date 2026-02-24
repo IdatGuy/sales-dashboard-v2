@@ -26,6 +26,45 @@ function transformDbSaleToSale(dbSale: Sale): UISale {
   };
 }
 
+export interface DailySalesInput {
+  salesAmount: number;
+  accessorySales?: number;
+  homeConnects?: number;
+  homePlus?: number;
+  cleanings?: number;
+  repairs?: number;
+}
+
+export async function upsertDailySales(
+  storeId: string,
+  date: string,
+  data: DailySalesInput,
+  createdBy: string
+): Promise<{ success: boolean; error?: string }> {
+  const { error } = await supabase
+    .from('sales')
+    .upsert(
+      {
+        store_id: storeId,
+        date,
+        sales_amount: data.salesAmount,
+        accessory_sales: data.accessorySales ?? null,
+        home_connects: data.homeConnects ?? null,
+        home_plus: data.homePlus ?? null,
+        cleanings: data.cleanings ?? null,
+        repairs: data.repairs ?? null,
+        created_by: createdBy,
+      },
+      { onConflict: 'store_id,date' }
+    );
+
+  if (error) {
+    console.error('Error upserting sales:', error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+}
+
 export async function getStoreDailySales(storeId: string, month: string): Promise<UISale[]> {
   const [year, monthNum] = month.split('-').map(Number);
   const start = `${year}-${monthNum.toString().padStart(2, '0')}-01`;
