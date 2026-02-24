@@ -14,7 +14,8 @@ export interface Order {
   cx_name: string;
   cx_phone: string;
   notes: string | null;
-  status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed';
+  cancellation_reason: string | null;
+  status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed' | 'cancelled';
   wo_link: string;
   part_link: string;
 }
@@ -130,6 +131,36 @@ export const ordersService = {
         throw err;
       }
       throw new Error(`Failed to update order: ${String(err)}`);
+    }
+  },
+
+  /**
+   * Cancel an order (for employees and managers).
+   * Sets status to 'cancelled' and stores the cancellation reason.
+   * Throws on failure (same pattern as updateOrder).
+   */
+  async cancelOrder(id: number, reason: string): Promise<Order> {
+    try {
+      const { data, error } = await supabase
+        .from('order_list')
+        .update({ status: 'cancelled', cancellation_reason: reason })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116' || error.message?.includes('No rows found')) {
+          throw new Error('Unauthorized: You do not have permission to cancel this order.');
+        }
+        throw new Error(`Failed to cancel order: ${error.message || 'Unknown error'}`);
+      }
+
+      return data as Order;
+    } catch (err) {
+      if (err instanceof Error) {
+        throw err;
+      }
+      throw new Error(`Failed to cancel order: ${String(err)}`);
     }
   },
 

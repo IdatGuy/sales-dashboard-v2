@@ -4,9 +4,10 @@ import Navbar from '../components/common/Navbar';
 import StoreSelector from '../components/common/StoreSelector';
 import OrderList from '../components/documents/OrderList';
 import CreateOrderModal from '../components/documents/CreateOrderModal';
+import CancelOrderModal from '../components/documents/CancelOrderModal';
 import { ordersService, Order } from '../services/api/orders';
 import { useDashboard } from '../context/DashboardContext';
-import { Plus, Trash2, Edit3, Grid2x2 } from 'lucide-react';
+import { Plus, Trash2, Edit3, Grid2x2, Ban } from 'lucide-react';
 
 const OrdersPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -23,6 +24,7 @@ const OrdersPage: React.FC = () => {
     'distro',
     'return required',
     'completed',
+    'cancelled',
   ] as const;
   type Status = typeof statusOptions[number];
   const [statusFilters, setStatusFilters] = useState<Status[]>([]); // empty = all
@@ -34,6 +36,8 @@ const OrdersPage: React.FC = () => {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<Order['status']>('need to order');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const isAdmin = currentUser?.role === 'admin';
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorNotification, setShowErrorNotification] = useState(false);
   const [viewAllStores, setViewAllStores] = useState(false);
@@ -107,6 +111,21 @@ const OrdersPage: React.FC = () => {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleBulkCancel = async (reason: string) => {
+    for (const orderId of selectedOrderIds) {
+      await ordersService.cancelOrder(orderId, reason);
+    }
+    setOrders((prev) =>
+      prev.map((order) =>
+        selectedOrderIds.includes(order.id)
+          ? { ...order, status: 'cancelled' as const, cancellation_reason: reason }
+          : order
+      )
+    );
+    setSelectedOrderIds([]);
+    setIsCancelModalOpen(false);
   };
 
   // Visible orders according to status multi-filters
@@ -251,14 +270,24 @@ const OrdersPage: React.FC = () => {
                           <Edit3 size={16} />
                           Change Status
                         </button>
-                        <button
-                          onClick={handleBulkDelete}
-                          disabled={isDeleting}
-                          className="flex items-center justify-center px-3 py-2 bg-red-600 dark:bg-red-700 text-white rounded-md hover:bg-red-700 dark:hover:bg-red-600 disabled:bg-red-400 transition-colors font-medium text-sm gap-2"
-                        >
-                          <Trash2 size={16} />
-                          Delete ({selectedOrderIds.length})
-                        </button>
+                        {isAdmin ? (
+                          <button
+                            onClick={handleBulkDelete}
+                            disabled={isDeleting}
+                            className="flex items-center justify-center px-3 py-2 bg-red-600 dark:bg-red-700 text-white rounded-md hover:bg-red-700 dark:hover:bg-red-600 disabled:bg-red-400 transition-colors font-medium text-sm gap-2"
+                          >
+                            <Trash2 size={16} />
+                            Delete ({selectedOrderIds.length})
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setIsCancelModalOpen(true)}
+                            className="flex items-center justify-center px-3 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded-md hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors font-medium text-sm gap-2"
+                          >
+                            <Ban size={16} />
+                            Cancel ({selectedOrderIds.length})
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
@@ -331,6 +360,14 @@ const OrdersPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Cancel Order Modal */}
+      <CancelOrderModal
+        isOpen={isCancelModalOpen}
+        orderCount={selectedOrderIds.length}
+        onConfirm={handleBulkCancel}
+        onClose={() => setIsCancelModalOpen(false)}
+      />
 
       {/* Create Order Modal */}
       <CreateOrderModal

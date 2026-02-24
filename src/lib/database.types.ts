@@ -279,7 +279,8 @@ export type Database = {
           cx_name: string
           cx_phone: string
           notes: string | null
-          status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed'
+          cancellation_reason: string | null
+          status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed' | 'cancelled'
           wo_link: string
           part_link: string
         }
@@ -297,7 +298,8 @@ export type Database = {
           cx_name: string
           cx_phone: string
           notes?: string | null
-          status?: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed'
+          cancellation_reason?: string | null
+          status?: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed' | 'cancelled'
           wo_link: string
           part_link: string
         }
@@ -315,7 +317,8 @@ export type Database = {
           cx_name?: string
           cx_phone?: string
           notes?: string | null
-          status?: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed'
+          cancellation_reason?: string | null
+          status?: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed' | 'cancelled'
           wo_link?: string
           part_link?: string
         }
@@ -349,7 +352,7 @@ export type Database = {
       }
     }
     Enums: {
-      part_status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed'
+      part_status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed' | 'cancelled'
       user_role: "employee" | "manager" | "admin"
     }
     CompositeTypes: {

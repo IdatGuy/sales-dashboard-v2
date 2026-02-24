@@ -1,20 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MoreVertical, X } from 'lucide-react';
 import { Order, ordersService } from '../../services/api/orders';
+import CancelOrderModal from './CancelOrderModal';
 
 interface OrderActionMenuProps {
   order: Order;
+  isAdmin: boolean;
   onDelete: (orderId: number) => void;
+  onCancel: (orderId: number, reason: string) => void;
   onStatusUpdate: (orderId: number, newStatus: Order['status']) => void;
 }
 
 const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
   order,
+  isAdmin,
   onDelete,
+  onCancel,
   onStatusUpdate,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<Order['status']>(order.status);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -28,6 +34,7 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
     'distro',
     'return required',
     'completed',
+    'cancelled',
   ];
   
   // Close menu when clicking outside
@@ -114,16 +121,37 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
             >
               Edit Status
             </button>
-            <button
-              onClick={handleDeleteClick}
-              disabled={isDeleting}
-              className="block w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors last:rounded-b-md text-sm disabled:opacity-50"
-            >
-              {isDeleting ? 'Deleting...' : 'Delete Order'}
-            </button>
+            {isAdmin ? (
+              <button
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
+                className="block w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors last:rounded-b-md text-sm disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Order'}
+              </button>
+            ) : (
+              <button
+                onClick={() => { setIsCancelModalOpen(true); setIsMenuOpen(false); }}
+                className="block w-full text-left px-4 py-2 hover:bg-orange-50 dark:hover:bg-orange-900/30 text-orange-600 dark:text-orange-400 transition-colors last:rounded-b-md text-sm"
+              >
+                Cancel Order
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {/* Cancel Order Modal */}
+      <CancelOrderModal
+        isOpen={isCancelModalOpen}
+        orderCount={1}
+        onConfirm={async (reason) => {
+          await ordersService.cancelOrder(order.id, reason);
+          onCancel(order.id, reason);
+          setIsCancelModalOpen(false);
+        }}
+        onClose={() => setIsCancelModalOpen(false)}
+      />
 
       {/* Status Edit Modal */}
       {isStatusModalOpen && (
