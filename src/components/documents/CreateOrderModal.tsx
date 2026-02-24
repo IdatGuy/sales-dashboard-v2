@@ -22,8 +22,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     wo_number: '',
-    check_in_date: new Date().toISOString().split('T')[0],
-    order_date: '',
+    check_in_date: '',
     part_eta: '',
     home_connect: false,
     part_description: '',
@@ -65,10 +64,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       setError('Work order number must be exactly 8 digits');
       return;
     }
-    // if (!formData.order_date) {
-    //   setError('Order date is required');
-    //   return;
-    // }
     if (!formData.store_id) {
       setError('Store is required');
       return;
@@ -107,7 +102,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     try {
       const orderData: Omit<Order, 'id' | 'created_at'> = {
         check_in_date: formData.check_in_date,
-        order_date: formData.order_date || null,
+        order_date: new Date().toISOString().split('T')[0],
         part_eta: formData.part_eta || null,
         home_connect: formData.home_connect,
         wo_number: formData.wo_number,
@@ -139,8 +134,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const handleClose = () => {
     setFormData({
       wo_number: '',
-      check_in_date: new Date().toISOString().split('T')[0],
-      order_date: '',
+      check_in_date: '',
       part_eta: '',
       home_connect: false,
       part_description: '',
@@ -184,7 +178,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="px-4 py-5 sm:p-6 space-y-4 max-h-96 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="px-4 py-5 sm:p-6 space-y-4 max-h-[70vh] overflow-y-auto">
             {error && (
               <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
                 <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
@@ -242,20 +236,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                   required
-                />
-              </div>
-
-              {/* Order Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Order Date
-                </label>
-                <input
-                  type="date"
-                  name="order_date"
-                  value={formData.order_date}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
 
