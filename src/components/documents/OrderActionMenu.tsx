@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MoreVertical, X } from 'lucide-react';
-import { Order, ordersService } from '../../services/api/orders';
+import { Order, ordersService, can_transition, UserRole } from '../../services/api/orders';
 import CancelOrderModal from './CancelOrderModal';
 
 interface OrderActionMenuProps {
   order: Order;
-  isAdmin: boolean;
+  userRole: UserRole;
   onDelete: (orderId: number) => void;
   onCancel: (orderId: number, reason: string) => void;
   onStatusUpdate: (orderId: number, newStatus: Order['status']) => void;
@@ -13,11 +13,12 @@ interface OrderActionMenuProps {
 
 const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
   order,
-  isAdmin,
+  userRole,
   onDelete,
   onCancel,
   onStatusUpdate,
 }) => {
+  const isAdmin = userRole === 'admin';
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -26,16 +27,20 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const statusOptions: Order['status'][] = [
+  const ACTIVE_STATUSES: Order['status'][] = [
     'need to order',
     'ordered',
     'received',
     'out of stock',
-    'distro',
-    'return required',
     'completed',
     'cancelled',
   ];
+  // Only show statuses the user can actually transition to (always include current)
+  const statusOptions = ACTIVE_STATUSES.filter(
+    (s) => s === order.status || can_transition(order, s, userRole).allowed
+  );
+
+  const cancelCheck = can_transition(order, 'cancelled', userRole);
   
   // Close menu when clicking outside
   useEffect(() => {
@@ -131,8 +136,10 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
               </button>
             ) : (
               <button
-                onClick={() => { setIsCancelModalOpen(true); setIsMenuOpen(false); }}
-                className="block w-full text-left px-4 py-2 hover:bg-orange-50 dark:hover:bg-orange-900/30 text-orange-600 dark:text-orange-400 transition-colors last:rounded-b-md text-sm"
+                onClick={() => { if (cancelCheck.allowed) { setIsCancelModalOpen(true); setIsMenuOpen(false); } }}
+                disabled={!cancelCheck.allowed}
+                title={cancelCheck.allowed ? undefined : cancelCheck.reason}
+                className="block w-full text-left px-4 py-2 hover:bg-orange-50 dark:hover:bg-orange-900/30 text-orange-600 dark:text-orange-400 transition-colors last:rounded-b-md text-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Cancel Order
               </button>

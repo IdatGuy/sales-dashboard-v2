@@ -20,6 +20,54 @@ export interface Order {
   part_link: string;
 }
 
+export type UserRole = 'employee' | 'manager' | 'admin';
+
+export interface TransitionResult {
+  allowed: boolean;
+  reason?: string;
+}
+
+/**
+ * Checks whether a status transition is permitted for the given user role.
+ * Encodes the state machine from Parts Ordering Access Control.csv.
+ */
+export function can_transition(
+  order: Order,
+  targetStatus: Order['status'],
+  userRole: UserRole
+): TransitionResult {
+  // Admin god mode
+  if (userRole === 'admin') return { allowed: true };
+
+  const { status: from, created_at } = order;
+
+  if (from === 'need to order') {
+    if (targetStatus === 'ordered') {
+      return userRole === 'manager'
+        ? { allowed: true }
+        : { allowed: false, reason: 'Only managers can approve orders.' };
+    }
+    if (targetStatus === 'cancelled') {
+      if (userRole === 'manager') return { allowed: true };
+      // Employee: 1-hour cancellation window
+      const elapsed = Date.now() - new Date(created_at).getTime();
+      return elapsed <= 60 * 60 * 1000
+        ? { allowed: true }
+        : { allowed: false, reason: 'Cancellation window (1 hour) has expired.' };
+    }
+    if (targetStatus === 'out of stock') {
+      return userRole === 'manager'
+        ? { allowed: true }
+        : { allowed: false, reason: 'Only managers can mark orders as out of stock.' };
+    }
+  }
+
+  if (from === 'ordered' && targetStatus === 'received') return { allowed: true };
+  if (from === 'received' && targetStatus === 'completed') return { allowed: true };
+
+  return { allowed: false, reason: `Transition from "${from}" to "${targetStatus}" is not permitted.` };
+}
+
 export const ordersService = {
   /**
    * Fetch all orders or orders for a specific store, or multiple stores

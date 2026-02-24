@@ -5,7 +5,7 @@ import StoreSelector from '../components/common/StoreSelector';
 import OrderList from '../components/documents/OrderList';
 import CreateOrderModal from '../components/documents/CreateOrderModal';
 import CancelOrderModal from '../components/documents/CancelOrderModal';
-import { ordersService, Order } from '../services/api/orders';
+import { ordersService, Order, can_transition, UserRole } from '../services/api/orders';
 import { useDashboard } from '../context/DashboardContext';
 import { Plus, Trash2, Edit3, Grid2x2, Ban } from 'lucide-react';
 
@@ -21,8 +21,6 @@ const OrdersPage: React.FC = () => {
     'ordered',
     'received',
     'out of stock',
-    'distro',
-    'return required',
     'completed',
     'cancelled',
   ] as const;
@@ -38,6 +36,7 @@ const OrdersPage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const isAdmin = currentUser?.role === 'admin';
+  const userRole = (currentUser?.role ?? 'employee') as UserRole;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorNotification, setShowErrorNotification] = useState(false);
   const [viewAllStores, setViewAllStores] = useState(false);
@@ -73,23 +72,44 @@ const OrdersPage: React.FC = () => {
   const handleBulkStatusUpdate = async () => {
     if (selectedOrderIds.length === 0) return;
 
-    try {
-      for (const orderId of selectedOrderIds) {
-        await ordersService.updateOrder(orderId, { status: newStatus });
+    const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
+    const valid: Order[] = [];
+    const invalidReasons: string[] = [];
+
+    for (const order of selectedOrders) {
+      const check = can_transition(order, newStatus, userRole);
+      if (check.allowed) {
+        valid.push(order);
+      } else {
+        invalidReasons.push(check.reason ?? 'Invalid transition.');
       }
-      setOrders((prev) =>
-        prev.map((order) =>
-          selectedOrderIds.includes(order.id) ? { ...order, status: newStatus } : order
-        )
+    }
+
+    let successCount = 0;
+    const errors: string[] = [...invalidReasons];
+
+    for (const order of valid) {
+      try {
+        await ordersService.updateOrder(order.id, { status: newStatus });
+        successCount++;
+      } catch (e) {
+        errors.push(e instanceof Error ? e.message : 'Update failed.');
+      }
+    }
+
+    setOrders((prev) =>
+      prev.map((o) => (valid.find((v) => v.id === o.id) ? { ...o, status: newStatus } : o))
+    );
+    setSelectedOrderIds([]);
+    setIsStatusModalOpen(false);
+    setNewStatus('need to order');
+
+    if (errors.length > 0) {
+      setErrorMessage(
+        `${successCount} order(s) updated, ${errors.length} skipped.\n` +
+          [...new Set(errors)].join('\n')
       );
-      setSelectedOrderIds([]);
-      setIsStatusModalOpen(false);
-      setNewStatus('need to order');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update order status';
-      setErrorMessage(message);
       setShowErrorNotification(true);
-      console.error('Error updating orders:', error);
     }
   };
 
@@ -114,18 +134,48 @@ const OrdersPage: React.FC = () => {
   };
 
   const handleBulkCancel = async (reason: string) => {
-    for (const orderId of selectedOrderIds) {
-      await ordersService.cancelOrder(orderId, reason);
+    const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
+    const valid: Order[] = [];
+    const invalidReasons: string[] = [];
+
+    for (const order of selectedOrders) {
+      const check = can_transition(order, 'cancelled', userRole);
+      if (check.allowed) {
+        valid.push(order);
+      } else {
+        invalidReasons.push(check.reason ?? 'Invalid transition.');
+      }
     }
+
+    let successCount = 0;
+    const errors: string[] = [...invalidReasons];
+
+    for (const order of valid) {
+      try {
+        await ordersService.cancelOrder(order.id, reason);
+        successCount++;
+      } catch (e) {
+        errors.push(e instanceof Error ? e.message : 'Cancel failed.');
+      }
+    }
+
     setOrders((prev) =>
-      prev.map((order) =>
-        selectedOrderIds.includes(order.id)
-          ? { ...order, status: 'cancelled' as const, cancellation_reason: reason }
-          : order
+      prev.map((o) =>
+        valid.find((v) => v.id === o.id)
+          ? { ...o, status: 'cancelled' as const, cancellation_reason: reason }
+          : o
       )
     );
     setSelectedOrderIds([]);
     setIsCancelModalOpen(false);
+
+    if (errors.length > 0) {
+      setErrorMessage(
+        `${successCount} order(s) cancelled, ${errors.length} skipped.\n` +
+          [...new Set(errors)].join('\n')
+      );
+      setShowErrorNotification(true);
+    }
   };
 
   // Visible orders according to status multi-filters
@@ -318,29 +368,36 @@ const OrdersPage: React.FC = () => {
                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
                   Change Status for {selectedOrderIds.length} Order{selectedOrderIds.length !== 1 ? 's' : ''}
                 </h3>
-                <div className="space-y-3">
-                  {([
-                    'need to order',
-                    'ordered',
-                    'received',
-                    'out of stock',
-                    'distro',
-                    'return required',
-                    'completed',
-                  ] as const).map((status) => (
-                    <label key={status} className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="status"
-                        value={status}
-                        checked={newStatus === status}
-                        onChange={(e) => setNewStatus(e.target.value as Order['status'])}
-                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600"
-                      />
-                      <span className="ml-3 text-sm text-gray-700 dark:text-gray-300 capitalize">{status}</span>
-                    </label>
-                  ))}
-                </div>
+                {(() => {
+                  const ACTIVE_STATUSES = ['need to order', 'ordered', 'received', 'out of stock', 'completed'] as const;
+                  const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
+                  const validStatuses = ACTIVE_STATUSES.filter((s) =>
+                    selectedOrders.some((o) => can_transition(o, s, userRole).allowed)
+                  );
+                  return (
+                    <div className="space-y-3">
+                      {validStatuses.length === 0 ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          No valid transitions available for the selected orders.
+                        </p>
+                      ) : (
+                        validStatuses.map((status) => (
+                          <label key={status} className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="status"
+                              value={status}
+                              checked={newStatus === status}
+                              onChange={(e) => setNewStatus(e.target.value as Order['status'])}
+                              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600"
+                            />
+                            <span className="ml-3 text-sm text-gray-700 dark:text-gray-300 capitalize">{status}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
                 <button
