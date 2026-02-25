@@ -79,8 +79,8 @@ const OrderList: React.FC<OrderListProps> = ({
   };
 
   const getHeaderClass = (column: 'check_in_date' | 'order_date' | 'part_eta') => {
-    const baseClass = "px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none";
-    return sortColumn === column ? baseClass + " bg-gray-100 dark:bg-gray-700" : baseClass;
+    const baseClass = "px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600/60 select-none";
+    return sortColumn === column ? baseClass + " bg-gray-100 dark:bg-gray-600/60" : baseClass;
   };
 
   const displayOrders = getSortedOrders();
@@ -182,7 +182,7 @@ const OrderList: React.FC<OrderListProps> = ({
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead className="bg-gray-50 dark:bg-gray-800">
+        <thead className="bg-gray-50 dark:bg-gray-700/60">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               <input
@@ -229,11 +229,11 @@ const OrderList: React.FC<OrderListProps> = ({
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
           {displayOrders.map((order) => (
             <tr 
               key={order.id} 
-              className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer ${
+              className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer ${
                 selectedOrderIds.includes(order.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
               }`}
             >
