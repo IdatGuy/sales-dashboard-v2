@@ -3,10 +3,12 @@ import { useAuth } from "../context/AuthContext";
 import { useDashboard } from "../context/DashboardContext";
 import { supabase } from "../lib/supabase";
 import Navbar from "../components/common/Navbar";
+import { useNavigate } from "react-router-dom";
 
 const InviteUserPage: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const { availableStores } = useDashboard();
+  const navigate = useNavigate();
 
   const isManager = currentUser?.role === "manager";
   const isAdmin = currentUser?.role === "admin";
@@ -54,6 +56,15 @@ const InviteUserPage: React.FC = () => {
 
     setIsLoading(true);
     try {
+      // Verify the Supabase session is active before calling the Edge Function.
+      // If missing, supabase.functions.invoke() falls back to the anon key → 401.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        logout();
+        navigate("/login");
+        return;
+      }
+
       const { data, error: fnError } = await supabase.functions.invoke(
         "invite-user",
         {
@@ -62,6 +73,9 @@ const InviteUserPage: React.FC = () => {
             name,
             role,
             storeIds: selectedStoreIds,
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
           },
         }
       );

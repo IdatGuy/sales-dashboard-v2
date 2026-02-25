@@ -37,12 +37,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for saved user in localStorage
-    const savedUser = localStorage.getItem("currentUser");
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    const initAuth = async () => {
+      const savedUser = localStorage.getItem("currentUser");
+      if (savedUser) {
+        // Confirm the Supabase session is still active before trusting localStorage
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setCurrentUser(JSON.parse(savedUser));
+        } else {
+          // Supabase session expired/missing — clear our cached user too
+          localStorage.removeItem("currentUser");
+        }
+      }
+      setLoading(false);
+    };
+    initAuth();
   }, []);
 
   const buildUserFromSupabase = async (userId: string, email: string): Promise<User> => {
