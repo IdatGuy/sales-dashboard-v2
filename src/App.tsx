@@ -14,10 +14,8 @@ import DashboardPage from "./pages/DashboardPage";
 import OrdersPage from "./pages/OrdersPage";
 import PriceSheetPage from "./pages/PriceSheetPage";
 import AdminPage from "./pages/AdminPage";
-// Non-functional pages commented out for portfolio
-// import PriceSheetPage from "./pages/PriceSheetPage";
-// import DocumentsPage from "./pages/DocumentsPage";
-// import InviteUserPage from "./pages/InviteUserPage";
+import InviteUserPage from "./pages/InviteUserPage";
+import SetPasswordPage from "./pages/SetPasswordPage";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -88,10 +86,20 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
-      {/* Routes not yet implemented
-      <Route path="/documents" element={<ProtectedRoute><DashboardProvider><DocumentsPage /></DashboardProvider></ProtectedRoute>} />
-      <Route path="/invite" element={<ProtectedRoute><DashboardProvider><InviteUserPage /></DashboardProvider></ProtectedRoute>} />
-      */}
+      <Route
+        path="/invite"
+        element={
+          <ProtectedRoute>
+            <DashboardProvider>
+              {(currentUser?.role === 'manager' || currentUser?.role === 'admin')
+                ? <InviteUserPage />
+                : <Navigate to="/dashboard" />}
+            </DashboardProvider>
+          </ProtectedRoute>
+        }
+      />
+      {/* Public route — user arrives here from the invite email link (unauthenticated) */}
+      <Route path="/set-password" element={<SetPasswordPage />} />
       <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>
   );

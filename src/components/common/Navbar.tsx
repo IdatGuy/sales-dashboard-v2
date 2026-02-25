@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-import { LogOut, BarChart, Menu, X, Sun, Moon, Package, Shield, Tag } from "lucide-react";
+import { LogOut, BarChart, Menu, X, Sun, Moon, Package, Shield, Tag, Users } from "lucide-react";
 
 const Navbar: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -26,6 +26,10 @@ const Navbar: React.FC = () => {
     { to: "/orders", icon: <Package size={18} />, label: "Orders" },
     { to: "/prices", icon: <Tag size={18} />, label: "Price Sheet" },
   ];
+
+  if (currentUser.role === 'manager' || currentUser.role === 'admin') {
+    navLinks.push({ to: '/invite', icon: <Users size={18} />, label: 'Users' });
+  }
 
   if (currentUser.role === 'admin') {
     navLinks.push({ to: '/admin', icon: <Shield size={18} />, label: 'Admin' });
