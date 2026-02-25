@@ -70,13 +70,20 @@ export function can_transition(
 
 export const ordersService = {
   /**
-   * Fetch all orders or orders for a specific store, or multiple stores
+   * Fetch orders with optional status filter and server-side pagination.
+   * Returns the matching orders and the total count for the current filter.
    */
-  async getOrders(storeId?: string, storeIds?: string[]): Promise<Order[]> {
+  async getOrders(
+    storeId?: string,
+    storeIds?: string[],
+    statuses?: Order['status'][],
+    page: number = 1,
+    pageSize: number = 25
+  ): Promise<{ orders: Order[]; total: number }> {
     try {
       let query = supabase
         .from('order_list')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (storeIds && storeIds.length > 0) {
@@ -85,17 +92,24 @@ export const ordersService = {
         query = query.eq('store_id', storeId);
       }
 
-      const { data, error } = await query;
+      if (statuses && statuses.length > 0) {
+        query = query.in('status', statuses);
+      }
+
+      const start = (page - 1) * pageSize;
+      query = query.range(start, start + pageSize - 1);
+
+      const { data, error, count } = await query;
 
       if (error) {
         console.error('Error fetching orders:', error);
-        return [];
+        return { orders: [], total: 0 };
       }
 
-      return data as Order[];
+      return { orders: data as Order[], total: count ?? 0 };
     } catch (error) {
       console.error('Error fetching orders:', error);
-      return [];
+      return { orders: [], total: 0 };
     }
   },
 

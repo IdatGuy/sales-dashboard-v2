@@ -9,23 +9,27 @@ import { ordersService, Order, can_transition, UserRole } from '../services/api/
 import { useDashboard } from '../context/DashboardContext';
 import { Plus, Trash2, Edit3, Grid2x2, Ban } from 'lucide-react';
 
+const statusOptions = [
+  'need to order',
+  'ordered',
+  'received',
+  'out of stock',
+  'completed',
+  'cancelled',
+] as const;
+type Status = typeof statusOptions[number];
+
+const TERMINAL_STATUSES: Status[] = ['completed', 'cancelled'];
+const DEFAULT_STATUSES: Status[] = ['need to order', 'ordered', 'received', 'out of stock'];
+const PAGE_SIZE_OPTIONS = [25, 50, 75, 100] as const;
+
 const OrdersPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { selectedStore, availableStores } = useDashboard();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // Multi-select status filter
-  const statusOptions = [
-    'need to order',
-    'ordered',
-    'received',
-    'out of stock',
-    'completed',
-    'cancelled',
-  ] as const;
-  type Status = typeof statusOptions[number];
-  const [statusFilters, setStatusFilters] = useState<Status[]>([]); // empty = all
+  const [statusFilters, setStatusFilters] = useState<Status[]>(DEFAULT_STATUSES);
   const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
   const statusButtonRef = useRef<HTMLButtonElement | null>(null);
   const statusMenuRef = useRef<HTMLDivElement | null>(null);
@@ -40,29 +44,51 @@ const OrdersPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorNotification, setShowErrorNotification] = useState(false);
   const [viewAllStores, setViewAllStores] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<25 | 50 | 75 | 100>(25);
+  const [totalOrders, setTotalOrders] = useState(0);
+
+  // Reset to page 1 when anything other than page itself changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStore, viewAllStores, currentUser, statusFilters, pageSize]);
 
   useEffect(() => {
+    if (statusFilters.length === 0) {
+      setOrders([]);
+      setTotalOrders(0);
+      return;
+    }
+
+    let aborted = false;
     const fetchOrders = async () => {
       setIsLoading(true);
       try {
-        let data: Order[];
+        let result: { orders: Order[]; total: number };
         if (viewAllStores && currentUser?.userStoreAccess) {
           const storeIds = currentUser.userStoreAccess.map((access) => access.storeId);
-          data = await ordersService.getOrders(undefined, storeIds);
+          result = await ordersService.getOrders(undefined, storeIds, statusFilters, currentPage, pageSize);
         } else {
-          data = await ordersService.getOrders(selectedStore?.id);
+          result = await ordersService.getOrders(selectedStore?.id, undefined, statusFilters, currentPage, pageSize);
         }
-        setOrders(data);
+        if (!aborted) {
+          setOrders(result.orders);
+          setTotalOrders(result.total);
+        }
       } catch (error) {
         console.error('Error loading orders:', error);
-        setOrders([]);
+        if (!aborted) {
+          setOrders([]);
+          setTotalOrders(0);
+        }
       } finally {
-        setIsLoading(false);
+        if (!aborted) setIsLoading(false);
       }
     };
 
     fetchOrders();
-  }, [selectedStore, viewAllStores, currentUser]);
+    return () => { aborted = true; };
+  }, [selectedStore, viewAllStores, currentUser, statusFilters, currentPage, pageSize]);
 
   const handleOrderCreated = (newOrder: Order) => {
     setOrders((prev) => [newOrder, ...prev]);
@@ -98,7 +124,9 @@ const OrdersPage: React.FC = () => {
     }
 
     setOrders((prev) =>
-      prev.map((o) => (valid.find((v) => v.id === o.id) ? { ...o, status: newStatus } : o))
+      prev
+        .map((o) => (valid.find((v) => v.id === o.id) ? { ...o, status: newStatus } : o))
+        .filter((o) => statusFilters.includes(o.status as Status))
     );
     setSelectedOrderIds([]);
     setIsStatusModalOpen(false);
@@ -160,11 +188,13 @@ const OrdersPage: React.FC = () => {
     }
 
     setOrders((prev) =>
-      prev.map((o) =>
-        valid.find((v) => v.id === o.id)
-          ? { ...o, status: 'cancelled' as const, cancellation_reason: reason }
-          : o
-      )
+      prev
+        .map((o) =>
+          valid.find((v) => v.id === o.id)
+            ? { ...o, status: 'cancelled' as const, cancellation_reason: reason }
+            : o
+        )
+        .filter((o) => statusFilters.includes(o.status as Status))
     );
     setSelectedOrderIds([]);
     setIsCancelModalOpen(false);
@@ -178,8 +208,16 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  // Visible orders according to status multi-filters
-  const visibleOrders = orders.filter((o) => statusFilters.length === 0 || statusFilters.includes(o.status));
+  // Computed values for filter button
+  const hiddenTerminalCount = TERMINAL_STATUSES.filter((s) => !statusFilters.includes(s)).length;
+  const filterLabel =
+    statusFilters.length === statusOptions.length
+      ? 'All'
+      : statusFilters.length === 0
+      ? 'None'
+      : `${statusFilters.length} of ${statusOptions.length}`;
+
+  const totalPages = Math.ceil(totalOrders / pageSize);
 
   // Position the status menu when opened and close on outside click
   useEffect(() => {
@@ -264,7 +302,7 @@ const OrdersPage: React.FC = () => {
                       {viewAllStores ? 'All Orders' : selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {visibleOrders.length} order{visibleOrders.length !== 1 ? 's' : ''} found
+                      {totalOrders} order{totalOrders !== 1 ? 's' : ''} found
                       {selectedOrderIds.length > 0 && ` • ${selectedOrderIds.length} selected`}
                     </p>
                   </div>
@@ -272,11 +310,14 @@ const OrdersPage: React.FC = () => {
                     <button
                       ref={statusButtonRef}
                       onClick={() => setIsStatusFilterOpen((s) => !s)}
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none flex items-center gap-2"
-                      title="Filter by status"
+                      className="relative px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none flex items-center gap-2"
+                      title={hiddenTerminalCount > 0 ? 'Completed and cancelled orders are hidden' : 'Filter by status'}
                     >
                       Status
-                      <span className="text-sm text-gray-500">{statusFilters.length === 0 ? 'All' : statusFilters.join(', ')}</span>
+                      <span className="text-sm text-gray-500">{filterLabel}</span>
+                      {hiddenTerminalCount > 0 && (
+                        <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-400" />
+                      )}
                     </button>
 
                     {isStatusFilterOpen && (
@@ -291,7 +332,7 @@ const OrdersPage: React.FC = () => {
                       >
                         <div className="flex justify-between items-center px-2 py-1 text-sm text-primary-600">
                           <button onClick={() => setStatusFilters(statusOptions.slice() as Status[])} className="underline">Check All</button>
-                          <button onClick={() => setStatusFilters([])} className="underline">Uncheck All</button>
+                          <button onClick={() => setStatusFilters(DEFAULT_STATUSES)} className="underline">Reset</button>
                         </div>
                         <div className="mt-2 space-y-1">
                           {statusOptions.map((s) => (
@@ -305,6 +346,9 @@ const OrdersPage: React.FC = () => {
                                 className="h-4 w-4"
                               />
                               <span className="text-sm text-gray-700 dark:text-gray-200">{s}</span>
+                              {TERMINAL_STATUSES.includes(s) && (
+                                <span className="ml-auto text-xs text-gray-400">terminal</span>
+                              )}
                             </label>
                           ))}
                         </div>
@@ -344,13 +388,51 @@ const OrdersPage: React.FC = () => {
                 </div>
               </div>
               <OrderList
-                orders={visibleOrders}
+                orders={orders}
                 isLoading={isLoading}
                 selectedOrderIds={selectedOrderIds}
                 onSelectionChange={setSelectedOrderIds}
                 showStoreColumn={viewAllStores}
                 availableStores={availableStores}
               />
+
+              {/* Footer: rows per page + pagination */}
+              <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <span>Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value) as 25 | 50 | 75 | 100)}
+                    className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  >
+                    {PAGE_SIZE_OPTIONS.map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {totalOrders > 0 && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalOrders)} of {totalOrders}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      ‹ Prev
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage >= totalPages}
+                      className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next ›
+                    </button>
+                  </div>
+                )}
+              </div>
           </div>
         </div>
       </main>
