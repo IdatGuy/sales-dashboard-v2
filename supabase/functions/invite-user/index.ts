@@ -165,7 +165,8 @@ Deno.serve(async (req: Request) => {
 
     if (accessError) {
       console.error("user_store_access insert error:", accessError);
-      // Rollback: remove the orphaned auth user and profile
+      // Rollback: delete profile first, then the auth user
+      await adminClient.from("profiles").delete().eq("id", newUserId);
       await adminClient.auth.admin.deleteUser(newUserId);
       return jsonError(
         "Failed to assign store access. Invite has been rolled back.",

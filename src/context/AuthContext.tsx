@@ -133,7 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async (): Promise<void> => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'global' });
     setCurrentUser(null);
     localStorage.removeItem("currentUser");
   };
