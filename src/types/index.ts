@@ -3,7 +3,17 @@ export interface User {
   name: string;
   email: string;
   role: 'employee' | 'manager' | 'admin';
+  isActive: boolean;
   userStoreAccess: UserStoreAccess[]; // Updated to use UserStoreAccess
+}
+
+export interface ManagedUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'employee' | 'manager' | 'admin';
+  isActive: boolean;
+  storeIds: string[];
 }
 
 export interface Store {

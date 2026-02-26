@@ -28,7 +28,7 @@ const Navbar: React.FC = () => {
   ];
 
   if (currentUser.role === 'manager' || currentUser.role === 'admin') {
-    navLinks.push({ to: '/invite', icon: <Users size={18} />, label: 'Users' });
+    navLinks.push({ to: '/users', icon: <Users size={18} />, label: 'Users' });
   }
 
   if (currentUser.role === 'admin') {

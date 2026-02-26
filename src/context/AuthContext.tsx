@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const buildUserFromSupabase = async (userId: string, email: string): Promise<User> => {
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id, username, role")
+      .select("id, username, role, is_active")
       .eq("id", userId)
       .single();
     if (profileError || !profile) {
@@ -89,6 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       name: profile.username,
       email,
       role: profile.role,
+      isActive: profile.is_active,
       userStoreAccess,
     };
   };

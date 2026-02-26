@@ -15,6 +15,7 @@ import OrdersPage from "./pages/OrdersPage";
 import PriceSheetPage from "./pages/PriceSheetPage";
 import AdminPage from "./pages/AdminPage";
 import InviteUserPage from "./pages/InviteUserPage";
+import UsersPage from "./pages/UsersPage";
 import SetPasswordPage from "./pages/SetPasswordPage";
 
 // Protected route component
@@ -83,6 +84,16 @@ const AppContent = () => {
             <DashboardProvider>
               {currentUser?.role === 'admin' ? <AdminPage /> : <Navigate to="/dashboard" />}
             </DashboardProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/users"
+        element={
+          <ProtectedRoute>
+            {(currentUser?.role === 'manager' || currentUser?.role === 'admin')
+              ? <UsersPage />
+              : <Navigate to="/dashboard" />}
           </ProtectedRoute>
         }
       />
