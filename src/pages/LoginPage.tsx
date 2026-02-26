@@ -26,28 +26,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // Demo accounts for convenience
-  const demoAccounts = [
-    { role: "Employee", email: "employee@example.com", password: "password" },
-    { role: "Manager", email: "manager@example.com", password: "password" },
-  ];
-
-  const handleDemoLogin = async (demoEmail: string, demoPassword: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setError("");
-    setIsLoading(true);
-
-    try {
-      await login(demoEmail, demoPassword);
-      navigate("/dashboard");
-    } catch {
-      setError("Error logging in with demo account");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -131,33 +109,6 @@ const LoginPage: React.FC = () => {
                 </button>
               </div>
             </form>
-
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">
-                    Or continue with demo account
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                {demoAccounts.map((account) => (
-                  <button
-                    key={account.role}
-                    onClick={() =>
-                      handleDemoLogin(account.email, account.password)
-                    }
-                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    {account.role}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>

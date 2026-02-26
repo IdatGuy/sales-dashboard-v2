@@ -14,7 +14,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithSession: (session: Session) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const buildUserFromSupabase = async (userId: string, email: string): Promise<User> => {
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id, username, role")
       .eq("id", userId)
       .single();
     if (profileError || !profile) {
@@ -132,7 +132,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = (): void => {
+  const logout = async (): Promise<void> => {
+    await supabase.auth.signOut();
     setCurrentUser(null);
     localStorage.removeItem("currentUser");
   };

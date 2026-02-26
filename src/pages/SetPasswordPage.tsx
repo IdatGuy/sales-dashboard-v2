@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
-import { BarChart, Lock, AlertCircle } from "lucide-react";
+import { BarChart, Lock, AlertCircle, CheckCircle } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+
+// Password complexity helpers
+const checks = [
+  { label: "At least 12 characters", test: (p: string) => p.length >= 12 },
+  { label: "Uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+  { label: "Number", test: (p: string) => /[0-9]/.test(p) },
+  { label: "Special character", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+];
 
 const SetPasswordPage: React.FC = () => {
   const [password, setPassword] = useState("");
@@ -13,14 +21,27 @@ const SetPasswordPage: React.FC = () => {
   const [sessionReady, setSessionReady] = useState(false);
   const [inviteSession, setInviteSession] = useState<Session | null>(null);
 
+  // Capture the URL hash type synchronously before the Supabase SDK clears it.
+  // Supabase invite links contain `#access_token=...&type=invite` in the fragment.
+  const tokenTypeRef = useRef<string | null>(
+    new URLSearchParams(window.location.hash.substring(1)).get("type")
+  );
+
   const { loginWithSession } = useAuth();
   const navigate = useNavigate();
 
-  // Supabase JS auto-detects the #access_token hash from the invite link
-  // (detectSessionInUrl: true is already set in supabase.ts). By the time
-  // this effect runs, getSession() returns the invite session.
   useEffect(() => {
     const checkSession = async () => {
+      const tokenType = tokenTypeRef.current;
+
+      // Block access if this page was not reached via an invite or recovery link.
+      if (tokenType !== "invite" && tokenType !== "recovery") {
+        setError(
+          "This page is only accessible via an invitation link. Please request a new invitation."
+        );
+        return;
+      }
+
       const {
         data: { session },
         error: sessionError,
@@ -44,8 +65,8 @@ const SetPasswordPage: React.FC = () => {
     e.preventDefault();
     setError("");
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (password.length < 12) {
+      setError("Password must be at least 12 characters.");
       return;
     }
     if (password !== confirmPassword) {
@@ -63,7 +84,10 @@ const SetPasswordPage: React.FC = () => {
         password,
       });
       if (updateError) {
-        throw new Error(updateError.message);
+        console.error("updateUser error:", updateError);
+        throw new Error(
+          "Failed to set password. Your invite link may have expired — please request a new invitation."
+        );
       }
 
       // Re-fetch session which is now fully authenticated after password update
@@ -134,9 +158,30 @@ const SetPasswordPage: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                    placeholder="Minimum 8 characters"
+                    placeholder="Minimum 12 characters"
                   />
                 </div>
+                {/* Complexity hints — shown once the user starts typing */}
+                {password.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {checks.map(({ label, test }) => {
+                      const passed = test(password);
+                      return (
+                        <li
+                          key={label}
+                          className={`flex items-center gap-1.5 text-xs ${
+                            passed
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-gray-400 dark:text-gray-500"
+                          }`}
+                        >
+                          <CheckCircle size={12} />
+                          {label}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
 
               <div>

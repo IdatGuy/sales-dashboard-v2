@@ -98,8 +98,18 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
-      {/* Public route — user arrives here from the invite email link (unauthenticated) */}
-      <Route path="/set-password" element={<SetPasswordPage />} />
+      {/* Invite-only route — redirect already-authenticated users who lack an invite token */}
+      <Route
+        path="/set-password"
+        element={
+          isAuthenticated &&
+          !new URLSearchParams(window.location.hash.substring(1)).has("type") ? (
+            <Navigate to="/dashboard" />
+          ) : (
+            <SetPasswordPage />
+          )
+        }
+      />
       <Route path="*" element={<Navigate to="/dashboard" />} />
     </Routes>
   );

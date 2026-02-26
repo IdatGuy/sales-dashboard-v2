@@ -60,7 +60,7 @@ const InviteUserPage: React.FC = () => {
       // If missing, supabase.functions.invoke() falls back to the anon key → 401.
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        logout();
+        await logout();
         navigate("/login");
         return;
       }
