@@ -12,15 +12,6 @@ export interface Store {
   location: string;
 }
 
-export interface StoreGoal {
-  id: string;
-  storeId: string;
-  month: string; // YYYY-MM format
-  salesGoal: number;
-  accessoryGoal: number;
-  homeConnectGoal: number;
-}
-
 export interface Sale {
   id: string;
   storeId: string;

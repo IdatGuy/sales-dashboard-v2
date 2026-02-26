@@ -17,7 +17,6 @@ interface GoalsProgressProps {
     goal: number;
     percentage: number;
   };
-  timeFramePeriod: "day" | "month" | "year";
 }
 
 const GoalsProgress: React.FC<GoalsProgressProps> = React.memo(

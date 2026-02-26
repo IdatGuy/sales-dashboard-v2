@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Store } from "../../types";
 import { useDashboard } from "../../context/DashboardContext";
 import { useAuth } from "../../context/AuthContext";
-import { ChevronDown, Store as StoreIcon, Settings } from "lucide-react";
+import { ChevronDown, Store as StoreIcon, Plus } from "lucide-react";
 import GoalSettingsModal from "../dashboard/GoalSettingsModal";
 
 interface StoreSelectorProps {
@@ -91,10 +91,11 @@ const StoreSelector: React.FC<StoreSelectorProps> = ({ showGoalSettings = true }
         {isManager && showGoalSettings && (
           <button
             onClick={() => setIsGoalModalOpen(true)}
-            className="p-2 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+            className="inline-flex items-center px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             title="Set Store Goals"
           >
-            <Settings size={18} />
+            <Plus size={16} className="mr-1" />
+            Enter Goal
           </button>
         )}
       </div>

@@ -261,7 +261,6 @@ const DashboardPage: React.FC = () => {
                       salesProgress={salesProgress}
                       accessoryProgress={goalProgress.accessory}
                       homeConnectProgress={goalProgress.homeConnect}
-                      timeFramePeriod={timeFrame.period}
                     />
                   </div>
                 )}

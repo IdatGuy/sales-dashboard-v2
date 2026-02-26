@@ -20,7 +20,7 @@ export interface ValidationResult {
 }
 
 // Validation function for store goals
-export function validateStoreGoals(month: string, goals: GoalsData): ValidationResult {
+function validateStoreGoals(month: string, goals: GoalsData): ValidationResult {
   const errors: ValidationError[] = [];
   
   // Validate monthly sales (0 to 100,000)

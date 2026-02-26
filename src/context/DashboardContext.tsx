@@ -38,7 +38,6 @@ interface DashboardContextType {
   salesData: SalesData;
   isLoading: boolean;
   getSalesForPeriod: () => Sale[];
-  getMostRecentSalesDate: () => Date | null;
   refreshSalesData: () => void;
 }
 
@@ -353,7 +352,6 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     salesData,
     isLoading,
     getSalesForPeriod,
-    getMostRecentSalesDate,
     refreshSalesData,
   };
 

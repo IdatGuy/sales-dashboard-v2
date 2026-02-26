@@ -84,4 +84,51 @@ export const priceSheetService = {
       return [];
     }
   },
+  async getAllDevices(): Promise<{ id: string; name: string }[]> {
+    const { data, error } = await supabase
+      .from('devices')
+      .select('id, name')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return (data || []) as { id: string; name: string }[];
+  },
+  async getAllServices(): Promise<{ id: string; name: string }[]> {
+    const { data, error } = await supabase
+      .from('services')
+      .select('id, name')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return (data || []) as { id: string; name: string }[];
+  },
+  async createDevice(name: string, brand: string, category: string): Promise<string> {
+    const { data, error } = await supabase
+      .from('devices')
+      .insert({ name: name.trim(), brand: brand.trim(), category: category.trim() })
+      .select('id')
+      .single();
+    if (error) throw error;
+    return (data as { id: string }).id;
+  },
+  async createService(name: string): Promise<string> {
+    const { data, error } = await supabase
+      .from('services')
+      .insert({ name: name.trim() })
+      .select('id')
+      .single();
+    if (error) throw error;
+    return (data as { id: string }).id;
+  },
+  async createPriceEntry(deviceId: string, serviceId: string, price: number): Promise<void> {
+    const { error } = await supabase
+      .from('price_sheet')
+      .insert({ device_id: deviceId, service_id: serviceId, price });
+    if (error) throw error;
+  },
+  async updatePriceEntry(id: string, deviceId: string, serviceId: string, price: number): Promise<void> {
+    const { error } = await supabase
+      .from('price_sheet')
+      .update({ device_id: deviceId, service_id: serviceId, price })
+      .eq('id', id);
+    if (error) throw error;
+  },
 };
