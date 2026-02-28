@@ -37,6 +37,7 @@ const OrdersPage: React.FC = () => {
   const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<Order['status']>('need to order');
+  const [partEta, setPartEta] = useState<string>('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const isAdmin = currentUser?.role === 'admin';
@@ -114,9 +115,11 @@ const OrdersPage: React.FC = () => {
     let successCount = 0;
     const errors: string[] = [...invalidReasons];
 
+    const etaUpdate = newStatus === 'ordered' && partEta ? { part_eta: partEta } : {};
+
     for (const order of valid) {
       try {
-        await ordersService.updateOrder(order.id, { status: newStatus });
+        await ordersService.updateOrder(order.id, { status: newStatus, ...etaUpdate });
         successCount++;
       } catch (e) {
         errors.push(e instanceof Error ? e.message : 'Update failed.');
@@ -125,12 +128,13 @@ const OrdersPage: React.FC = () => {
 
     setOrders((prev) =>
       prev
-        .map((o) => (valid.find((v) => v.id === o.id) ? { ...o, status: newStatus } : o))
+        .map((o) => (valid.find((v) => v.id === o.id) ? { ...o, status: newStatus, ...etaUpdate } : o))
         .filter((o) => statusFilters.includes(o.status as Status))
     );
     setSelectedOrderIds([]);
     setIsStatusModalOpen(false);
     setNewStatus('need to order');
+    setPartEta('');
 
     if (errors.length > 0) {
       setErrorMessage(
@@ -443,7 +447,7 @@ const OrdersPage: React.FC = () => {
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div
               className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 transition-opacity"
-              onClick={() => setIsStatusModalOpen(false)}
+              onClick={() => { setIsStatusModalOpen(false); setPartEta(''); }}
             ></div>
             <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
               <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
@@ -470,12 +474,25 @@ const OrdersPage: React.FC = () => {
                               name="status"
                               value={status}
                               checked={newStatus === status}
-                              onChange={(e) => setNewStatus(e.target.value as Order['status'])}
+                              onChange={(e) => { setNewStatus(e.target.value as Order['status']); setPartEta(''); }}
                               className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600"
                             />
                             <span className="ml-3 text-sm text-gray-700 dark:text-gray-300 capitalize">{status}</span>
                           </label>
                         ))
+                      )}
+                      {newStatus === 'ordered' && (
+                        <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Part ETA <span className="text-gray-400 font-normal">(optional)</span>
+                          </label>
+                          <input
+                            type="date"
+                            value={partEta}
+                            onChange={(e) => setPartEta(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-primary-500 focus:border-primary-500"
+                          />
+                        </div>
                       )}
                     </div>
                   );
@@ -489,7 +506,7 @@ const OrdersPage: React.FC = () => {
                   Update Status
                 </button>
                 <button
-                  onClick={() => setIsStatusModalOpen(false)}
+                  onClick={() => { setIsStatusModalOpen(false); setPartEta(''); }}
                   className="w-full sm:w-auto px-4 py-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md border border-gray-300 dark:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors font-medium text-sm"
                 >
                   Cancel
