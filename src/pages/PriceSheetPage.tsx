@@ -80,7 +80,7 @@ const PriceSheetPage: React.FC = () => {
                              bg-green-600 hover:bg-green-700 text-white transition-colors"
                 >
                   <Plus size={16} />
-                  Manage Prices
+                  Enter Prices
                 </button>
               )}
               <button

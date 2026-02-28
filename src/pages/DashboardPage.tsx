@@ -207,7 +207,7 @@ const DashboardPage: React.FC = () => {
               {(currentUser?.role === "manager" || currentUser?.role === "admin") && (
                 <button
                   onClick={() => setIsGoalModalOpen(true)}
-                  className="inline-flex items-center px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  className="inline-flex items-center px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                   title="Set Store Goals"
                 >
                   <Plus size={16} className="mr-1" />
@@ -217,7 +217,7 @@ const DashboardPage: React.FC = () => {
               {(currentUser?.role === "manager" || currentUser?.role === "admin") && (
                 <button
                   onClick={() => setIsEnterSalesOpen(true)}
-                  className="inline-flex items-center px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  className="inline-flex items-center px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                 >
                   <Plus size={16} className="mr-1" />
                   Enter Sales
