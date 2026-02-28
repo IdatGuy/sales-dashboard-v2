@@ -2,27 +2,17 @@ import React, { useState, useRef, useEffect } from "react";
 import { Store } from "../../types";
 import { useDashboard } from "../../context/DashboardContext";
 import { useAuth } from "../../context/AuthContext";
-import { ChevronDown, Store as StoreIcon, Plus } from "lucide-react";
-import GoalSettingsModal from "../dashboard/GoalSettingsModal";
+import { ChevronDown, Store as StoreIcon } from "lucide-react";
 
-interface StoreSelectorProps {
-  showGoalSettings?: boolean;
-}
-
-const StoreSelector: React.FC<StoreSelectorProps> = ({ showGoalSettings = true }) => {
+const StoreSelector: React.FC = () => {
   const {
     availableStores,
     selectedStore,
     setSelectedStore,
-    updateStoreGoals,
-    currentDate,
   } = useDashboard();
   const { currentUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const isManager =
-    currentUser?.role === "manager" || currentUser?.role === "admin";
 
   // Filter stores based on user's userStoreAccess
   const userStores = currentUser?.userStoreAccess
@@ -36,16 +26,6 @@ const StoreSelector: React.FC<StoreSelectorProps> = ({ showGoalSettings = true }
   const handleSelect = (store: Store) => {
     setSelectedStore(store);
     setIsOpen(false);
-  };
-
-  const handleGoalSave = (goals: {
-    salesGoal: number;
-    accessoryGoal: number;
-    homeConnectGoal: number;
-  }) => {
-    if (selectedStore) {
-      updateStoreGoals(selectedStore.id, goals);
-    }
   };
 
   // Close dropdown when clicking outside
@@ -88,16 +68,6 @@ const StoreSelector: React.FC<StoreSelectorProps> = ({ showGoalSettings = true }
           />
         </button>
 
-        {isManager && showGoalSettings && (
-          <button
-            onClick={() => setIsGoalModalOpen(true)}
-            className="inline-flex items-center px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            title="Set Store Goals"
-          >
-            <Plus size={16} className="mr-1" />
-            Enter Goal
-          </button>
-        )}
       </div>
 
       {isOpen && (
@@ -123,19 +93,6 @@ const StoreSelector: React.FC<StoreSelectorProps> = ({ showGoalSettings = true }
         </div>
       )}
 
-      {isGoalModalOpen && selectedStore && showGoalSettings && (
-        <GoalSettingsModal
-          store={selectedStore}
-          isOpen={isGoalModalOpen}
-          onClose={() => setIsGoalModalOpen(false)}
-          onSave={handleGoalSave}
-          currentMonth={`${currentDate.getFullYear()}-${(
-            currentDate.getMonth() + 1
-          )
-            .toString()
-            .padStart(2, "0")}`}
-        />
-      )}
     </div>
   );
 };

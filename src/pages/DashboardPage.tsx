@@ -12,6 +12,7 @@ import SalesProjection from "../components/dashboard/SalesProjection";
 import CommissionWidget from "../components/dashboard/CommissionWidget";
 import Leaderboard from "../components/dashboard/Leaderboard";
 import EnterSalesModal from "../components/dashboard/EnterSalesModal";
+import GoalSettingsModal from "../components/dashboard/GoalSettingsModal";
 import { goalsService } from "../services/api/goals";
 import { commissionService } from "../services/api/commission";
 import { Commission } from "../types";
@@ -26,6 +27,7 @@ const DashboardPage: React.FC = () => {
     getSalesForPeriod,
     salesData: contextSalesData,
     isLoading,
+    updateStoreGoals,
   } = useDashboard();
   const { currentUser } = useAuth();
 
@@ -37,6 +39,17 @@ const DashboardPage: React.FC = () => {
 
   const [userCommission, setUserCommission] = useState<Commission | null>(null);
   const [isEnterSalesOpen, setIsEnterSalesOpen] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+
+  const handleGoalSave = (goals: {
+    salesGoal: number;
+    accessoryGoal: number;
+    homeConnectGoal: number;
+  }) => {
+    if (selectedStore) {
+      updateStoreGoals(selectedStore.id, goals);
+    }
+  };
 
   // Load store goals when store or date changes (skip for yearly view)
   useEffect(() => {
@@ -193,6 +206,16 @@ const DashboardPage: React.FC = () => {
               <StoreSelector />
               {(currentUser?.role === "manager" || currentUser?.role === "admin") && (
                 <button
+                  onClick={() => setIsGoalModalOpen(true)}
+                  className="inline-flex items-center px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  title="Set Store Goals"
+                >
+                  <Plus size={16} className="mr-1" />
+                  Enter Goal
+                </button>
+              )}
+              {(currentUser?.role === "manager" || currentUser?.role === "admin") && (
+                <button
                   onClick={() => setIsEnterSalesOpen(true)}
                   className="inline-flex items-center px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                 >
@@ -274,6 +297,17 @@ const DashboardPage: React.FC = () => {
         store={selectedStore}
         isOpen={isEnterSalesOpen}
         onClose={() => setIsEnterSalesOpen(false)}
+      />
+      <GoalSettingsModal
+        store={selectedStore}
+        isOpen={isGoalModalOpen}
+        onClose={() => setIsGoalModalOpen(false)}
+        onSave={handleGoalSave}
+        currentMonth={`${currentDate.getFullYear()}-${(
+          currentDate.getMonth() + 1
+        )
+          .toString()
+          .padStart(2, "0")}`}
       />
     </div>
   );

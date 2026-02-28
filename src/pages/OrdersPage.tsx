@@ -270,7 +270,7 @@ const OrdersPage: React.FC = () => {
               Work Orders & Parts Management {viewAllStores && '(All Stores)'}
             </h1>
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-              {!viewAllStores && <StoreSelector showGoalSettings={false} />}
+              {!viewAllStores && <StoreSelector />}
               <button
                 onClick={() => setViewAllStores(!viewAllStores)}
                 className={`flex items-center justify-center px-4 py-2 rounded-md transition-colors font-medium ${
