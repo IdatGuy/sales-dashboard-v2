@@ -131,4 +131,8 @@ export const priceSheetService = {
       .eq('id', id);
     if (error) throw error;
   },
+  async deletePriceEntry(id: string): Promise<void> {
+    const { error } = await supabase.from('price_sheet').delete().eq('id', id);
+    if (error) throw error;
+  },
 };

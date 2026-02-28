@@ -55,6 +55,14 @@ const PriceSheetPage: React.FC = () => {
     }
   };
 
+  const handleDeleteSuccess = () => {
+    if (editingRow) {
+      setRows(prev => prev.filter(r => r.id !== editingRow.id));
+    }
+    setEditingRow(null);
+    setShowManageModal(false);
+  };
+
   if (!currentUser) return null;
 
   return (
@@ -184,6 +192,7 @@ const PriceSheetPage: React.FC = () => {
           isOpen={showManageModal}
           onClose={() => setShowManageModal(false)}
           onSuccess={handleManageSuccess}
+          onDelete={handleDeleteSuccess}
           editRow={editingRow}
         />
       )}

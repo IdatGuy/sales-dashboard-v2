@@ -6,10 +6,11 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onDelete?: () => void;
   editRow?: PriceSheetRowWithNames | null;
 }
 
-const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editRow }) => {
+const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelete, editRow }) => {
   const isEditMode = !!editRow;
 
   const [devices, setDevices] = useState<{ id: string; name: string }[]>([]);
@@ -30,6 +31,8 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editRow
 
   const [price, setPrice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load devices + services when modal opens
@@ -57,6 +60,7 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editRow
       setServiceInput(editRow.service_name ?? '');
       setPrice(editRow.price ?? '');
       setError(null);
+      setConfirmDelete(false);
     } else if (isOpen && !editRow) {
       setDeviceId('');
       setDeviceInput('');
@@ -66,6 +70,7 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editRow
       setServiceInput('');
       setPrice('');
       setError(null);
+      setConfirmDelete(false);
     }
   }, [isOpen, editRow]);
 
@@ -117,6 +122,21 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editRow
       setError(err?.message ?? 'An error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editRow) return;
+    setIsDeleting(true);
+    try {
+      await priceSheetService.deletePriceEntry(editRow.id);
+      onDelete?.();
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to delete entry.');
+    } finally {
+      setIsDeleting(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -272,21 +292,56 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editRow
             </div>
           )}
 
-          <div className="mt-6 flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || isLoadingLists}
-              className="px-4 py-2 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Add Entry'}
-            </button>
+          <div className="mt-6 flex items-center justify-between">
+            {isEditMode && (
+              <div className="flex items-center gap-2">
+                {!confirmDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={isDeleting || isSubmitting}
+                    className="px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 disabled:opacity-50"
+                  >
+                    Delete Entry
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="px-3 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(false)}
+                      disabled={isDeleting}
+                      className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+            <div className={`flex gap-3${!isEditMode ? ' ml-auto' : ''}`}>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || isLoadingLists}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Saving...' : isEditMode ? 'Save Changes' : 'Add Entry'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
