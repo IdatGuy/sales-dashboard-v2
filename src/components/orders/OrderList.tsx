@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Info } from 'lucide-react';
 import { Order } from '../../services/api/orders';
 import { Store } from '../../types';
 import { parseDateString } from '../../lib/dateUtils';
@@ -280,13 +280,20 @@ const OrderList: React.FC<OrderListProps> = ({
                 {order.technician}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <span
-                  className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                    order.status
-                  )}`}
-                >
-                  {order.status}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                      order.status
+                    )}`}
+                  >
+                    {order.status}
+                  </span>
+                  {order.status === 'cancelled' && order.cancellation_reason && (
+                    <span title={order.cancellation_reason} className="cursor-help inline-flex">
+                      <Info size={14} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                    </span>
+                  )}
+                </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <span style={getDateColor(order.check_in_date)}>
@@ -312,7 +319,7 @@ const OrderList: React.FC<OrderListProps> = ({
               </td>
               <td className="px-6 py-4 text-sm max-w-xs truncate text-gray-700 dark:text-gray-300">
                 {order.notes ? (
-                  <span className="block truncate max-w-[18rem]">{order.notes}</span>
+                  <span className="block truncate max-w-[18rem]" title={order.notes}>{order.notes}</span>
                 ) : (
                   <span className="text-gray-400">-</span>
                 )}
