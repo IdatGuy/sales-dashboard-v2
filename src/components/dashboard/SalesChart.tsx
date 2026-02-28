@@ -15,6 +15,7 @@ import { Line, Bar } from "react-chartjs-2";
 import { Sale } from "../../types";
 import { useDashboard } from "../../context/DashboardContext";
 import { useTheme } from "../../context/ThemeContext";
+import { STORAGE_KEYS } from "../../lib/constants";
 
 ChartJS.register(
   CategoryScale,
@@ -38,7 +39,7 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
 
   // Initialize showAccumulated from localStorage, defaulting to true
   const [showAccumulated, setShowAccumulated] = useState(() => {
-    const saved = localStorage.getItem("salesChart-showAccumulated");
+    const saved = localStorage.getItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED);
     return saved !== null ? JSON.parse(saved) : true;
   });
 
@@ -51,7 +52,7 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
   // Save showAccumulated to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(
-      "salesChart-showAccumulated",
+      STORAGE_KEYS.SALES_CHART_ACCUMULATED,
       JSON.stringify(showAccumulated)
     );
   }, [showAccumulated]);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { Order } from '../../services/api/orders';
 import { Store } from '../../types';
+import { parseDateString } from '../../lib/dateUtils';
 
 interface OrderListProps {
   orders: Order[];
@@ -60,8 +61,8 @@ const OrderList: React.FC<OrderListProps> = ({
     if (!sortColumn) return localOrders;
     
     const sorted = [...localOrders].sort((a, b) => {
-      const dateA = a[sortColumn] ? new Date(a[sortColumn]!).getTime() : 0;
-      const dateB = b[sortColumn] ? new Date(b[sortColumn]!).getTime() : 0;
+      const dateA = a[sortColumn] ? parseDateString(a[sortColumn]!).getTime() : 0;
+      const dateB = b[sortColumn] ? parseDateString(b[sortColumn]!).getTime() : 0;
       
       return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
     });
@@ -114,7 +115,7 @@ const OrderList: React.FC<OrderListProps> = ({
 
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return parseDateString(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -124,10 +125,9 @@ const OrderList: React.FC<OrderListProps> = ({
   const getDateColor = (dateString: string | null): React.CSSProperties | undefined => {
     if (!dateString) return undefined;
     
-    const date = new Date(dateString);
+    const date = parseDateString(dateString);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
     
     const daysAgo = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     

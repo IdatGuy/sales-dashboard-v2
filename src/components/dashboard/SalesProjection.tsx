@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { TrendingUp, CheckCircle } from "lucide-react";
 import { useDashboard } from "../../context/DashboardContext";
+import { parseDateString, countBusinessDays } from "../../lib/dateUtils";
 
 interface SalesProjectionProps {
   // Remove the props since we'll calculate internally
@@ -35,7 +36,7 @@ const SalesProjection: React.FC<SalesProjectionProps> = React.memo(
 
         // Calculate month's total from daily sales data
         const monthSales = salesData.daily.filter((sale) => {
-          const saleDate = new Date(sale.date);
+          const saleDate = parseDateString(sale.date);
           return (
             saleDate.getFullYear() === selectedYear &&
             saleDate.getMonth() === selectedMonth
@@ -66,26 +67,6 @@ const SalesProjection: React.FC<SalesProjectionProps> = React.memo(
             period: "month",
           };
         }
-
-        // Helper function to check if a date is Sunday
-        const isSunday = (date: Date) => date.getDay() === 0;
-
-        // Helper function to count business days (excluding Sundays) in a range
-        const countBusinessDays = (
-          startDay: number,
-          endDay: number,
-          year: number,
-          month: number
-        ) => {
-          let businessDays = 0;
-          for (let day = startDay; day <= endDay; day++) {
-            const date = new Date(year, month, day);
-            if (!isSunday(date)) {
-              businessDays++;
-            }
-          }
-          return businessDays;
-        };
 
         // Only count completed days (exclude today since it might not be complete)
         const completedDay = currentDay - 1;
@@ -147,7 +128,7 @@ const SalesProjection: React.FC<SalesProjectionProps> = React.memo(
 
         // Calculate year's total from monthly sales data
         const yearSales = salesData.monthly.filter((sale) => {
-          const saleDate = new Date(sale.date);
+          const saleDate = parseDateString(sale.date);
           return saleDate.getFullYear() === selectedYear;
         });
 

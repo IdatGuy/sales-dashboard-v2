@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { supabase } from "../lib/supabase";
 import { User } from "../types";
+import { STORAGE_KEYS } from "../lib/constants";
 import type { Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -38,7 +39,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      const savedUser = localStorage.getItem("currentUser");
+      const savedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
       if (savedUser) {
         // Confirm the Supabase session is still active before trusting localStorage
         const { data: { session } } = await supabase.auth.getSession();
@@ -46,7 +47,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setCurrentUser(JSON.parse(savedUser));
         } else {
           // Supabase session expired/missing — clear our cached user too
-          localStorage.removeItem("currentUser");
+          localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
         }
       }
       setLoading(false);
@@ -108,7 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const user = await buildUserFromSupabase(authData.user.id, email);
       setCurrentUser(user);
-      localStorage.setItem("currentUser", JSON.stringify(user));
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
     } catch (error) {
       console.error("Login error:", error);
       throw error;
@@ -124,7 +125,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!user) throw new Error("No user in session");
       const appUser = await buildUserFromSupabase(user.id, user.email ?? "");
       setCurrentUser(appUser);
-      localStorage.setItem("currentUser", JSON.stringify(appUser));
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(appUser));
     } catch (error) {
       console.error("loginWithSession error:", error);
       throw error;
@@ -136,7 +137,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     await supabase.auth.signOut({ scope: 'global' });
     setCurrentUser(null);
-    localStorage.removeItem("currentUser");
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   };
 
   const value = {
