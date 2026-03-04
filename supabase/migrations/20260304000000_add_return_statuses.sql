@@ -20,7 +20,6 @@ ALTER TABLE order_list
       'need to order',
       'ordered',
       'received',
-      'distro',
       'return required',
       'return authorized',
       'return complete',

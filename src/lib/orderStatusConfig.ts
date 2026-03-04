@@ -46,12 +46,6 @@ export const STATUS_CONFIG: OrderStatusConfig[] = [
     ],
   },
   {
-    name: 'distro',
-    isTerminal: false,
-    colorClass: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
-    transitions: [],
-  },
-  {
     name: 'return required',
     isTerminal: false,
     colorClass: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
