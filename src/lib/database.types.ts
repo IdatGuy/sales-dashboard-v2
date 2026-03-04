@@ -355,7 +355,6 @@ export type Database = {
       }
     }
     Enums: {
-      part_status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed' | 'cancelled'
       user_role: "employee" | "manager" | "admin"
     }
     CompositeTypes: {
