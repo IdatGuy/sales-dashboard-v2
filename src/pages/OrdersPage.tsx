@@ -480,7 +480,7 @@ const OrdersPage: React.FC = () => {
                   Change Status for {selectedOrderIds.length} Order{selectedOrderIds.length !== 1 ? 's' : ''}
                 </h3>
                 {(() => {
-                  const ACTIVE_STATUSES = ['need to order', 'ordered', 'received', 'completed'] as const;
+                  const ACTIVE_STATUSES = ALL_STATUSES;
                   const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
                   const validStatuses = ACTIVE_STATUSES.filter((s) =>
                     selectedOrders.some((o) => can_transition(o, s, userRole).allowed)

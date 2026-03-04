@@ -40,7 +40,10 @@ export const STATUS_CONFIG: OrderStatusConfig[] = [
     name: 'received',
     isTerminal: false,
     colorClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    transitions: [{ to: 'completed', allowedRoles: ['employee', 'manager', 'admin'] }],
+    transitions: [
+      { to: 'completed', allowedRoles: ['employee', 'manager', 'admin'] },
+      { to: 'return required', allowedRoles: ['employee', 'manager', 'admin'] },
+    ],
   },
   {
     name: 'distro',
@@ -52,6 +55,22 @@ export const STATUS_CONFIG: OrderStatusConfig[] = [
     name: 'return required',
     isTerminal: false,
     colorClass: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+    transitions: [
+      { to: 'return authorized', allowedRoles: ['manager', 'admin'] },
+    ],
+  },
+  {
+    name: 'return authorized',
+    isTerminal: false,
+    colorClass: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200',
+    transitions: [
+      { to: 'return complete', allowedRoles: ['employee', 'manager', 'admin'] },
+    ],
+  },
+  {
+    name: 'return complete',
+    isTerminal: true,
+    colorClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
     transitions: [],
   },
   {

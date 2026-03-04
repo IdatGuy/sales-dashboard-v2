@@ -283,7 +283,7 @@ export type Database = {
           cx_phone: string
           notes: string | null
           cancellation_reason: string | null
-          status: 'need to order' | 'ordered' | 'received' | 'distro' | 'return required' | 'completed' | 'cancelled'
+          status: 'need to order' | 'ordered' | 'received' | 'distro' | 'return required' | 'return authorized' | 'return complete' | 'completed' | 'cancelled'
           wo_link: string
           part_link: string
         }
