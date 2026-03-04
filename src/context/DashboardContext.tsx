@@ -117,8 +117,8 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
 
   const fetchSalesData = React.useCallback(
     async (storeId: string, month: string, year: string) => {
-      const dailyKey = `${storeId}-${month}`;
-      const monthlyKey = `${storeId}-${year}`;
+      const dailyKey = `${storeId}|${month}`;
+      const monthlyKey = `${storeId}|${year}`;
 
       // Check cache first
       const cachedDaily = getCachedData(dailySalesCache, dailyKey);
@@ -151,7 +151,7 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
 
         setSalesData({ daily, monthly });
       } catch (error) {
-        console.error("Error fetching sales data:", error);
+        console.error("Error fetching sales data:", error instanceof Error ? error.message : error);
         setSalesData({ daily: [], monthly: [] });
       } finally {
         setIsLoading(false);
@@ -210,8 +210,8 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     if (!selectedStore) return;
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
-    const dailyKey = `${selectedStore.id}-${year}-${month.toString().padStart(2, '0')}`;
-    const monthlyKey = `${selectedStore.id}-${year}`;
+    const dailyKey = `${selectedStore.id}|${year}-${month.toString().padStart(2, '0')}`;
+    const monthlyKey = `${selectedStore.id}|${year}`;
 
     setDailySalesCache(prev => { const n = new Map(prev); n.delete(dailyKey); return n; });
     setMonthlySalesCache(prev => { const n = new Map(prev); n.delete(monthlyKey); return n; });

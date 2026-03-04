@@ -394,6 +394,9 @@ Deno.serve(async (req: Request) => {
       );
       if (banError) {
         console.error("Failed to ban user in auth:", banError);
+        // Roll back the profile change so the DB and auth stay in sync
+        await adminClient.from("profiles").update({ is_active: true }).eq("id", userId);
+        return jsonError("Failed to deactivate user session; please try again", 500, siteUrl);
       }
 
       return jsonResponse({ success: true }, 200, siteUrl);
@@ -462,6 +465,9 @@ Deno.serve(async (req: Request) => {
       );
       if (unbanError) {
         console.error("Failed to unban user in auth:", unbanError);
+        // Roll back the profile change so the DB and auth stay in sync
+        await adminClient.from("profiles").update({ is_active: false }).eq("id", userId);
+        return jsonError("Failed to reactivate user session; please try again", 500, siteUrl);
       }
 
       return jsonResponse({ success: true }, 200, siteUrl);

@@ -22,6 +22,10 @@ export interface ValidationResult {
 // Validation function for store goals
 function validateStoreGoals(month: string, goals: GoalsData): ValidationResult {
   const errors: ValidationError[] = [];
+
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    errors.push({ field: 'month', message: 'Invalid month format. Expected YYYY-MM.' });
+  }
   
   // Validate monthly sales (0 to 100,000)
   if (goals.salesGoal < 0 || goals.salesGoal > 100000) {

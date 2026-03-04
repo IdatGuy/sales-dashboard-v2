@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { supabase } from "../lib/supabase";
 import { User } from "../types";
-import { STORAGE_KEYS } from "../lib/constants";
+import { STORAGE_KEYS, ROLES } from "../lib/constants";
 import type { Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -44,7 +44,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Confirm the Supabase session is still active before trusting localStorage
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          setCurrentUser(JSON.parse(savedUser));
+          const parsed = JSON.parse(savedUser);
+          const validRoles: string[] = Object.values(ROLES);
+          if (!parsed || !validRoles.includes(parsed.role)) {
+            // Tampered or corrupt cached user — reject it
+            localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+          } else {
+            setCurrentUser(parsed);
+          }
         } else {
           // Supabase session expired/missing — clear our cached user too
           localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);

@@ -56,8 +56,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     e.preventDefault();
     setError(null);
 
-    // Format phone number - strip to digits only, max 10
-    const formattedPhone = formData.cx_phone.replace(/\D/g, '').slice(0, 10);
+    // Strip non-digits from phone and validate exact count before accepting
+    const phoneDigits = formData.cx_phone.replace(/\D/g, '');
 
     // Validate all fields
     if (!formData.wo_number || formData.wo_number.length !== 8) {
@@ -76,10 +76,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       setError('Customer phone is required');
       return;
     }
-    if (!/^\d{10}$/.test(formattedPhone)) {
-      setError('Customer phone must contain at least 10 digits');
+    if (!/^\d{10}$/.test(phoneDigits)) {
+      setError('Customer phone must be exactly 10 digits');
       return;
     }
+    const formattedPhone = phoneDigits;
     if (!formData.wo_link) {
       setError('Work order link is required');
       return;
@@ -124,8 +125,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       } else {
         setError('Failed to create order. Please try again.');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } catch {
+      setError('Failed to create order. Please try again.');
     } finally {
       setIsLoading(false);
     }

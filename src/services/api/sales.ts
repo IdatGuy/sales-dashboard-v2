@@ -60,12 +60,16 @@ export async function upsertDailySales(
 
   if (error) {
     console.error('Error upserting sales:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Failed to save sales data. Please try again.' };
   }
   return { success: true };
 }
 
 export async function getStoreDailySales(storeId: string, month: string): Promise<UISale[]> {
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    console.error(`Invalid month format: ${month}`);
+    return [];
+  }
   const [year, monthNum] = month.split('-').map(Number);
   const start = `${year}-${monthNum.toString().padStart(2, '0')}-01`;
   const end = getLastDayOfMonth(year, monthNum);
@@ -83,6 +87,10 @@ export async function getStoreDailySales(storeId: string, month: string): Promis
 }
 
 export async function getStoreMonthlySales(storeId: string, year: string): Promise<UISale[]> {
+  if (!/^\d{4}$/.test(year)) {
+    console.error(`Invalid year format: ${year}`);
+    return [];
+  }
   const start = `${year}-01-01`;
   const end = `${year}-12-31`;
   const { data, error } = await supabase

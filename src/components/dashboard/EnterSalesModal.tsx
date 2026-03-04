@@ -77,8 +77,9 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
     e.preventDefault();
     setValidationError(null);
 
-    if (!formValues.salesAmount) {
-      setValidationError("Sales amount is required.");
+    const salesAmountNum = Number(formValues.salesAmount);
+    if (!formValues.salesAmount || isNaN(salesAmountNum)) {
+      setValidationError("Sales amount is required and must be a valid number.");
       return;
     }
 

@@ -46,15 +46,15 @@ export const priceSheetService = {
 
       if (deviceIds.length > 0) {
         const { data: devices } = await supabase.from('devices').select('id, name').in('id', deviceIds as string[]);
-        (devices || []).forEach((d: any) => {
-          deviceMap[d.id] = d.name;
+        (devices || []).forEach((d: { id: string; name: string }) => {
+          if (d.id && d.name) deviceMap[d.id] = d.name;
         });
       }
 
       if (serviceIds.length > 0) {
         const { data: services } = await supabase.from('services').select('id, name').in('id', serviceIds as string[]);
-        (services || []).forEach((s: any) => {
-          serviceMap[s.id] = s.name;
+        (services || []).forEach((s: { id: string; name: string }) => {
+          if (s.id && s.name) serviceMap[s.id] = s.name;
         });
       }
 

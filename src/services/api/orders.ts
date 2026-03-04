@@ -188,7 +188,7 @@ export const ordersService = {
           throw new Error('Unauthorized: You do not have permission to update this order in its current status.');
         }
         // Generic error handling
-        throw new Error(`Failed to update order: ${error.message || 'Unknown error'}`);
+        throw new Error('Failed to update order');
       }
 
       return data as Order;
@@ -197,7 +197,7 @@ export const ordersService = {
       if (err instanceof Error) {
         throw err;
       }
-      throw new Error(`Failed to update order: ${String(err)}`);
+      throw new Error('Failed to update order');
     }
   },
 
@@ -219,7 +219,7 @@ export const ordersService = {
         if (error.code === 'PGRST116' || error.message?.includes('No rows found')) {
           throw new Error('Unauthorized: You do not have permission to cancel this order.');
         }
-        throw new Error(`Failed to cancel order: ${error.message || 'Unknown error'}`);
+        throw new Error('Failed to cancel order');
       }
 
       return data as Order;
@@ -227,7 +227,7 @@ export const ordersService = {
       if (err instanceof Error) {
         throw err;
       }
-      throw new Error(`Failed to cancel order: ${String(err)}`);
+      throw new Error('Failed to cancel order');
     }
   },
 

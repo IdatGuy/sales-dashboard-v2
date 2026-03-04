@@ -233,10 +233,8 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
                     value={goals.salesGoal || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "");
-                      setGoals({
-                        ...goals,
-                        salesGoal: value ? Number(value) : 0,
-                      });
+                      const num = value ? Math.min(Number(value), 100000) : 0;
+                      setGoals({ ...goals, salesGoal: num });
                       setValidationErrors([]); // Clear errors when changing values
                     }}
                     onFocus={(e) => e.target.select()}
@@ -268,10 +266,8 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
                     value={goals.accessoryGoal || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "");
-                      setGoals({
-                        ...goals,
-                        accessoryGoal: value ? Number(value) : 0,
-                      });
+                      const num = value ? Math.min(Number(value), 5000) : 0;
+                      setGoals({ ...goals, accessoryGoal: num });
                       setValidationErrors([]); // Clear errors when changing values
                     }}
                     onFocus={(e) => e.target.select()}
@@ -303,10 +299,8 @@ const GoalSettingsModal: React.FC<GoalSettingsModalProps> = ({
                     value={goals.homeConnectGoal || ""}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, "");
-                      setGoals({
-                        ...goals,
-                        homeConnectGoal: value ? Number(value) : 0,
-                      });
+                      const num = value ? Math.min(Number(value), 30) : 0;
+                      setGoals({ ...goals, homeConnectGoal: num });
                       setValidationErrors([]); // Clear errors when changing values
                     }}
                     onFocus={(e) => e.target.select()}

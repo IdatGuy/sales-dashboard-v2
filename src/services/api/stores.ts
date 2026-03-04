@@ -7,6 +7,6 @@ export async function getStoresByIds(storeIds: string[]): Promise<Tables<'stores
     .from('stores')
     .select('id, name, location')
     .in('id', storeIds);
-  if (error) throw new Error(error.message || 'Failed to fetch stores');
+  if (error) throw new Error('Failed to fetch stores');
   return (data || []) as Tables<'stores'>[];
 }
