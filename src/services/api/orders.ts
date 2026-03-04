@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { canTransition } from '../../lib/orderStatusConfig';
 
 export interface Order {
   id: number;
@@ -15,7 +16,7 @@ export interface Order {
   cx_phone: string;
   notes: string | null;
   cancellation_reason: string | null;
-  status: 'need to order' | 'ordered' | 'received' | 'out of stock' | 'distro' | 'return required' | 'completed' | 'cancelled';
+  status: 'need to order' | 'ordered' | 'received' | 'distro' | 'return required' | 'completed' | 'cancelled';
   wo_link: string;
   part_link: string;
 }
@@ -29,43 +30,15 @@ export interface TransitionResult {
 
 /**
  * Checks whether a status transition is permitted for the given user role.
- * Encodes the state machine from Parts Ordering Access Control.csv.
+ * Delegates to the centralized status config in src/lib/orderStatusConfig.ts.
+ * To modify transition rules, edit STATUS_CONFIG there.
  */
 export function can_transition(
   order: Order,
   targetStatus: Order['status'],
   userRole: UserRole
 ): TransitionResult {
-  // Admin god mode
-  if (userRole === 'admin') return { allowed: true };
-
-  const { status: from, created_at } = order;
-
-  if (from === 'need to order') {
-    if (targetStatus === 'ordered') {
-      return userRole === 'manager'
-        ? { allowed: true }
-        : { allowed: false, reason: 'Only managers can approve orders.' };
-    }
-    if (targetStatus === 'cancelled') {
-      if (userRole === 'manager') return { allowed: true };
-      // Employee: 1-hour cancellation window
-      const elapsed = Date.now() - new Date(created_at).getTime();
-      return elapsed <= 60 * 60 * 1000
-        ? { allowed: true }
-        : { allowed: false, reason: 'Cancellation window (1 hour) has expired.' };
-    }
-    if (targetStatus === 'out of stock') {
-      return userRole === 'manager'
-        ? { allowed: true }
-        : { allowed: false, reason: 'Only managers can mark orders as out of stock.' };
-    }
-  }
-
-  if (from === 'ordered' && targetStatus === 'received') return { allowed: true };
-  if (from === 'received' && targetStatus === 'completed') return { allowed: true };
-
-  return { allowed: false, reason: `Transition from "${from}" to "${targetStatus}" is not permitted.` };
+  return canTransition(order, targetStatus, userRole);
 }
 
 export const ordersService = {
@@ -110,6 +83,38 @@ export const ordersService = {
     } catch (error) {
       console.error('Error fetching orders:', error);
       return { orders: [], total: 0 };
+    }
+  },
+
+  /**
+   * Returns distinct status values currently present in order_list for the given store(s).
+   * Fetches only the status column and deduplicates in JS (PostgREST doesn't support SELECT DISTINCT).
+   * RLS automatically scopes results to the user's accessible stores.
+   */
+  async getDistinctStatuses(storeId?: string, storeIds?: string[]): Promise<Order['status'][]> {
+    try {
+      let query = supabase.from('order_list').select('status');
+      if (storeIds && storeIds.length > 0) {
+        query = query.in('store_id', storeIds);
+      } else if (storeId) {
+        query = query.eq('store_id', storeId);
+      }
+      const { data, error } = await query;
+      if (error) {
+        console.error('Error fetching distinct statuses:', error);
+        return [];
+      }
+      const seen = new Set<string>();
+      const result: Order['status'][] = [];
+      for (const row of data ?? []) {
+        if (row.status && !seen.has(row.status)) {
+          seen.add(row.status);
+          result.push(row.status as Order['status']);
+        }
+      }
+      return result;
+    } catch {
+      return [];
     }
   },
 

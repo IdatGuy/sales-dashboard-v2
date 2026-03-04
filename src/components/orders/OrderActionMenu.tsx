@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MoreVertical, X } from 'lucide-react';
 import { Order, ordersService, can_transition, UserRole } from '../../services/api/orders';
+import { ALL_STATUSES } from '../../lib/orderStatusConfig';
 import CancelOrderModal from './CancelOrderModal';
 
 interface OrderActionMenuProps {
@@ -27,16 +28,8 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const ACTIVE_STATUSES: Order['status'][] = [
-    'need to order',
-    'ordered',
-    'received',
-    'out of stock',
-    'completed',
-    'cancelled',
-  ];
   // Only show statuses the user can actually transition to (always include current)
-  const statusOptions = ACTIVE_STATUSES.filter(
+  const statusOptions = ALL_STATUSES.filter(
     (s) => s === order.status || can_transition(order, s, userRole).allowed
   );
 
