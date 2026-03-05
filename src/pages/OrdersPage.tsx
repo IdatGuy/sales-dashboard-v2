@@ -20,6 +20,7 @@ const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [copySource, setCopySource] = useState<Order | null>(null);
   const [statusFilters, setStatusFilters] = useState<Order['status'][]>(defaultActiveStatuses(FALLBACK_STATUSES));
   const [availableStatuses, setAvailableStatuses] = useState<Order['status'][]>(FALLBACK_STATUSES);
   const [statusesLoading, setStatusesLoading] = useState(false);
@@ -115,6 +116,12 @@ const OrdersPage: React.FC = () => {
   const handleOrderCreated = (newOrder: Order) => {
     setOrders((prev) => [newOrder, ...prev]);
     setIsModalOpen(false);
+    setCopySource(null);
+  };
+
+  const handleCopyOrder = (order: Order) => {
+    setCopySource(order);
+    setIsModalOpen(true);
   };
 
   const handleBulkStatusUpdate = async () => {
@@ -423,6 +430,7 @@ const OrdersPage: React.FC = () => {
                 onSelectionChange={setSelectedOrderIds}
                 showStoreColumn={viewAllStores}
                 availableStores={availableStores}
+                onCopy={handleCopyOrder}
               />
 
               {/* Footer: rows per page + pagination */}
@@ -553,10 +561,11 @@ const OrdersPage: React.FC = () => {
       {/* Create Order Modal */}
       <CreateOrderModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); setCopySource(null); }}
         onSuccess={handleOrderCreated}
         availableStores={availableStores}
         technicianName={currentUser.name}
+        initialData={copySource ?? undefined}
       />
 
       {/* Error Notification Popup */}

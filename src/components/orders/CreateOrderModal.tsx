@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Order, ordersService } from '../../services/api/orders';
 import { Store } from '../../types';
+
+type CopyableFields = Pick<Order, 'wo_number' | 'store_id' | 'check_in_date' | 'cx_name' | 'cx_phone' | 'home_connect' | 'wo_link'>;
 
 interface CreateOrderModalProps {
   isOpen: boolean;
@@ -9,7 +11,22 @@ interface CreateOrderModalProps {
   onSuccess: (order: Order) => void;
   availableStores: Store[];
   technicianName: string;
+  initialData?: Partial<CopyableFields>;
 }
+
+const getInitialFormData = (initialData: Partial<CopyableFields> | undefined, stores: Store[]) => ({
+  wo_number: initialData?.wo_number ?? '',
+  check_in_date: initialData?.check_in_date ?? '',
+  part_eta: '',
+  home_connect: initialData?.home_connect ?? false,
+  part_description: '',
+  store_id: initialData?.store_id ?? stores[0]?.id ?? '',
+  cx_name: initialData?.cx_name ?? '',
+  cx_phone: initialData?.cx_phone ?? '',
+  notes: '',
+  wo_link: initialData?.wo_link ?? '',
+  part_link: '',
+});
 
 const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   isOpen,
@@ -17,22 +34,18 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   onSuccess,
   availableStores,
   technicianName,
+  initialData,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    wo_number: '',
-    check_in_date: '',
-    part_eta: '',
-    home_connect: false,
-    part_description: '',
-    store_id: availableStores[0]?.id || '',
-    cx_name: '',
-    cx_phone: '',
-    notes: '',
-    wo_link: '',
-    part_link: '',
-  });
+  const [formData, setFormData] = useState(() => getInitialFormData(initialData, availableStores));
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(getInitialFormData(initialData, availableStores));
+      setError(null);
+    }
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -133,19 +146,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   };
 
   const handleClose = () => {
-    setFormData({
-      wo_number: '',
-      check_in_date: '',
-      part_eta: '',
-      home_connect: false,
-      part_description: '',
-      store_id: availableStores[0]?.id || '',
-      cx_name: '',
-      cx_phone: '',
-      notes: '',
-      wo_link: '',
-      part_link: '',
-    });
     setError(null);
     onClose();
   };
@@ -167,7 +167,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                Create New Order
+                {initialData ? 'Copy Order' : 'Create New Order'}
               </h3>
               <button
                 onClick={handleClose}

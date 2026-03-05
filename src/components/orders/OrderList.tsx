@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronUp, ChevronDown, Info } from 'lucide-react';
+import { ChevronUp, ChevronDown, Info, Copy } from 'lucide-react';
 import { Order } from '../../services/api/orders';
 import { getStatusColor } from '../../lib/orderStatusConfig';
 import { Store } from '../../types';
@@ -12,6 +12,7 @@ interface OrderListProps {
   onSelectionChange: (selectedIds: number[]) => void;
   showStoreColumn?: boolean;
   availableStores?: Store[];
+  onCopy?: (order: Order) => void;
 }
 
 const OrderList: React.FC<OrderListProps> = ({
@@ -21,6 +22,7 @@ const OrderList: React.FC<OrderListProps> = ({
   onSelectionChange,
   showStoreColumn = false,
   availableStores = [],
+  onCopy,
 }) => {
   const [localOrders, setLocalOrders] = useState<Order[]>(orders);
   const [sortColumn, setSortColumn] = useState<'check_in_date' | 'order_date' | 'part_eta' | null>(null);
@@ -205,6 +207,7 @@ const OrderList: React.FC<OrderListProps> = ({
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Notes
             </th>
+            <th className="px-6 py-3" />
           </tr>
         </thead>
         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -300,6 +303,17 @@ const OrderList: React.FC<OrderListProps> = ({
                   <span className="block truncate max-w-[18rem]" title={order.notes}>{order.notes}</span>
                 ) : (
                   <span className="text-gray-400">-</span>
+                )}
+              </td>
+              <td className="px-3 py-4 whitespace-nowrap">
+                {onCopy && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onCopy(order); }}
+                    className="p-1 text-gray-400 hover:text-blue-500 rounded transition-colors"
+                    title="Copy order"
+                  >
+                    <Copy size={15} />
+                  </button>
                 )}
               </td>
             </tr>
