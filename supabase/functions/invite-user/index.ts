@@ -133,6 +133,10 @@ Deno.serve(async (req: Request) => {
 
     if (inviteError) {
       console.error("inviteUserByEmail error:", inviteError);
+      const msg = inviteError.message?.toLowerCase() ?? "";
+      if (msg.includes("already") || msg.includes("exists") || msg.includes("registered")) {
+        return jsonError("A user with this email already exists.", 409, siteUrl);
+      }
       return jsonError("Failed to send invitation. Please try again.", 400, siteUrl);
     }
 
@@ -145,6 +149,9 @@ Deno.serve(async (req: Request) => {
 
     if (profileInsertError) {
       console.error("profiles insert error:", profileInsertError);
+      if (profileInsertError.code === "23505") {
+        return jsonError("A user with this email already exists.", 409, siteUrl);
+      }
       // Rollback: remove the orphaned auth user
       await adminClient.auth.admin.deleteUser(newUserId);
       return jsonError(
