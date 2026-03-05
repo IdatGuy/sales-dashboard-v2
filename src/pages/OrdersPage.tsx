@@ -4,11 +4,10 @@ import Navbar from '../components/common/Navbar';
 import StoreSelector from '../components/common/StoreSelector';
 import OrderList from '../components/orders/OrderList';
 import CreateOrderModal from '../components/orders/CreateOrderModal';
-import CancelOrderModal from '../components/orders/CancelOrderModal';
 import { ordersService, Order, can_transition, UserRole } from '../services/api/orders';
 import { ALL_STATUSES, TERMINAL_STATUSES } from '../lib/orderStatusConfig';
 import { useDashboard } from '../context/DashboardContext';
-import { Plus, Trash2, Edit3, Grid2x2, Ban } from 'lucide-react';
+import { Plus, Grid2x2, X } from 'lucide-react';
 
 const FALLBACK_STATUSES: Order['status'][] = ALL_STATUSES;
 const defaultActiveStatuses = (all: Order['status'][]) => all.filter(s => !TERMINAL_STATUSES.has(s));
@@ -28,13 +27,15 @@ const OrdersPage: React.FC = () => {
   const statusButtonRef = useRef<HTMLButtonElement | null>(null);
   const statusMenuRef = useRef<HTMLDivElement | null>(null);
   const [statusMenuStyle, setStatusMenuStyle] = useState<{ top: number; left: number; width: number } | null>(null);
-  const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+
+  // Single-order status modal
+  const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order['status']>('need to order');
   const [partEta, setPartEta] = useState<string>('');
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const isAdmin = currentUser?.role === 'admin';
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [reasonError, setReasonError] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const userRole = (currentUser?.role ?? 'employee') as UserRole;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorNotification, setShowErrorNotification] = useState(false);
@@ -124,119 +125,70 @@ const OrdersPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleBulkStatusUpdate = async () => {
-    if (selectedOrderIds.length === 0) return;
+  const handleStatusClick = (order: Order) => {
+    setActiveOrder(order);
+    setNewStatus(order.status);
+    setPartEta('');
+    setCancellationReason('');
+    setReasonError('');
+  };
 
-    const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
-    const valid: Order[] = [];
-    const invalidReasons: string[] = [];
-
-    for (const order of selectedOrders) {
-      const check = can_transition(order, newStatus, userRole);
-      if (check.allowed) {
-        valid.push(order);
-      } else {
-        invalidReasons.push(check.reason ?? 'Invalid transition.');
-      }
-    }
-
-    let successCount = 0;
-    const errors: string[] = [...invalidReasons];
-
-    const etaUpdate = newStatus === 'ordered' && partEta ? { part_eta: partEta } : {};
-
-    for (const order of valid) {
-      try {
-        await ordersService.updateOrder(order.id, { status: newStatus, ...etaUpdate });
-        successCount++;
-      } catch (e) {
-        errors.push(e instanceof Error ? e.message : 'Update failed.');
-      }
-    }
-
-    setOrders((prev) =>
-      prev
-        .map((o) => (valid.find((v) => v.id === o.id) ? { ...o, status: newStatus, ...etaUpdate } : o))
-        .filter((o) => statusFilters.includes(o.status))
-    );
-    setSelectedOrderIds([]);
-    setIsStatusModalOpen(false);
+  const closeStatusModal = () => {
+    setActiveOrder(null);
     setNewStatus('need to order');
     setPartEta('');
-
-    if (errors.length > 0) {
-      setErrorMessage(
-        `${successCount} order(s) updated, ${errors.length} skipped.\n` +
-          [...new Set(errors)].join('\n')
-      );
-      setShowErrorNotification(true);
-    }
+    setCancellationReason('');
+    setReasonError('');
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedOrderIds.length === 0 || !window.confirm(`Delete ${selectedOrderIds.length} order(s)?`)) return;
-
-    setIsDeleting(true);
-    try {
-      for (const orderId of selectedOrderIds) {
-        await ordersService.deleteOrder(orderId);
-      }
-      setOrders((prev) => prev.filter((order) => !selectedOrderIds.includes(order.id)));
-      setSelectedOrderIds([]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete orders';
-      setErrorMessage(message);
-      setShowErrorNotification(true);
-      console.error('Error deleting orders:', error);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleBulkCancel = async (reason: string) => {
-    const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
-    const valid: Order[] = [];
-    const invalidReasons: string[] = [];
-
-    for (const order of selectedOrders) {
-      const check = can_transition(order, 'cancelled', userRole);
-      if (check.allowed) {
-        valid.push(order);
-      } else {
-        invalidReasons.push(check.reason ?? 'Invalid transition.');
-      }
+  const handleStatusUpdate = async () => {
+    if (!activeOrder) return;
+    if (newStatus === activeOrder.status) {
+      closeStatusModal();
+      return;
     }
 
-    let successCount = 0;
-    const errors: string[] = [...invalidReasons];
-
-    for (const order of valid) {
+    if (newStatus === 'cancelled') {
+      if (!cancellationReason.trim()) {
+        setReasonError('Please provide a cancellation reason.');
+        return;
+      }
+      setIsUpdating(true);
       try {
-        await ordersService.cancelOrder(order.id, reason);
-        successCount++;
+        await ordersService.cancelOrder(activeOrder.id, cancellationReason.trim());
+        setOrders(prev =>
+          prev
+            .map(o => o.id === activeOrder.id
+              ? { ...o, status: 'cancelled' as const, cancellation_reason: cancellationReason.trim() }
+              : o
+            )
+            .filter(o => statusFilters.includes(o.status))
+        );
+        closeStatusModal();
       } catch (e) {
-        errors.push(e instanceof Error ? e.message : 'Cancel failed.');
+        setErrorMessage(e instanceof Error ? e.message : 'Failed to cancel order.');
+        setShowErrorNotification(true);
+      } finally {
+        setIsUpdating(false);
       }
+      return;
     }
 
-    setOrders((prev) =>
-      prev
-        .map((o) =>
-          valid.find((v) => v.id === o.id)
-            ? { ...o, status: 'cancelled' as const, cancellation_reason: reason }
-            : o
-        )
-        .filter((o) => statusFilters.includes(o.status))
-    );
-    setSelectedOrderIds([]);
-    setIsCancelModalOpen(false);
-
-    if (errors.length > 0) {
-      setErrorMessage(
-        `${successCount} order(s) cancelled, ${errors.length} skipped.\n` +
-          [...new Set(errors)].join('\n')
+    const etaUpdate = newStatus === 'ordered' && partEta ? { part_eta: partEta } : {};
+    setIsUpdating(true);
+    try {
+      await ordersService.updateOrder(activeOrder.id, { status: newStatus, ...etaUpdate });
+      setOrders(prev =>
+        prev
+          .map(o => o.id === activeOrder.id ? { ...o, status: newStatus, ...etaUpdate } : o)
+          .filter(o => statusFilters.includes(o.status))
       );
+      closeStatusModal();
+    } catch (e) {
+      setErrorMessage(e instanceof Error ? e.message : 'Failed to update order.');
       setShowErrorNotification(true);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -291,6 +243,11 @@ const OrdersPage: React.FC = () => {
     return <div>Loading...</div>;
   }
 
+  // Valid statuses for the active order's modal
+  const activeOrderValidStatuses = activeOrder
+    ? ALL_STATUSES.filter(s => s === activeOrder.status || can_transition(activeOrder, s, userRole).allowed)
+    : [];
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <Navbar />
@@ -328,218 +285,220 @@ const OrdersPage: React.FC = () => {
           {/* Orders Table */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {viewAllStores ? 'All Orders' : selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {totalOrders} order{totalOrders !== 1 ? 's' : ''} found
-                      {selectedOrderIds.length > 0 && ` • ${selectedOrderIds.length} selected`}
-                    </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3 sm:items-center relative">
-                    <button
-                      ref={statusButtonRef}
-                      onClick={() => setIsStatusFilterOpen((s) => !s)}
-                      className="relative px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none flex items-center gap-2"
-                      title={hiddenTerminalCount > 0 ? 'Completed and cancelled orders are hidden' : 'Filter by status'}
-                    >
-                      Status
-                      <span className="text-sm text-gray-500">{filterLabel}</span>
-                      {hiddenTerminalCount > 0 && (
-                        <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-400" />
-                      )}
-                    </button>
-
-                    {isStatusFilterOpen && (
-                      <div
-                        ref={statusMenuRef}
-                        style={
-                          statusMenuStyle
-                            ? { position: 'fixed', top: statusMenuStyle.top, left: statusMenuStyle.left, width: statusMenuStyle.width }
-                            : { position: 'fixed' }
-                        }
-                        className="bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700 p-2 max-h-64 overflow-auto"
-                      >
-                        <div className="flex justify-between items-center px-2 py-1 text-sm text-primary-600">
-                          <button onClick={() => setStatusFilters([...availableStatuses])} className="underline">Check All</button>
-                          <button onClick={() => setStatusFilters(defaultActiveStatuses(availableStatuses))} className="underline">Reset</button>
-                        </div>
-                        {statusesLoading ? (
-                          <div className="px-2 py-2 text-sm text-gray-400">Loading statuses…</div>
-                        ) : (
-                          <div className="mt-2 space-y-1">
-                            {availableStatuses.map((s) => (
-                              <label key={s} className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
-                                <input
-                                  type="checkbox"
-                                  checked={statusFilters.includes(s)}
-                                  onChange={() =>
-                                    setStatusFilters((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
-                                  }
-                                  className="h-4 w-4"
-                                />
-                                <span className="text-sm text-gray-700 dark:text-gray-200">{s}</span>
-                                {TERMINAL_STATUSES.has(s) && (
-                                  <span className="ml-auto text-xs text-gray-400">terminal</span>
-                                )}
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {selectedOrderIds.length > 0 && (
-                      <>
-                        <button
-                          onClick={() => setIsStatusModalOpen(true)}
-                          className="flex items-center justify-center px-3 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium text-sm gap-2"
-                        >
-                          <Edit3 size={16} />
-                          Change Status
-                        </button>
-                        {isAdmin ? (
-                          <button
-                            onClick={handleBulkDelete}
-                            disabled={isDeleting}
-                            className="flex items-center justify-center px-3 py-2 bg-red-600 dark:bg-red-700 text-white rounded-md hover:bg-red-700 dark:hover:bg-red-600 disabled:bg-red-400 transition-colors font-medium text-sm gap-2"
-                          >
-                            <Trash2 size={16} />
-                            Delete ({selectedOrderIds.length})
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setIsCancelModalOpen(true)}
-                            className="flex items-center justify-center px-3 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded-md hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors font-medium text-sm gap-2"
-                          >
-                            <Ban size={16} />
-                            Cancel ({selectedOrderIds.length})
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {viewAllStores ? 'All Orders' : selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {totalOrders} order{totalOrders !== 1 ? 's' : ''} found
+                  </p>
                 </div>
-              </div>
-              <OrderList
-                orders={orders}
-                isLoading={isLoading}
-                selectedOrderIds={selectedOrderIds}
-                onSelectionChange={setSelectedOrderIds}
-                showStoreColumn={viewAllStores}
-                availableStores={availableStores}
-                onCopy={handleCopyOrder}
-              />
-
-              {/* Footer: rows per page + pagination */}
-              <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <span>Rows per page:</span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => setPageSize(Number(e.target.value) as 25 | 50 | 75 | 100)}
-                    className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center relative">
+                  <button
+                    ref={statusButtonRef}
+                    onClick={() => setIsStatusFilterOpen((s) => !s)}
+                    className="relative px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none flex items-center gap-2"
+                    title={hiddenTerminalCount > 0 ? 'Completed and cancelled orders are hidden' : 'Filter by status'}
                   >
-                    {PAGE_SIZE_OPTIONS.map((n) => (
-                      <option key={n} value={n}>{n}</option>
-                    ))}
-                  </select>
-                </div>
+                    Status
+                    <span className="text-sm text-gray-500">{filterLabel}</span>
+                    {hiddenTerminalCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-400" />
+                    )}
+                  </button>
 
-                {totalOrders > 0 && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalOrders)} of {totalOrders}
-                    </span>
-                    <button
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  {isStatusFilterOpen && (
+                    <div
+                      ref={statusMenuRef}
+                      style={
+                        statusMenuStyle
+                          ? { position: 'fixed', top: statusMenuStyle.top, left: statusMenuStyle.left, width: statusMenuStyle.width }
+                          : { position: 'fixed' }
+                      }
+                      className="bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700 p-2 max-h-64 overflow-auto"
                     >
-                      ‹ Prev
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage >= totalPages}
-                      className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Next ›
-                    </button>
-                  </div>
-                )}
+                      <div className="flex justify-between items-center px-2 py-1 text-sm text-primary-600">
+                        <button onClick={() => setStatusFilters([...availableStatuses])} className="underline">Check All</button>
+                        <button onClick={() => setStatusFilters(defaultActiveStatuses(availableStatuses))} className="underline">Reset</button>
+                      </div>
+                      {statusesLoading ? (
+                        <div className="px-2 py-2 text-sm text-gray-400">Loading statuses…</div>
+                      ) : (
+                        <div className="mt-2 space-y-1">
+                          {availableStatuses.map((s) => (
+                            <label key={s} className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                              <input
+                                type="checkbox"
+                                checked={statusFilters.includes(s)}
+                                onChange={() =>
+                                  setStatusFilters((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
+                                }
+                                className="h-4 w-4"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-200">{s}</span>
+                              {TERMINAL_STATUSES.has(s) && (
+                                <span className="ml-auto text-xs text-gray-400">terminal</span>
+                              )}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
+            </div>
+            <OrderList
+              orders={orders}
+              isLoading={isLoading}
+              onStatusClick={handleStatusClick}
+              showStoreColumn={viewAllStores}
+              availableStores={availableStores}
+              onCopy={handleCopyOrder}
+            />
+
+            {/* Footer: rows per page + pagination */}
+            <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <span>Rows per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value) as 25 | 50 | 75 | 100)}
+                  className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                >
+                  {PAGE_SIZE_OPTIONS.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </div>
+
+              {totalOrders > 0 && (
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalOrders)} of {totalOrders}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ‹ Prev
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next ›
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
 
       {/* Status Change Modal */}
-      {isStatusModalOpen && (
+      {activeOrder && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div
               className="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 transition-opacity"
-              onClick={() => { setIsStatusModalOpen(false); setPartEta(''); }}
+              onClick={closeStatusModal}
             ></div>
             <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
-              <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
-                  Change Status for {selectedOrderIds.length} Order{selectedOrderIds.length !== 1 ? 's' : ''}
-                </h3>
-                {(() => {
-                  const ACTIVE_STATUSES = ALL_STATUSES;
-                  const selectedOrders = orders.filter((o) => selectedOrderIds.includes(o.id));
-                  const validStatuses = ACTIVE_STATUSES.filter((s) =>
-                    selectedOrders.some((o) => can_transition(o, s, userRole).allowed)
-                  );
-                  return (
-                    <div className="space-y-3">
-                      {validStatuses.length === 0 ? (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          No valid transitions available for the selected orders.
-                        </p>
-                      ) : (
-                        validStatuses.map((status) => (
-                          <label key={status} className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                            <input
-                              type="radio"
-                              name="status"
-                              value={status}
-                              checked={newStatus === status}
-                              onChange={(e) => { setNewStatus(e.target.value as Order['status']); setPartEta(''); }}
-                              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600"
-                            />
-                            <span className="ml-3 text-sm text-gray-700 dark:text-gray-300 capitalize">{status}</span>
-                          </label>
-                        ))
-                      )}
-                      {newStatus === 'ordered' && (
-                        <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Part ETA <span className="text-gray-400 font-normal">(optional)</span>
-                          </label>
-                          <input
-                            type="date"
-                            value={partEta}
-                            onChange={(e) => setPartEta(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-primary-500 focus:border-primary-500"
-                          />
-                        </div>
+              {/* Header */}
+              <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+                    Edit Order Status
+                  </h3>
+                  <button
+                    onClick={closeStatusModal}
+                    className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="bg-white dark:bg-gray-800 px-4 py-5 sm:p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  WO #{activeOrder.wo_number} – {activeOrder.cx_name}
+                </p>
+                <div className="space-y-3">
+                  {activeOrderValidStatuses.map((status) => (
+                    <label
+                      key={status}
+                      className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <input
+                        type="radio"
+                        name="status"
+                        value={status}
+                        checked={newStatus === status}
+                        onChange={(e) => {
+                          setNewStatus(e.target.value as Order['status']);
+                          setPartEta('');
+                          setCancellationReason('');
+                          setReasonError('');
+                        }}
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600"
+                      />
+                      <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+                        {status}
+                      </span>
+                    </label>
+                  ))}
+
+                  {newStatus === 'ordered' && (
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Part ETA <span className="text-gray-400 font-normal">(optional)</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={partEta}
+                        onChange={(e) => setPartEta(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                  )}
+
+                  {newStatus === 'cancelled' && (
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Cancellation Reason <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={cancellationReason}
+                        onChange={(e) => { setCancellationReason(e.target.value); setReasonError(''); }}
+                        rows={3}
+                        placeholder="Required"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-primary-500 focus:border-primary-500"
+                      />
+                      {reasonError && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{reasonError}</p>
                       )}
                     </div>
-                  );
-                })()}
+                  )}
+                </div>
               </div>
+
+              {/* Footer */}
               <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
                 <button
-                  onClick={handleBulkStatusUpdate}
-                  className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors font-medium text-sm"
+                  onClick={handleStatusUpdate}
+                  disabled={isUpdating}
+                  className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-primary-400 transition-colors font-medium text-sm"
                 >
-                  Update Status
+                  {isUpdating ? 'Updating...' : 'Update Status'}
                 </button>
                 <button
-                  onClick={() => { setIsStatusModalOpen(false); setPartEta(''); }}
+                  onClick={closeStatusModal}
+                  disabled={isUpdating}
                   className="w-full sm:w-auto px-4 py-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md border border-gray-300 dark:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors font-medium text-sm"
                 >
                   Cancel
@@ -549,14 +508,6 @@ const OrdersPage: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Cancel Order Modal */}
-      <CancelOrderModal
-        isOpen={isCancelModalOpen}
-        orderCount={selectedOrderIds.length}
-        onConfirm={handleBulkCancel}
-        onClose={() => setIsCancelModalOpen(false)}
-      />
 
       {/* Create Order Modal */}
       <CreateOrderModal
