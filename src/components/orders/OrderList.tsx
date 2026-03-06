@@ -23,7 +23,7 @@ const OrderList: React.FC<OrderListProps> = ({
   onCopy,
 }) => {
   const [localOrders, setLocalOrders] = useState<Order[]>(orders);
-  const [sortColumn, setSortColumn] = useState<'check_in_date' | 'order_date' | 'part_eta' | null>(null);
+  const [sortColumn, setSortColumn] = useState<'check_in_date' | 'order_date' | 'part_eta' | 'store_id' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Sync local state with prop changes
@@ -31,7 +31,7 @@ const OrderList: React.FC<OrderListProps> = ({
     setLocalOrders(orders);
   }, [orders]);
 
-  const handleSortClick = (column: 'check_in_date' | 'order_date' | 'part_eta') => {
+  const handleSortClick = (column: 'check_in_date' | 'order_date' | 'part_eta' | 'store_id') => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -40,20 +40,29 @@ const OrderList: React.FC<OrderListProps> = ({
     }
   };
 
+  const getStoreName = (storeId: string): string => {
+    return availableStores.find((store) => store.id === storeId)?.name || storeId;
+  };
+
   const getSortedOrders = () => {
     if (!sortColumn) return localOrders;
 
-    const sorted = [...localOrders].sort((a, b) => {
+    if (sortColumn === 'store_id') {
+      return [...localOrders].sort((a, b) => {
+        const nameA = getStoreName(a.store_id).toLowerCase();
+        const nameB = getStoreName(b.store_id).toLowerCase();
+        return sortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+      });
+    }
+
+    return [...localOrders].sort((a, b) => {
       const dateA = a[sortColumn] ? parseDateString(a[sortColumn]!).getTime() : 0;
       const dateB = b[sortColumn] ? parseDateString(b[sortColumn]!).getTime() : 0;
-
       return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
     });
-
-    return sorted;
   };
 
-  const getSortIcon = (column: 'check_in_date' | 'order_date' | 'part_eta') => {
+  const getSortIcon = (column: 'check_in_date' | 'order_date' | 'part_eta' | 'store_id') => {
     if (sortColumn !== column) return null;
     return sortDirection === 'asc' ? (
       <ChevronUp className="inline ml-1" size={16} />
@@ -62,16 +71,12 @@ const OrderList: React.FC<OrderListProps> = ({
     );
   };
 
-  const getHeaderClass = (column: 'check_in_date' | 'order_date' | 'part_eta') => {
+  const getHeaderClass = (column: 'check_in_date' | 'order_date' | 'part_eta' | 'store_id') => {
     const baseClass = "px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600/60 select-none";
     return sortColumn === column ? baseClass + " bg-gray-100 dark:bg-gray-600/60" : baseClass;
   };
 
   const displayOrders = getSortedOrders();
-
-  const getStoreName = (storeId: string): string => {
-    return availableStores.find((store) => store.id === storeId)?.name || storeId;
-  };
 
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return '-';
@@ -142,8 +147,8 @@ const OrderList: React.FC<OrderListProps> = ({
         <thead className="bg-gray-50 dark:bg-gray-700/60">
           <tr>
             {showStoreColumn && (
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                Store
+              <th className={getHeaderClass('store_id')} onClick={() => handleSortClick('store_id')}>
+                Store {getSortIcon('store_id')}
               </th>
             )}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">
