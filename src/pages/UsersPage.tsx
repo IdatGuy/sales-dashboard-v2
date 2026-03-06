@@ -394,7 +394,7 @@ const UsersPage: React.FC = () => {
                           key={user.id}
                           className={`${
                             !user.isActive ? 'opacity-60' : ''
-                          } hover:bg-gray-50 dark:hover:bg-gray-750`}
+                          } hover:bg-gray-50 dark:hover:bg-gray-700/50`}
                         >
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900 dark:text-white">

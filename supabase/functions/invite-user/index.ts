@@ -142,24 +142,8 @@ Deno.serve(async (req: Request) => {
 
     const newUserId = inviteData.user.id;
 
-    // Create the profiles row
-    const { error: profileInsertError } = await adminClient
-      .from("profiles")
-      .insert({ id: newUserId, username: name, role });
-
-    if (profileInsertError) {
-      console.error("profiles insert error:", profileInsertError);
-      if (profileInsertError.code === "23505") {
-        return jsonError("A user with this email already exists.", 409, siteUrl);
-      }
-      // Rollback: remove the orphaned auth user
-      await adminClient.auth.admin.deleteUser(newUserId);
-      return jsonError(
-        "Failed to create user profile. Invite rolled back.",
-        500,
-        siteUrl
-      );
-    }
+    // Note: the on_auth_user_created trigger automatically creates the profile
+    // row when the auth user is created above, so no manual insert is needed.
 
     // Create user_store_access rows
     const accessRows = storeIds.map((storeId) => ({
