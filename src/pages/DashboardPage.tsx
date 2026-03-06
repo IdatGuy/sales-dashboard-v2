@@ -9,13 +9,9 @@ import TimeFrameToggle from "../components/common/TimeFrameToggle";
 import SalesChart from "../components/dashboard/SalesChart";
 import GoalsProgress from "../components/dashboard/GoalsProgress";
 import SalesProjection from "../components/dashboard/SalesProjection";
-import CommissionWidget from "../components/dashboard/CommissionWidget";
-import Leaderboard from "../components/dashboard/Leaderboard";
 import EnterSalesModal from "../components/dashboard/EnterSalesModal";
 import GoalSettingsModal from "../components/dashboard/GoalSettingsModal";
 import { goalsService } from "../services/api/goals";
-import { commissionService } from "../services/api/commission";
-import { Commission } from "../types";
 
 const DashboardPage: React.FC = () => {
   const {
@@ -37,7 +33,6 @@ const DashboardPage: React.FC = () => {
     homeConnectGoal: 0,
   });
 
-  const [userCommission, setUserCommission] = useState<Commission | null>(null);
   const [isEnterSalesOpen, setIsEnterSalesOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
 
@@ -132,24 +127,6 @@ const DashboardPage: React.FC = () => {
     [contextSalesData.daily]
   );
 
-  // Load user commission data
-  useEffect(() => {
-    if (currentUser && timeFrame.period !== "year") {
-      const currentMonth = `${currentDate.getFullYear()}-${(
-        currentDate.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}`;
-
-      commissionService
-        .getUserCommission(currentUser.id, currentMonth)
-        .then((commission) => {
-          setUserCommission(commission);
-        });
-    } else {
-      setUserCommission(null);
-    }
-  }, [currentUser, currentDate, timeFrame.period]);
 
   // Calculate sales progress for goals - always use monthly total
   const salesProgress = useMemo(() => {
@@ -243,27 +220,6 @@ const DashboardPage: React.FC = () => {
                   <SalesChart sales={salesData} />
                 </div>
 
-                {/* Commission & Leaderboard row (only for non-managers) */}
-                {currentUser && currentUser.role !== "manager" && (
-                  <div className="flex flex-col sm:flex-row gap-6">
-                    <div
-                      className="flex-1 animate-slide-up"
-                      style={{ animationDelay: "0.3s" }}
-                    >
-                      <CommissionWidget commission={userCommission} />
-                    </div>
-                    <div
-                      className="flex-1 animate-slide-up"
-                      style={{ animationDelay: "0.4s" }}
-                    >
-                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-64">
-                        <Leaderboard
-                          month={currentDate.toISOString().slice(0, 7)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Right Column */}
