@@ -51,7 +51,8 @@ export const ordersService = {
     storeIds?: string[],
     statuses?: Order['status'][],
     page: number = 1,
-    pageSize: number = 25
+    pageSize: number = 25,
+    searchTerm?: string
   ): Promise<{ orders: Order[]; total: number }> {
     try {
       let query = supabase
@@ -67,6 +68,11 @@ export const ordersService = {
 
       if (statuses && statuses.length > 0) {
         query = query.in('status', statuses);
+      }
+
+      if (searchTerm && searchTerm.trim()) {
+        const term = `%${searchTerm.trim()}%`;
+        query = query.or(`cx_name.ilike.${term},cx_phone.ilike.${term},wo_number.ilike.${term}`);
       }
 
       const start = (page - 1) * pageSize;

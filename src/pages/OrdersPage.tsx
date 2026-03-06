@@ -7,7 +7,7 @@ import CreateOrderModal from '../components/orders/CreateOrderModal';
 import { ordersService, Order, can_transition, UserRole } from '../services/api/orders';
 import { ALL_STATUSES, TERMINAL_STATUSES } from '../lib/orderStatusConfig';
 import { useDashboard } from '../context/DashboardContext';
-import { Plus, Grid2x2, X } from 'lucide-react';
+import { Plus, Grid2x2, X, Search } from 'lucide-react';
 
 const FALLBACK_STATUSES: Order['status'][] = ALL_STATUSES;
 const defaultActiveStatuses = (all: Order['status'][]) => all.filter(s => !TERMINAL_STATUSES.has(s));
@@ -36,6 +36,10 @@ const OrdersPage: React.FC = () => {
   const [reasonError, setReasonError] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const userRole = (currentUser?.role ?? 'employee') as UserRole;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorNotification, setShowErrorNotification] = useState(false);
@@ -44,10 +48,19 @@ const OrdersPage: React.FC = () => {
   const [pageSize, setPageSize] = useState<25 | 50 | 75 | 100>(25);
   const [totalOrders, setTotalOrders] = useState(0);
 
+  // Debounce search term
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 350);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [searchTerm]);
+
   // Reset to page 1 when anything other than page itself changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedStore, viewAllStores, currentUser, statusFilters, pageSize]);
+  }, [selectedStore, viewAllStores, currentUser, statusFilters, pageSize, debouncedSearchTerm]);
 
   useEffect(() => {
     if (statusFilters.length === 0) {
@@ -63,9 +76,9 @@ const OrdersPage: React.FC = () => {
         let result: { orders: Order[]; total: number };
         if (viewAllStores && currentUser?.userStoreAccess) {
           const storeIds = currentUser.userStoreAccess.map((access) => access.storeId);
-          result = await ordersService.getOrders(undefined, storeIds, statusFilters, currentPage, pageSize);
+          result = await ordersService.getOrders(undefined, storeIds, statusFilters, currentPage, pageSize, debouncedSearchTerm);
         } else {
-          result = await ordersService.getOrders(selectedStore?.id, undefined, statusFilters, currentPage, pageSize);
+          result = await ordersService.getOrders(selectedStore?.id, undefined, statusFilters, currentPage, pageSize, debouncedSearchTerm);
         }
         if (!aborted) {
           setOrders(result.orders);
@@ -84,7 +97,7 @@ const OrdersPage: React.FC = () => {
 
     fetchOrders();
     return () => { aborted = true; };
-  }, [selectedStore, viewAllStores, currentUser, statusFilters, currentPage, pageSize]);
+  }, [selectedStore, viewAllStores, currentUser, statusFilters, currentPage, pageSize, debouncedSearchTerm]);
 
   useEffect(() => {
     let aborted = false;
@@ -295,6 +308,29 @@ const OrdersPage: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 sm:items-center relative">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search size={16} className="text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <input
+                      type="text"
+                      className="block w-full sm:w-72 pl-9 pr-8 py-2 border border-gray-300 dark:border-gray-600
+                                 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                                 placeholder-gray-500 dark:placeholder-gray-400 text-sm
+                                 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="Search name, phone, or WO #..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
                   <button
                     ref={statusButtonRef}
                     onClick={() => setIsStatusFilterOpen((s) => !s)}
