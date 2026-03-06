@@ -39,6 +39,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
+      // If arriving via invite/recovery link, skip restoring the old session to
+      // prevent a session mismatch (Supabase has already replaced the session
+      // with the invited user's tokens). SetPasswordPage handles the rest.
+      const authTokenType = sessionStorage.getItem('auth_token_type');
+      if (authTokenType === 'invite' || authTokenType === 'recovery') {
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        setLoading(false);
+        return;
+      }
+
       const savedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
       if (savedUser) {
         // Confirm the Supabase session is still active before trusting localStorage

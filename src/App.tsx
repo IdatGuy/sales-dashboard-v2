@@ -109,12 +109,13 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
-      {/* Invite-only route — redirect already-authenticated users who lack an invite token */}
+      {/* Invite-only route — redirect already-authenticated users who lack an invite token.
+          Use sessionStorage (captured in main.tsx) instead of window.location.hash,
+          which Supabase clears before this check runs on re-renders. */}
       <Route
         path="/set-password"
         element={
-          isAuthenticated &&
-          !new URLSearchParams(window.location.hash.substring(1)).has("type") ? (
+          isAuthenticated && !sessionStorage.getItem('auth_token_type') ? (
             <Navigate to="/dashboard" />
           ) : (
             <SetPasswordPage />

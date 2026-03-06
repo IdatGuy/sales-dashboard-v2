@@ -21,10 +21,11 @@ const SetPasswordPage: React.FC = () => {
   const [sessionReady, setSessionReady] = useState(false);
   const [inviteSession, setInviteSession] = useState<Session | null>(null);
 
-  // Capture the URL hash type synchronously before the Supabase SDK clears it.
-  // Supabase invite links contain `#access_token=...&type=invite` in the fragment.
+  // Capture the URL hash type. Fall back to sessionStorage (set in main.tsx before
+  // Supabase could clear the hash) in case the SDK already removed the fragment.
   const tokenTypeRef = useRef<string | null>(
-    new URLSearchParams(window.location.hash.substring(1)).get("type")
+    new URLSearchParams(window.location.hash.substring(1)).get("type") ||
+    sessionStorage.getItem('auth_token_type')
   );
 
   const { loginWithSession } = useAuth();
@@ -99,6 +100,7 @@ const SetPasswordPage: React.FC = () => {
       }
 
       await loginWithSession(newSession);
+      sessionStorage.removeItem('auth_token_type');
       navigate("/dashboard");
     } catch (err) {
       const message =
