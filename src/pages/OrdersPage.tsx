@@ -138,6 +138,24 @@ const OrdersPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const handleEtaChange = async (order: Order, newEta: string) => {
+    const updates: Partial<Order> =
+      order.status === 'need to order'
+        ? { status: 'ordered', part_eta: newEta }
+        : { part_eta: newEta };
+    try {
+      await ordersService.updateOrder(order.id, updates);
+      setOrders(prev =>
+        prev
+          .map(o => o.id === order.id ? { ...o, ...updates } : o)
+          .filter(o => statusFilters.includes(o.status))
+      );
+    } catch (e) {
+      setErrorMessage(e instanceof Error ? e.message : 'Failed to update ETA.');
+      setShowErrorNotification(true);
+    }
+  };
+
   const handleStatusClick = (order: Order) => {
     setActiveOrder(order);
     setNewStatus(order.status);
@@ -392,6 +410,7 @@ const OrdersPage: React.FC = () => {
               showStoreColumn={viewAllStores}
               availableStores={availableStores}
               onCopy={handleCopyOrder}
+              onEtaChange={userRole === 'manager' || userRole === 'admin' ? handleEtaChange : undefined}
             />
 
             {/* Footer: rows per page + pagination */}

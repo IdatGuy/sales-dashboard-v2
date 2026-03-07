@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronUp, ChevronDown, Info, Copy } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronUp, ChevronDown, Info, Copy, Pencil } from 'lucide-react';
 import { Order } from '../../services/api/orders';
 import { getStatusColor, TERMINAL_STATUSES } from '../../lib/orderStatusConfig';
 import { Store } from '../../types';
@@ -12,6 +12,7 @@ interface OrderListProps {
   showStoreColumn?: boolean;
   availableStores?: Store[];
   onCopy?: (order: Order) => void;
+  onEtaChange?: (order: Order, newEta: string) => Promise<void>;
 }
 
 const OrderList: React.FC<OrderListProps> = ({
@@ -21,10 +22,15 @@ const OrderList: React.FC<OrderListProps> = ({
   showStoreColumn = false,
   availableStores = [],
   onCopy,
+  onEtaChange,
 }) => {
   const [localOrders, setLocalOrders] = useState<Order[]>(orders);
   const [sortColumn, setSortColumn] = useState<'check_in_date' | 'order_date' | 'part_eta' | 'store_id' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [editingEtaId, setEditingEtaId] = useState<number | null>(null);
+  const [etaInputValue, setEtaInputValue] = useState('');
+  const [savingEtaId, setSavingEtaId] = useState<number | null>(null);
+  const etaInputRef = useRef<HTMLInputElement | null>(null);
 
   // Sync local state with prop changes
   useEffect(() => {
@@ -121,6 +127,34 @@ const OrderList: React.FC<OrderListProps> = ({
       padding: '0.5rem',
       borderRadius: '0.375rem',
     };
+  };
+
+  const ETA_EDITABLE_STATUSES = new Set<Order['status']>(['need to order', 'ordered']);
+
+  const startEditingEta = (order: Order) => {
+    setEditingEtaId(order.id);
+    setEtaInputValue(order.part_eta ?? '');
+    setTimeout(() => etaInputRef.current?.showPicker?.(), 50);
+  };
+
+  const cancelEditingEta = () => {
+    setEditingEtaId(null);
+    setEtaInputValue('');
+  };
+
+  const commitEta = async (order: Order) => {
+    if (!onEtaChange || !etaInputValue) {
+      cancelEditingEta();
+      return;
+    }
+    setEditingEtaId(null);
+    setSavingEtaId(order.id);
+    try {
+      await onEtaChange(order, etaInputValue);
+    } finally {
+      setSavingEtaId(null);
+      setEtaInputValue('');
+    }
   };
 
   if (isLoading) {
@@ -255,9 +289,38 @@ const OrderList: React.FC<OrderListProps> = ({
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span style={getDateColor(order.part_eta)}>
-                    {formatDate(order.part_eta)}
-                  </span>
+                  {savingEtaId === order.id ? (
+                    <span className="text-gray-400 italic text-xs">Saving…</span>
+                  ) : editingEtaId === order.id ? (
+                    <input
+                      ref={etaInputRef}
+                      type="date"
+                      value={etaInputValue}
+                      onChange={(e) => setEtaInputValue(e.target.value)}
+                      onBlur={() => commitEta(order)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); commitEta(order); }
+                        if (e.key === 'Escape') { e.preventDefault(); cancelEditingEta(); }
+                      }}
+                      autoFocus
+                      className="px-2 py-1 border border-primary-400 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  ) : onEtaChange && ETA_EDITABLE_STATUSES.has(order.status) ? (
+                    <button
+                      onClick={() => startEditingEta(order)}
+                      className="group flex items-center gap-1.5 text-left hover:opacity-80 transition-opacity"
+                      title="Click to set ETA"
+                    >
+                      <span style={getDateColor(order.part_eta)}>
+                        {formatDate(order.part_eta)}
+                      </span>
+                      <Pencil size={12} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </button>
+                  ) : (
+                    <span style={getDateColor(order.part_eta)}>
+                      {formatDate(order.part_eta)}
+                    </span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {order.home_connect ? (
