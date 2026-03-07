@@ -21,13 +21,7 @@ export const STATUS_CONFIG: OrderStatusConfig[] = [
     colorClass: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     transitions: [
       { to: 'ordered', allowedRoles: ['manager', 'admin'] },
-      { to: 'cancelled', allowedRoles: ['manager', 'admin'] },
-      {
-        to: 'cancelled',
-        allowedRoles: ['employee'],
-        condition: (o) => Date.now() - new Date(o.created_at).getTime() <= 60 * 60 * 1000,
-        conditionReason: 'Cancellation window (1 hour) has expired.',
-      },
+      { to: 'cancelled', allowedRoles: ['employee', 'manager', 'admin'] },
     ],
   },
   {
