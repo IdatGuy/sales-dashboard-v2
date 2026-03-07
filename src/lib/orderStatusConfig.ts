@@ -16,6 +16,15 @@ interface OrderStatusConfig {
 
 export const STATUS_CONFIG: OrderStatusConfig[] = [
   {
+    name: 'in transit',
+    isTerminal: false,
+    colorClass: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+    transitions: [
+      { to: 'need to order', allowedRoles: ['employee', 'manager', 'admin'] },
+      { to: 'cancelled',     allowedRoles: ['employee', 'manager', 'admin'] },
+    ],
+  },
+  {
     name: 'need to order',
     isTerminal: false,
     colorClass: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
@@ -95,9 +104,14 @@ export function getStatusColor(status: string): string {
 export function canTransition(
   order: Order,
   to: Order['status'],
-  role: UserRole
+  role: UserRole,
+  hasDepotAccess: boolean = false
 ): { allowed: boolean; reason?: string } {
   if (role === 'admin') return { allowed: true };
+
+  if (order.is_depot_repair && !hasDepotAccess) {
+    return { allowed: false, reason: 'Only users with depot access can update depot repair orders.' };
+  }
 
   const fromConfig = STATUS_CONFIG.find(s => s.name === order.status);
   if (!fromConfig) return { allowed: false, reason: 'Unknown source status.' };

@@ -9,7 +9,7 @@ export interface Order {
   part_eta: string | null;
   home_connect: boolean;
   wo_number: string;
-  part_description: string;
+  part_description: string | null;
   technician: string;
   store_id: string;
   cx_name: string;
@@ -17,9 +17,10 @@ export interface Order {
   notes: string | null;
   cancellation_reason: string | null;
   return_required_reason: string | null;
-  status: 'need to order' | 'ordered' | 'received' | 'return required' | 'return authorized' | 'return complete' | 'completed' | 'cancelled';
+  status: 'in transit' | 'need to order' | 'ordered' | 'received' | 'return required' | 'return authorized' | 'return complete' | 'completed' | 'cancelled';
   wo_link: string;
-  part_link: string;
+  part_link: string | null;
+  is_depot_repair: boolean;
 }
 
 export type UserRole = 'employee' | 'manager' | 'admin';
@@ -37,9 +38,10 @@ export interface TransitionResult {
 export function can_transition(
   order: Order,
   targetStatus: Order['status'],
-  userRole: UserRole
+  userRole: UserRole,
+  hasDepotAccess: boolean = false
 ): TransitionResult {
-  return canTransition(order, targetStatus, userRole);
+  return canTransition(order, targetStatus, userRole, hasDepotAccess);
 }
 
 export const ordersService = {
@@ -53,7 +55,8 @@ export const ordersService = {
     statuses?: Order['status'][],
     page: number = 1,
     pageSize: number = 25,
-    searchTerm?: string
+    searchTerm?: string,
+    includeAllDepotOrders?: boolean
   ): Promise<{ orders: Order[]; total: number }> {
     try {
       let query = supabase
@@ -61,7 +64,12 @@ export const ordersService = {
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
-      if (storeIds && storeIds.length > 0) {
+      if (includeAllDepotOrders) {
+        if (storeIds && storeIds.length > 0) {
+          query = query.or(`store_id.in.(${storeIds.join(',')}),is_depot_repair.eq.true`);
+        }
+        // If no storeIds, omit store filter so RLS handles scoping
+      } else if (storeIds && storeIds.length > 0) {
         query = query.in('store_id', storeIds);
       } else if (storeId) {
         query = query.eq('store_id', storeId);
@@ -98,10 +106,15 @@ export const ordersService = {
    * Fetches only the status column and deduplicates in JS (PostgREST doesn't support SELECT DISTINCT).
    * RLS automatically scopes results to the user's accessible stores.
    */
-  async getDistinctStatuses(storeId?: string, storeIds?: string[]): Promise<Order['status'][]> {
+  async getDistinctStatuses(storeId?: string, storeIds?: string[], includeAllDepotOrders?: boolean): Promise<Order['status'][]> {
     try {
       let query = supabase.from('order_list').select('status');
-      if (storeIds && storeIds.length > 0) {
+      if (includeAllDepotOrders) {
+        if (storeIds && storeIds.length > 0) {
+          query = query.or(`store_id.in.(${storeIds.join(',')}),is_depot_repair.eq.true`);
+        }
+        // If no storeIds, omit store filter so RLS handles scoping
+      } else if (storeIds && storeIds.length > 0) {
         query = query.in('store_id', storeIds);
       } else if (storeId) {
         query = query.eq('store_id', storeId);
