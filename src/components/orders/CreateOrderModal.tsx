@@ -19,6 +19,7 @@ const getInitialFormData = (initialData: Partial<CopyableFields> | undefined, st
   check_in_date: initialData?.check_in_date ?? '',
   part_eta: '',
   home_connect: initialData?.home_connect ?? false,
+  isDepotRepair: false,
   part_description: '',
   store_id: initialData?.store_id ?? stores[0]?.id ?? '',
   cx_name: initialData?.cx_name ?? '',
@@ -98,7 +99,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       setError('Work order link is required');
       return;
     }
-    if (!formData.part_link) {
+    if (!formData.isDepotRepair && !formData.part_link) {
       setError('Part link is required');
       return;
     }
@@ -106,30 +107,49 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     // Validate URLs
     try {
       new URL(formData.wo_link);
-      new URL(formData.part_link);
+      if (formData.part_link) new URL(formData.part_link);
     } catch {
-      setError('Both links must be valid URLs');
+      setError('Links must be valid URLs');
       return;
     }
 
     setIsLoading(true);
     try {
-      const orderData: Omit<Order, 'id' | 'created_at'> = {
-        check_in_date: formData.check_in_date,
-        order_date: new Date().toISOString().split('T')[0],
-        part_eta: formData.part_eta || null,
-        home_connect: formData.home_connect,
-        wo_number: formData.wo_number,
-        part_description: formData.part_description,
-        technician: technicianName,
-        store_id: formData.store_id,
-        cx_name: formData.cx_name,
-        cx_phone: formattedPhone,
-        notes: formData.notes || null,
-        status: 'need to order',
-        wo_link: formData.wo_link,
-        part_link: formData.part_link,
-      };
+      const orderData: Omit<Order, 'id' | 'created_at'> = formData.isDepotRepair
+        ? {
+            check_in_date: formData.check_in_date,
+            order_date: null,
+            part_eta: formData.part_eta || null,
+            home_connect: formData.home_connect,
+            is_depot_repair: true,
+            wo_number: formData.wo_number,
+            part_description: formData.part_description || null,
+            technician: technicianName,
+            store_id: formData.store_id,
+            cx_name: formData.cx_name,
+            cx_phone: formattedPhone,
+            notes: formData.notes || null,
+            status: 'in transit',
+            wo_link: formData.wo_link,
+            part_link: formData.part_link || null,
+          }
+        : {
+            check_in_date: formData.check_in_date,
+            order_date: new Date().toISOString().split('T')[0],
+            part_eta: formData.part_eta || null,
+            home_connect: formData.home_connect,
+            is_depot_repair: false,
+            wo_number: formData.wo_number,
+            part_description: formData.part_description,
+            technician: technicianName,
+            store_id: formData.store_id,
+            cx_name: formData.cx_name,
+            cx_phone: formattedPhone,
+            notes: formData.notes || null,
+            status: 'need to order',
+            wo_link: formData.wo_link,
+            part_link: formData.part_link,
+          };
 
       const newOrder = await ordersService.createOrder(orderData);
       if (newOrder) {
@@ -270,6 +290,22 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 </label>
               </div>
 
+              {/* Depot Repair */}
+              <div className="flex items-center pt-6">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="isDepotRepair"
+                    checked={formData.isDepotRepair}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    Depot Repair
+                  </span>
+                </label>
+              </div>
+
               {/* Customer Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -318,7 +354,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               {/* Part Description */}
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Part Description *
+                  Part Description {formData.isDepotRepair ? '' : '*'}
                 </label>
                 <textarea
                   name="part_description"
@@ -326,8 +362,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   onChange={handleInputChange}
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
-                  required
+                  required={!formData.isDepotRepair}
                 />
+                {formData.isDepotRepair && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Required before advancing from 'In Transit'</p>
+                )}
               </div>
 
               {/* Notes */}
@@ -363,7 +402,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               {/* Part Link */}
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Part Link *
+                  Part Link {formData.isDepotRepair ? '' : '*'}
                 </label>
                 <input
                   type="url"
@@ -372,8 +411,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   onChange={handleInputChange}
                   placeholder="https://"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
-                  required
+                  required={!formData.isDepotRepair}
                 />
+                {formData.isDepotRepair && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Required before advancing from 'In Transit'</p>
+                )}
               </div>
             </div>
           </form>

@@ -33,37 +33,37 @@ Add a depot repair workflow to the existing orders system. One store (the "depot
 > Before writing: verify exact existing UPDATE policy names by querying `pg_policies` so DROP statements match exactly.
 
 ### Schema changes
-- [ ] `ALTER TABLE profiles ADD COLUMN has_depot_access BOOLEAN NOT NULL DEFAULT FALSE`
-- [ ] `ALTER TABLE order_list ADD COLUMN is_depot_repair BOOLEAN NOT NULL DEFAULT FALSE`
-- [ ] `ALTER TABLE order_list ALTER COLUMN part_description DROP NOT NULL` (make nullable)
-- [ ] `ALTER TABLE order_list ALTER COLUMN part_link DROP NOT NULL` (make nullable)
-- [ ] Drop and recreate `order_list_status_check` to include `'in transit'`
+- [x] `ALTER TABLE profiles ADD COLUMN has_depot_access BOOLEAN NOT NULL DEFAULT FALSE`
+- [x] `ALTER TABLE order_list ADD COLUMN is_depot_repair BOOLEAN NOT NULL DEFAULT FALSE`
+- [x] `ALTER TABLE order_list ALTER COLUMN part_description DROP NOT NULL` (make nullable)
+- [x] `ALTER TABLE order_list ALTER COLUMN part_link DROP NOT NULL` (make nullable)
+- [x] Drop and recreate `order_list_status_check` to include `'in transit'`
 
 ### New RLS policies
-- [ ] **SELECT** — `"Depot access users can view all depot orders"`: allows users with `has_depot_access = true` to SELECT any row where `is_depot_repair = true`
-- [ ] **UPDATE** — `"Depot access users can update depot orders"`: allows users with `has_depot_access = true` to UPDATE any depot order in any direction (client-side `canTransition()` enforces valid transitions; admin policy already bypasses via `FOR ALL`)
-- [ ] **SELECT** on `stores` — `"Depot access users can view all stores"`: allows depot-access users to SELECT all stores (needed for displaying store names on cross-store depot orders)
+- [x] **SELECT** — `"Depot access users can view all depot orders"`: allows users with `has_depot_access = true` to SELECT any row where `is_depot_repair = true`
+- [x] **UPDATE** — `"Depot access users can update depot orders"`: allows users with `has_depot_access = true` to UPDATE any depot order in any direction (client-side `canTransition()` enforces valid transitions; admin policy already bypasses via `FOR ALL`)
+- [x] **SELECT** on `stores` — `"Depot access users can view all stores"`: allows depot-access users to SELECT all stores (needed for displaying store names on cross-store depot orders)
 
 ### Update existing UPDATE policies (add `AND is_depot_repair = false` to each USING clause)
 
 This prevents regular role/store policies from matching depot orders. Drop and recreate each:
 
-- [ ] `"All users can mark ordered as received"` — add `is_depot_repair = false` to USING
-- [ ] `"All users can mark received as completed"` — add `is_depot_repair = false` to USING
-- [ ] `"Employees can cancel need-to-order orders"` — add `is_depot_repair = false` to USING
-- [ ] `"Managers can approve orders"` — add `is_depot_repair = false` to USING
-- [ ] `"Managers can cancel need-to-order orders"` — add `is_depot_repair = false` to USING
-- [ ] `"All users can flag received orders for return"` — add `is_depot_repair = false` to USING
-- [ ] `"Managers can authorize returns"` — add `is_depot_repair = false` to USING
-- [ ] `"All users can complete authorized returns"` — add `is_depot_repair = false` to USING
-- [ ] Any `"Managers can mark orders as out of stock"` policy (if present) — add `is_depot_repair = false`
+- [x] `"All users can mark ordered as received"` — add `is_depot_repair = false` to USING
+- [x] `"All users can mark received as completed"` — add `is_depot_repair = false` to USING
+- [x] `"Employees can cancel need-to-order orders"` — add `is_depot_repair = false` to USING
+- [x] `"Managers can approve orders"` — add `is_depot_repair = false` to USING
+- [x] `"Managers can cancel need-to-order orders"` — add `is_depot_repair = false` to USING
+- [x] `"All users can flag received orders for return"` — add `is_depot_repair = false` to USING
+- [x] `"Managers can authorize returns"` — add `is_depot_repair = false` to USING
+- [x] `"All users can complete authorized returns"` — add `is_depot_repair = false` to USING
+- [x] Any `"Managers can mark orders as out of stock"` policy (if present) — add `is_depot_repair = false`
 
 > Note: `"Admins may edit all"` (FOR ALL) and `"Users can insert orders for their stores"` (INSERT) do NOT need changes.
 
 ### Apply migration
-- [ ] Run migration via `mcp__supabase__apply_migration` or confirm applied to production
-- [ ] Verify new columns exist with `mcp__supabase__execute_sql`
-- [ ] Verify all policies are correct with `SELECT * FROM pg_policies WHERE tablename = 'order_list'`
+- [x] Run migration via `mcp__supabase__apply_migration` or confirm applied to production
+- [x] Verify new columns exist with `mcp__supabase__execute_sql`
+- [x] Verify all policies are correct with `SELECT * FROM pg_policies WHERE tablename = 'order_list'`
 
 ---
 
@@ -72,14 +72,14 @@ This prevents regular role/store policies from matching depot orders. Drop and r
 **Files:** `src/types/index.ts`, `src/services/api/orders.ts`
 
 ### `src/types/index.ts`
-- [ ] Add `hasDepotAccess: boolean` to `User` interface
-- [ ] Add `hasDepotAccess: boolean` to `ManagedUser` interface
+- [x] Add `hasDepotAccess: boolean` to `User` interface
+- [x] Add `hasDepotAccess: boolean` to `ManagedUser` interface
 
 ### `src/services/api/orders.ts`
-- [ ] Add `'in transit'` to `Order['status']` union type
-- [ ] Add `is_depot_repair: boolean` to `Order` interface
-- [ ] Change `part_description: string` → `part_description: string | null`
-- [ ] Change `part_link: string` → `part_link: string | null`
+- [x] Add `'in transit'` to `Order['status']` union type
+- [x] Add `is_depot_repair: boolean` to `Order` interface
+- [x] Change `part_description: string` → `part_description: string | null`
+- [x] Change `part_link: string` → `part_link: string | null`
 
 ---
 
@@ -87,7 +87,7 @@ This prevents regular role/store policies from matching depot orders. Drop and r
 
 **File:** `src/lib/orderStatusConfig.ts`
 
-- [ ] Add `'in transit'` entry to `STATUS_CONFIG` array (insert before `'need to order'`):
+- [x] Add `'in transit'` entry to `STATUS_CONFIG` array (insert before `'need to order'`):
   ```ts
   {
     name: 'in transit',
@@ -99,14 +99,14 @@ This prevents regular role/store policies from matching depot orders. Drop and r
     ],
   }
   ```
-- [ ] Add `hasDepotAccess: boolean = false` parameter to `canTransition()` signature
-- [ ] Add depot gate logic at the top of `canTransition()` (after admin bypass):
+- [x] Add `hasDepotAccess: boolean = false` parameter to `canTransition()` signature
+- [x] Add depot gate logic at the top of `canTransition()` (after admin bypass):
   ```ts
   if (order.is_depot_repair && !hasDepotAccess) {
     return { allowed: false, reason: 'Only users with depot access can update depot repair orders.' };
   }
   ```
-- [ ] Update `can_transition` re-export in `src/services/api/orders.ts` to forward the new parameter
+- [x] Update `can_transition` re-export in `src/services/api/orders.ts` to forward the new parameter
 
 ---
 
@@ -114,11 +114,11 @@ This prevents regular role/store policies from matching depot orders. Drop and r
 
 **File:** `src/context/AuthContext.tsx`
 
-- [ ] Update profiles select in `buildUserFromSupabase`:
+- [x] Update profiles select in `buildUserFromSupabase`:
   ```ts
   .select("id, username, role, is_active, has_depot_access")
   ```
-- [ ] Include `hasDepotAccess: profile.has_depot_access ?? false` in returned `User` object
+- [x] Include `hasDepotAccess: profile.has_depot_access ?? false` in returned `User` object
 
 ---
 
@@ -127,16 +127,16 @@ This prevents regular role/store policies from matching depot orders. Drop and r
 **File:** `src/services/api/orders.ts`
 
 ### `getOrders`
-- [ ] Add `includeAllDepotOrders?: boolean` parameter (after `searchTerm`)
-- [ ] When `includeAllDepotOrders = true` and `storeIds` provided:
+- [x] Add `includeAllDepotOrders?: boolean` parameter (after `searchTerm`)
+- [x] When `includeAllDepotOrders = true` and `storeIds` provided:
   - Use PostgREST `.or()` to match `store_id IN storeIds` OR `is_depot_repair = true`
   - Example: `.or(\`store_id.in.(${storeIds.join(',')}),is_depot_repair.eq.true\`)`
   - RLS automatically restricts `is_depot_repair = true` rows to users with `has_depot_access`
-- [ ] When `includeAllDepotOrders = true` and no `storeIds` (edge case): omit store filter entirely
+- [x] When `includeAllDepotOrders = true` and no `storeIds` (edge case): omit store filter entirely
 
 ### `getDistinctStatuses`
-- [ ] Add `includeAllDepotOrders?: boolean` parameter
-- [ ] Apply same OR logic when true
+- [x] Add `includeAllDepotOrders?: boolean` parameter
+- [x] Apply same OR logic when true
 
 ---
 
@@ -144,7 +144,7 @@ This prevents regular role/store policies from matching depot orders. Drop and r
 
 **File:** `src/services/api/stores.ts`
 
-- [ ] Add `getAllStores(): Promise<Store[]>` function that fetches all stores (no ID filter)
+- [x] Add `getAllStores(): Promise<Store[]>` function that fetches all stores (no ID filter)
   - Used when a depot-access user needs all stores for display in "All Stores" mode
   - RLS `"Depot access users can view all stores"` permits this server-side
 
@@ -154,7 +154,7 @@ This prevents regular role/store policies from matching depot orders. Drop and r
 
 **File:** `src/context/DashboardContext.tsx`
 
-- [ ] When the current user has `hasDepotAccess = true`, also fetch all stores (via `getAllStores()`) and merge into `availableStores` (deduped by ID)
+- [x] When the current user has `hasDepotAccess = true`, also fetch all stores (via `getAllStores()`) and merge into `availableStores` (deduped by ID)
   - This ensures store names for cross-store depot orders can be resolved in the OrderList store name lookup
   - Only done once on user load, not on every store switch
 
@@ -164,20 +164,20 @@ This prevents regular role/store policies from matching depot orders. Drop and r
 
 **File:** `src/components/orders/CreateOrderModal.tsx`
 
-- [ ] Add `isDepotRepair: boolean` to `formData` (default `false`)
-- [ ] Add "Depot Repair" checkbox to the form (below "Home Connect" checkbox):
+- [x] Add `isDepotRepair: boolean` to `formData` (default `false`)
+- [x] Add "Depot Repair" checkbox to the form (below "Home Connect" checkbox):
   ```tsx
   <label className="flex items-center">
     <input type="checkbox" name="isDepotRepair" checked={formData.isDepotRepair} onChange={handleInputChange} ... />
     <span className="ml-2 text-sm ...">Depot Repair</span>
   </label>
   ```
-- [ ] When `isDepotRepair = true`:
+- [x] When `isDepotRepair = true`:
   - Remove `*` required indicator from `part_description` and `part_link` labels
   - Remove `required` attribute from those inputs
   - Add helper text below each: `"Required before advancing from 'In Transit'"`
-- [ ] Update form validation: skip `part_link` and `part_description` validation when `isDepotRepair = true`
-- [ ] Update `orderData` on submit when depot:
+- [x] Update form validation: skip `part_link` and `part_description` validation when `isDepotRepair = true`
+- [x] Update `orderData` on submit when depot:
   ```ts
   status: 'in transit',
   is_depot_repair: true,
@@ -185,7 +185,7 @@ This prevents regular role/store policies from matching depot orders. Drop and r
   part_description: formData.part_description || null,
   order_date: null,
   ```
-- [ ] Update `getInitialFormData` to include `isDepotRepair: false`
+- [x] Update `getInitialFormData` to include `isDepotRepair: false`
 
 ---
 
@@ -193,7 +193,7 @@ This prevents regular role/store policies from matching depot orders. Drop and r
 
 **File:** `src/components/orders/OrderList.tsx`
 
-- [ ] Add a "Depot" pill badge on rows where `order.is_depot_repair === true`:
+- [x] Add a "Depot" pill badge on rows where `order.is_depot_repair === true`:
   ```tsx
   {order.is_depot_repair && (
     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
@@ -211,19 +211,19 @@ This prevents regular role/store policies from matching depot orders. Drop and r
 **File:** `src/pages/OrdersPage.tsx`
 
 ### Depot user — All Stores fetching
-- [ ] Read `currentUser.hasDepotAccess` into a local `isDepotUser` const
-- [ ] Pass `includeAllDepotOrders: isDepotUser` to `ordersService.getOrders()` when `viewAllStores = true`
-- [ ] Pass same flag to `ordersService.getDistinctStatuses()` when `viewAllStores = true`
+- [x] Read `currentUser.hasDepotAccess` into a local `isDepotUser` const
+- [x] Pass `includeAllDepotOrders: isDepotUser` to `ordersService.getOrders()` when `viewAllStores = true`
+- [x] Pass same flag to `ordersService.getDistinctStatuses()` when `viewAllStores = true`
 
 ### `canTransition` / `can_transition` calls
-- [ ] Pass `currentUser.hasDepotAccess` as the 4th argument to every `can_transition()` call in this file
+- [x] Pass `currentUser.hasDepotAccess` as the 4th argument to every `can_transition()` call in this file
 
 ### Status change modal — depot "in transit" → "need to order" transition
-- [ ] Add local state for `depotPartLink` and `depotPartDescription` (used only when in this transition)
-- [ ] When `newStatus === 'need to order'` and `activeOrder?.is_depot_repair`:
+- [x] Add local state for `depotPartLink` and `depotPartDescription` (used only when in this transition)
+- [x] When `newStatus === 'need to order'` and `activeOrder?.is_depot_repair`:
   - Check if `activeOrder.part_link` is missing → show a URL input field labeled "Part Link *"
   - Check if `activeOrder.part_description` is missing → show a textarea labeled "Part Description *"
-- [ ] Validate these fields before calling `updateOrder`:
+- [x] Validate these fields before calling `updateOrder`:
   ```ts
   const needsPartLink = !activeOrder.part_link && !depotPartLink.trim();
   const needsPartDesc = !activeOrder.part_description && !depotPartDescription.trim();
@@ -232,7 +232,7 @@ This prevents regular role/store policies from matching depot orders. Drop and r
     return;
   }
   ```
-- [ ] Include them in the update payload:
+- [x] Include them in the update payload:
   ```ts
   await ordersService.updateOrder(activeOrder.id, {
     status: 'need to order',
@@ -240,10 +240,10 @@ This prevents regular role/store policies from matching depot orders. Drop and r
     part_description: depotPartDescription || activeOrder.part_description,
   });
   ```
-- [ ] Clear `depotPartLink` and `depotPartDescription` in `closeStatusModal()`
+- [x] Clear `depotPartLink` and `depotPartDescription` in `closeStatusModal()`
 
 ### Status change modal — block non-depot users from seeing transitions on depot orders
-- [ ] The `activeOrderValidStatuses` filter already uses `can_transition()`, which now returns `allowed: false` for non-depot users on depot orders — no extra code needed here as long as `can_transition` is called correctly
+- [x] The `activeOrderValidStatuses` filter already uses `can_transition()`, which now returns `allowed: false` for non-depot users on depot orders — no extra code needed here as long as `can_transition` is called correctly
 
 ---
 

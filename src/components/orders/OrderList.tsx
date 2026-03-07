@@ -247,15 +247,19 @@ const OrderList: React.FC<OrderListProps> = ({
                   <div className="text-sm text-gray-500 dark:text-gray-400">{order.cx_phone}</div>
                 </td>
                 <td className="px-6 py-4 text-sm max-w-xs truncate">
-                  <a
-                    href={order.part_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {order.part_description}
-                  </a>
+                  {order.part_link ? (
+                    <a
+                      href={order.part_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {order.part_description ?? '-'}
+                    </a>
+                  ) : (
+                    <span className="text-gray-400">{order.part_description ?? '-'}</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {order.technician}
@@ -271,6 +275,11 @@ const OrderList: React.FC<OrderListProps> = ({
                     >
                       {order.status}
                     </span>
+                    {order.is_depot_repair && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                        Depot
+                      </span>
+                    )}
                     {order.status === 'cancelled' && order.cancellation_reason && (
                       <span title={order.cancellation_reason} className="cursor-help inline-flex">
                         <Info size={14} className="text-gray-400 dark:text-gray-500 shrink-0" />
