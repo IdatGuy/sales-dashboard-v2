@@ -48,6 +48,9 @@ const OrdersPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorNotification, setShowErrorNotification] = useState(false);
   const [viewAllStores, setViewAllStores] = useState(false);
+  const [depotViewStoreId, setDepotViewStoreId] = useState<string | null>(null);
+  const [depotStoreIds, setDepotStoreIds] = useState<string[]>([]);
+  const depotStores = availableStores.filter(s => depotStoreIds.includes(s.id));
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<25 | 50 | 75 | 100>(25);
   const [totalOrders, setTotalOrders] = useState(0);
@@ -61,10 +64,21 @@ const OrdersPage: React.FC = () => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchTerm]);
 
+  // Fetch store IDs that have depot orders (depot users only)
+  useEffect(() => {
+    if (!isDepotUser) return;
+    ordersService.getStoresWithDepotOrders().then(setDepotStoreIds);
+  }, [isDepotUser]);
+
+  // Clear depot view when selected store changes
+  useEffect(() => {
+    setDepotViewStoreId(null);
+  }, [selectedStore]);
+
   // Reset to page 1 when anything other than page itself changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedStore, viewAllStores, currentUser, statusFilters, pageSize, debouncedSearchTerm]);
+  }, [selectedStore, viewAllStores, depotViewStoreId, currentUser, statusFilters, pageSize, debouncedSearchTerm]);
 
   useEffect(() => {
     if (statusFilters.length === 0) {
@@ -81,6 +95,8 @@ const OrdersPage: React.FC = () => {
         if (viewAllStores && currentUser?.userStoreAccess) {
           const storeIds = currentUser.userStoreAccess.map((access) => access.storeId);
           result = await ordersService.getOrders(undefined, storeIds, statusFilters, currentPage, pageSize, debouncedSearchTerm, isDepotUser);
+        } else if (depotViewStoreId) {
+          result = await ordersService.getOrders(undefined, undefined, statusFilters, currentPage, pageSize, debouncedSearchTerm, false, depotViewStoreId);
         } else {
           result = await ordersService.getOrders(selectedStore?.id, undefined, statusFilters, currentPage, pageSize, debouncedSearchTerm);
         }
@@ -101,7 +117,7 @@ const OrdersPage: React.FC = () => {
 
     fetchOrders();
     return () => { aborted = true; };
-  }, [selectedStore, viewAllStores, currentUser, statusFilters, currentPage, pageSize, debouncedSearchTerm]);
+  }, [selectedStore, viewAllStores, depotViewStoreId, currentUser, statusFilters, currentPage, pageSize, debouncedSearchTerm]);
 
   useEffect(() => {
     let aborted = false;
@@ -112,6 +128,8 @@ const OrdersPage: React.FC = () => {
         if (viewAllStores && currentUser?.userStoreAccess) {
           const storeIds = currentUser.userStoreAccess.map(a => a.storeId);
           fetched = await ordersService.getDistinctStatuses(undefined, storeIds, isDepotUser);
+        } else if (depotViewStoreId) {
+          fetched = await ordersService.getDistinctStatuses(undefined, undefined, false, depotViewStoreId);
         } else {
           fetched = await ordersService.getDistinctStatuses(selectedStore?.id);
         }
@@ -129,7 +147,7 @@ const OrdersPage: React.FC = () => {
     };
     fetchStatuses();
     return () => { aborted = true; };
-  }, [selectedStore, viewAllStores, currentUser]);
+  }, [selectedStore, viewAllStores, depotViewStoreId, currentUser]);
 
   const handleOrderCreated = (newOrder: Order) => {
     setOrders((prev) => [newOrder, ...prev]);
@@ -353,12 +371,23 @@ const OrdersPage: React.FC = () => {
         <div className="px-4 sm:px-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4 sm:mb-0">
-              Work Orders & Parts Management {viewAllStores && '(All Stores)'}
+              Work Orders & Parts Management{' '}
+              {viewAllStores
+                ? '(All Stores)'
+                : depotViewStoreId
+                ? `(${availableStores.find(s => s.id === depotViewStoreId)?.name ?? ''} — Depot)`
+                : ''}
             </h1>
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-              {!viewAllStores && <StoreSelector />}
+              {!viewAllStores && (
+                <StoreSelector
+                  depotStores={isDepotUser ? depotStores : []}
+                  selectedDepotStoreId={depotViewStoreId}
+                  onDepotStoreSelect={(store) => setDepotViewStoreId(store?.id ?? null)}
+                />
+              )}
               <button
-                onClick={() => setViewAllStores(!viewAllStores)}
+                onClick={() => { setViewAllStores(!viewAllStores); setDepotViewStoreId(null); }}
                 className={`flex items-center justify-center px-4 py-2 rounded-md transition-colors font-medium ${
                   viewAllStores
                     ? 'bg-primary-600 text-white hover:bg-primary-700'
@@ -385,7 +414,11 @@ const OrdersPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {viewAllStores ? 'All Orders' : selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
+                    {viewAllStores
+                      ? 'All Orders'
+                      : depotViewStoreId
+                      ? `Depot Orders — ${availableStores.find(s => s.id === depotViewStoreId)?.name ?? ''}`
+                      : selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {totalOrders} order{totalOrders !== 1 ? 's' : ''} found

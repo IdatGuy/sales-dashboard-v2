@@ -4,7 +4,17 @@ import { useDashboard } from "../../context/DashboardContext";
 import { useAuth } from "../../context/AuthContext";
 import { ChevronDown, Store as StoreIcon } from "lucide-react";
 
-const StoreSelector: React.FC = () => {
+interface StoreSelectorProps {
+  depotStores?: Store[];
+  selectedDepotStoreId?: string | null;
+  onDepotStoreSelect?: (store: Store | null) => void;
+}
+
+const StoreSelector: React.FC<StoreSelectorProps> = ({
+  depotStores = [],
+  selectedDepotStoreId,
+  onDepotStoreSelect,
+}) => {
   const {
     availableStores,
     selectedStore,
@@ -25,6 +35,7 @@ const StoreSelector: React.FC = () => {
 
   const handleSelect = (store: Store) => {
     setSelectedStore(store);
+    onDepotStoreSelect?.(null);
     setIsOpen(false);
   };
 
@@ -45,7 +56,7 @@ const StoreSelector: React.FC = () => {
     };
   }, []);
 
-  if (!selectedStore || userStores.length === 0) return null;
+  if ((!selectedStore && !selectedDepotStoreId) || userStores.length === 0) return null;
 
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
@@ -57,9 +68,11 @@ const StoreSelector: React.FC = () => {
         >
           <StoreIcon
             size={18}
-            className="mr-2 text-primary-600 dark:text-primary-400"
+            className={`mr-2 ${selectedDepotStoreId ? 'text-purple-600 dark:text-purple-400' : 'text-primary-600 dark:text-primary-400'}`}
           />
-          {selectedStore.name}
+          {selectedDepotStoreId
+            ? `${availableStores.find(s => s.id === selectedDepotStoreId)?.name ?? ''} (depot)`
+            : selectedStore?.name}
           <ChevronDown
             size={18}
             className={`ml-2 transition-transform duration-200 ${
@@ -77,7 +90,7 @@ const StoreSelector: React.FC = () => {
               <button
                 key={store.id}
                 className={`w-full text-left block px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 ${
-                  selectedStore.id === store.id
+                  selectedStore?.id === store.id && !selectedDepotStoreId
                     ? "text-primary-600 dark:text-primary-400 font-medium"
                     : "text-gray-700 dark:text-gray-200"
                 }`}
@@ -89,6 +102,29 @@ const StoreSelector: React.FC = () => {
                 </span>
               </button>
             ))}
+            {depotStores.length > 0 && (
+              <>
+                <div className="px-4 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                  Depot
+                </div>
+                {depotStores.map((store) => (
+                  <button
+                    key={`depot-${store.id}`}
+                    className={`w-full text-left block px-4 py-2 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/30 ${
+                      selectedDepotStoreId === store.id
+                        ? "text-purple-600 dark:text-purple-400 font-medium"
+                        : "text-gray-700 dark:text-gray-200"
+                    }`}
+                    onClick={() => { onDepotStoreSelect?.(store); setIsOpen(false); }}
+                  >
+                    {store.name} <span className="text-purple-500 dark:text-purple-400">(depot)</span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">
+                      {store.location}
+                    </span>
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}

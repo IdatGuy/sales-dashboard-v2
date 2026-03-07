@@ -56,7 +56,8 @@ export const ordersService = {
     page: number = 1,
     pageSize: number = 25,
     searchTerm?: string,
-    includeAllDepotOrders?: boolean
+    includeAllDepotOrders?: boolean,
+    depotOnlyStoreId?: string
   ): Promise<{ orders: Order[]; total: number }> {
     try {
       let query = supabase
@@ -64,7 +65,9 @@ export const ordersService = {
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
-      if (includeAllDepotOrders) {
+      if (depotOnlyStoreId) {
+        query = query.eq('store_id', depotOnlyStoreId).eq('is_depot_repair', true);
+      } else if (includeAllDepotOrders) {
         if (storeIds && storeIds.length > 0) {
           query = query.or(`store_id.in.(${storeIds.join(',')}),is_depot_repair.eq.true`);
         }
@@ -106,10 +109,12 @@ export const ordersService = {
    * Fetches only the status column and deduplicates in JS (PostgREST doesn't support SELECT DISTINCT).
    * RLS automatically scopes results to the user's accessible stores.
    */
-  async getDistinctStatuses(storeId?: string, storeIds?: string[], includeAllDepotOrders?: boolean): Promise<Order['status'][]> {
+  async getDistinctStatuses(storeId?: string, storeIds?: string[], includeAllDepotOrders?: boolean, depotOnlyStoreId?: string): Promise<Order['status'][]> {
     try {
       let query = supabase.from('order_list').select('status');
-      if (includeAllDepotOrders) {
+      if (depotOnlyStoreId) {
+        query = query.eq('store_id', depotOnlyStoreId).eq('is_depot_repair', true);
+      } else if (includeAllDepotOrders) {
         if (storeIds && storeIds.length > 0) {
           query = query.or(`store_id.in.(${storeIds.join(',')}),is_depot_repair.eq.true`);
         }
@@ -248,6 +253,23 @@ export const ordersService = {
         throw err;
       }
       throw new Error('Failed to cancel order');
+    }
+  },
+
+  /**
+   * Returns distinct store IDs that have at least one depot repair order.
+   * RLS scopes results to users with has_depot_access automatically.
+   */
+  async getStoresWithDepotOrders(): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('order_list')
+        .select('store_id')
+        .eq('is_depot_repair', true);
+      if (error) return [];
+      return [...new Set((data ?? []).map((r: { store_id: string }) => r.store_id).filter(Boolean))];
+    } catch {
+      return [];
     }
   },
 
