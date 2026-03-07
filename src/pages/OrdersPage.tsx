@@ -33,6 +33,7 @@ const OrdersPage: React.FC = () => {
   const [newStatus, setNewStatus] = useState<Order['status']>('need to order');
   const [partEta, setPartEta] = useState<string>('');
   const [cancellationReason, setCancellationReason] = useState('');
+  const [returnRequiredReason, setReturnRequiredReason] = useState('');
   const [reasonError, setReasonError] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -161,6 +162,7 @@ const OrdersPage: React.FC = () => {
     setNewStatus(order.status);
     setPartEta('');
     setCancellationReason('');
+    setReturnRequiredReason('');
     setReasonError('');
   };
 
@@ -169,6 +171,7 @@ const OrdersPage: React.FC = () => {
     setNewStatus('need to order');
     setPartEta('');
     setCancellationReason('');
+    setReturnRequiredReason('');
     setReasonError('');
   };
 
@@ -176,6 +179,32 @@ const OrdersPage: React.FC = () => {
     if (!activeOrder) return;
     if (newStatus === activeOrder.status) {
       closeStatusModal();
+      return;
+    }
+
+    if (newStatus === 'return required') {
+      if (!returnRequiredReason.trim()) {
+        setReasonError('Please provide a reason for return required.');
+        return;
+      }
+      setIsUpdating(true);
+      try {
+        await ordersService.updateOrder(activeOrder.id, { status: 'return required', return_required_reason: returnRequiredReason.trim() });
+        setOrders(prev =>
+          prev
+            .map(o => o.id === activeOrder.id
+              ? { ...o, status: 'return required' as const, return_required_reason: returnRequiredReason.trim() }
+              : o
+            )
+            .filter(o => statusFilters.includes(o.status))
+        );
+        closeStatusModal();
+      } catch (e) {
+        setErrorMessage(e instanceof Error ? e.message : 'Failed to update order.');
+        setShowErrorNotification(true);
+      } finally {
+        setIsUpdating(false);
+      }
       return;
     }
 
@@ -498,6 +527,7 @@ const OrdersPage: React.FC = () => {
                           setNewStatus(e.target.value as Order['status']);
                           setPartEta('');
                           setCancellationReason('');
+                          setReturnRequiredReason('');
                           setReasonError('');
                         }}
                         className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600"
@@ -507,6 +537,24 @@ const OrdersPage: React.FC = () => {
                       </span>
                     </label>
                   ))}
+
+                  {newStatus === 'return required' && (
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Return Reason <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={returnRequiredReason}
+                        onChange={(e) => { setReturnRequiredReason(e.target.value); setReasonError(''); }}
+                        rows={3}
+                        placeholder="Required"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-primary-500 focus:border-primary-500"
+                      />
+                      {reasonError && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{reasonError}</p>
+                      )}
+                    </div>
+                  )}
 
                   {newStatus === 'ordered' && (
                     <div className="pt-3 border-t border-gray-200 dark:border-gray-600">

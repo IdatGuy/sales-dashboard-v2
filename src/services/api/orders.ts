@@ -16,6 +16,7 @@ export interface Order {
   cx_phone: string;
   notes: string | null;
   cancellation_reason: string | null;
+  return_required_reason: string | null;
   status: 'need to order' | 'ordered' | 'received' | 'return required' | 'return authorized' | 'return complete' | 'completed' | 'cancelled';
   wo_link: string;
   part_link: string;

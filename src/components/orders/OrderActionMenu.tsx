@@ -24,6 +24,8 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<Order['status']>(order.status);
+  const [returnRequiredReason, setReturnRequiredReason] = useState('');
+  const [returnRequiredReasonError, setReturnRequiredReasonError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -75,11 +77,20 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
       return;
     }
 
+    if (selectedStatus === 'return required') {
+      if (!returnRequiredReason.trim()) {
+        setReturnRequiredReasonError('Please provide a reason for return required.');
+        return;
+      }
+    }
+
     setIsUpdating(true);
     try {
-      const updated = await ordersService.updateOrder(order.id, {
-        status: selectedStatus,
-      });
+      const updates: Partial<Order> = { status: selectedStatus };
+      if (selectedStatus === 'return required') {
+        updates.return_required_reason = returnRequiredReason.trim();
+      }
+      const updated = await ordersService.updateOrder(order.id, updates);
       if (updated) {
         onStatusUpdate(order.id, selectedStatus);
         setIsStatusModalOpen(false);
@@ -95,6 +106,8 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
 
   const handleEditStatusClick = () => {
     setSelectedStatus(order.status);
+    setReturnRequiredReason('');
+    setReturnRequiredReasonError('');
     setIsStatusModalOpen(true);
     setIsMenuOpen(false);
   };
@@ -197,7 +210,11 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
                         name="status"
                         value={status}
                         checked={selectedStatus === status}
-                        onChange={(e) => setSelectedStatus(e.target.value as Order['status'])}
+                        onChange={(e) => {
+                          setSelectedStatus(e.target.value as Order['status']);
+                          setReturnRequiredReason('');
+                          setReturnRequiredReasonError('');
+                        }}
                         className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600"
                       />
                       <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -205,6 +222,24 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
                       </span>
                     </label>
                   ))}
+
+                  {selectedStatus === 'return required' && (
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Return Reason <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={returnRequiredReason}
+                        onChange={(e) => { setReturnRequiredReason(e.target.value); setReturnRequiredReasonError(''); }}
+                        rows={3}
+                        placeholder="Required"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-primary-500 focus:border-primary-500"
+                      />
+                      {returnRequiredReasonError && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{returnRequiredReasonError}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

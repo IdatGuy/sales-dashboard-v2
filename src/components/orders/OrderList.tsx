@@ -276,6 +276,11 @@ const OrderList: React.FC<OrderListProps> = ({
                         <Info size={14} className="text-gray-400 dark:text-gray-500 shrink-0" />
                       </span>
                     )}
+                    {order.status === 'return required' && order.return_required_reason && (
+                      <span title={order.return_required_reason} className="cursor-help inline-flex">
+                        <Info size={14} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
