@@ -45,6 +45,8 @@ const OrdersPage: React.FC = () => {
 
   const userRole = (currentUser?.role ?? 'employee') as UserRole;
   const isDepotUser = currentUser?.hasDepotAccess ?? false;
+  const userAssignedStoreIds = new Set(currentUser?.userStoreAccess?.map((a) => a.storeId) ?? []);
+  const createOrderStores = availableStores.filter((s) => userAssignedStoreIds.has(s.id));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorNotification, setShowErrorNotification] = useState(false);
   const [viewAllStores, setViewAllStores] = useState(false);
@@ -723,7 +725,7 @@ const OrdersPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setCopySource(null); }}
         onSuccess={handleOrderCreated}
-        availableStores={availableStores}
+        availableStores={createOrderStores}
         technicianName={currentUser.name}
         initialData={copySource ?? undefined}
       />
