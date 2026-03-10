@@ -14,6 +14,13 @@ export interface PriceSheetRowWithNames extends PriceSheetRow {
   service_name?: string | null;
 }
 
+export interface DeviceWithMeta {
+  id: string;
+  name: string;
+  brand: string;
+  category: string;
+}
+
 export const priceSheetService = {
   async getPriceSheets(): Promise<PriceSheetRow[]> {
     try {
@@ -84,13 +91,13 @@ export const priceSheetService = {
       return [];
     }
   },
-  async getAllDevices(): Promise<{ id: string; name: string }[]> {
+  async getAllDevices(): Promise<DeviceWithMeta[]> {
     const { data, error } = await supabase
       .from('devices')
-      .select('id, name')
+      .select('id, name, brand, category')
       .order('name', { ascending: true });
     if (error) throw error;
-    return (data || []) as { id: string; name: string }[];
+    return (data || []) as DeviceWithMeta[];
   },
   async getAllServices(): Promise<{ id: string; name: string }[]> {
     const { data, error } = await supabase

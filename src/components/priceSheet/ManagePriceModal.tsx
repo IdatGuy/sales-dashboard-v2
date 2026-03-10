@@ -8,9 +8,15 @@ interface Props {
   onSuccess: () => void;
   onDelete?: () => void;
   editRow?: PriceSheetRowWithNames | null;
+  prePopulate?: {
+    deviceId: string;
+    deviceName: string;
+    serviceId: string;
+    serviceName: string;
+  } | null;
 }
 
-const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelete, editRow }) => {
+const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelete, editRow, prePopulate }) => {
   const isEditMode = !!editRow;
 
   const [devices, setDevices] = useState<{ id: string; name: string }[]>([]);
@@ -61,6 +67,16 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelet
       setPrice(editRow.price ?? '');
       setError(null);
       setConfirmDelete(false);
+    } else if (isOpen && !editRow && prePopulate) {
+      setDeviceId(prePopulate.deviceId);
+      setDeviceInput(prePopulate.deviceName);
+      setNewDeviceBrand('');
+      setNewDeviceCategory('');
+      setServiceId(prePopulate.serviceId);
+      setServiceInput(prePopulate.serviceName);
+      setPrice('');
+      setError(null);
+      setConfirmDelete(false);
     } else if (isOpen && !editRow) {
       setDeviceId('');
       setDeviceInput('');
@@ -72,7 +88,7 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelet
       setError(null);
       setConfirmDelete(false);
     }
-  }, [isOpen, editRow]);
+  }, [isOpen, editRow, prePopulate]);
 
   if (!isOpen) return null;
 
