@@ -19,6 +19,8 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
   const [devices, setDevices] = useState<DeviceWithMeta[]>([]);
   const [services, setServices] = useState<{ id: string; name: string }[]>([]);
   const [selectedBrand, setSelectedBrand] = useState('');
+  const [hideEmptyRows, setHideEmptyRows] = useState(false);
+  const [hideEmptyCols, setHideEmptyCols] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -89,6 +91,20 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
     return map;
   }, [allRows]);
 
+  const visibleDevices = useMemo(() => {
+    if (!hideEmptyRows) return filteredDevices;
+    return filteredDevices.filter((device) =>
+      services.some((service) => priceMap.has(`${device.id}|${service.id}`))
+    );
+  }, [filteredDevices, services, priceMap, hideEmptyRows]);
+
+  const visibleServices = useMemo(() => {
+    if (!hideEmptyCols) return services;
+    return services.filter((service) =>
+      filteredDevices.some((device) => priceMap.has(`${device.id}|${service.id}`))
+    );
+  }, [filteredDevices, services, priceMap, hideEmptyCols]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16 text-gray-500 dark:text-gray-400">
@@ -117,6 +133,24 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
             </option>
           ))}
         </select>
+        <label className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={hideEmptyRows}
+            onChange={(e) => setHideEmptyRows(e.target.checked)}
+            className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+          />
+          Hide empty rows
+        </label>
+        <label className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={hideEmptyCols}
+            onChange={(e) => setHideEmptyCols(e.target.checked)}
+            className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+          />
+          Hide empty columns
+        </label>
       </div>
 
       <div
@@ -134,7 +168,7 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
               <th className="sticky left-0 top-0 z-20 bg-gray-50 dark:bg-gray-700 px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap border-b border-r border-gray-200 dark:border-gray-700">
                 Device
               </th>
-              {services.map((s) => (
+              {visibleServices.map((s) => (
                 <th
                   key={s.id}
                   className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-center text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap min-w-[90px] border-b border-r border-gray-200 dark:border-gray-700"
@@ -145,22 +179,22 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredDevices.length === 0 ? (
+            {visibleDevices.length === 0 ? (
               <tr>
                 <td
-                  colSpan={services.length + 1}
+                  colSpan={visibleServices.length + 1}
                   className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400"
                 >
                   No devices found{selectedBrand ? ` for brand "${selectedBrand}"` : ''}.
                 </td>
               </tr>
             ) : (
-              filteredDevices.map((device) => (
+              visibleDevices.map((device) => (
                 <tr key={device.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                   <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700/30 px-4 py-1.5 text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap border-r border-gray-200 dark:border-gray-700">
                     {device.name}
                   </td>
-                  {services.map((service) => {
+                  {visibleServices.map((service) => {
                     const row = priceMap.get(`${device.id}|${service.id}`);
                     return row ? (
                       <td
