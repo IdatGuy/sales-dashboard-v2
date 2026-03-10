@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { priceSheetService, PriceSheetRowWithNames, DeviceWithMeta } from '../../services/api/priceSheet';
 
 interface PrePopulate {
@@ -20,6 +20,42 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
   const [services, setServices] = useState<{ id: string; name: string }[]>([]);
   const [selectedBrand, setSelectedBrand] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const didDrag = useRef(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const scrollLeft = useRef(0);
+  const scrollTop = useRef(0);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!scrollRef.current) return;
+    isDragging.current = true;
+    didDrag.current = false;
+    startX.current = e.pageX - scrollRef.current.offsetLeft;
+    startY.current = e.pageY - scrollRef.current.offsetTop;
+    scrollLeft.current = scrollRef.current.scrollLeft;
+    scrollTop.current = scrollRef.current.scrollTop;
+    scrollRef.current.style.cursor = 'grabbing';
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging.current || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const y = e.pageY - scrollRef.current.offsetTop;
+    const walkX = x - startX.current;
+    const walkY = y - startY.current;
+    if (Math.abs(walkX) > 4 || Math.abs(walkY) > 4) didDrag.current = true;
+    scrollRef.current.scrollLeft = scrollLeft.current - walkX;
+    scrollRef.current.scrollTop = scrollTop.current - walkY;
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+    if (scrollRef.current) scrollRef.current.style.cursor = 'grab';
+  };
 
   useEffect(() => {
     setIsLoading(true);
@@ -83,7 +119,15 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-lg shadow">
+      <div
+        ref={scrollRef}
+        className="overflow-auto rounded-lg shadow select-none"
+        style={{ cursor: 'grab' }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
         <table className="min-w-max border-collapse bg-white dark:bg-gray-800">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-700/60">
@@ -121,7 +165,7 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
                     return row ? (
                       <td
                         key={service.id}
-                        onClick={() => onCellClick(row)}
+                        onClick={() => { if (!didDrag.current) onCellClick(row); }}
                         className="px-2 py-1.5 text-center text-sm text-gray-900 dark:text-white cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors whitespace-nowrap border-r border-gray-200 dark:border-gray-700"
                       >
                         ${Number(row.price).toFixed(2)}
@@ -132,14 +176,15 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
                         className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700"
                       >
                         <button
-                          onClick={() =>
+                          onClick={() => {
+                            if (didDrag.current) return;
                             onAddClick({
                               deviceId: device.id,
                               deviceName: device.name,
                               serviceId: service.id,
                               serviceName: service.name,
-                            })
-                          }
+                            });
+                          }}
                           className="text-xs text-gray-300 dark:text-gray-600 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 px-2 py-0.5 rounded transition-colors"
                         >
                           + Add
