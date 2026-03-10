@@ -168,7 +168,7 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
                         onClick={() => { if (!didDrag.current) onCellClick(row); }}
                         className="px-2 py-1.5 text-center text-sm text-gray-900 dark:text-white cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors whitespace-nowrap border-r border-gray-200 dark:border-gray-700"
                       >
-                        ${Number(row.price).toFixed(2)}
+                        {row.price == null ? 'N/A' : `$${Number(row.price).toFixed(2)}`}
                       </td>
                     ) : (
                       <td

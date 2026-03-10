@@ -36,6 +36,7 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelet
   const [serviceOpen, setServiceOpen] = useState(false);
 
   const [price, setPrice] = useState('');
+  const [priceIsNull, setPriceIsNull] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -64,6 +65,7 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelet
       setNewDeviceCategory('');
       setServiceId(editRow.service_id);
       setServiceInput(editRow.service_name ?? '');
+      setPriceIsNull(editRow.price == null);
       setPrice(editRow.price ?? '');
       setError(null);
       setConfirmDelete(false);
@@ -74,6 +76,7 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelet
       setNewDeviceCategory('');
       setServiceId(prePopulate.serviceId);
       setServiceInput(prePopulate.serviceName);
+      setPriceIsNull(false);
       setPrice('');
       setError(null);
       setConfirmDelete(false);
@@ -84,6 +87,7 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelet
       setNewDeviceCategory('');
       setServiceId('');
       setServiceInput('');
+      setPriceIsNull(false);
       setPrice('');
       setError(null);
       setConfirmDelete(false);
@@ -111,8 +115,12 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelet
     if (isNewDevice && !newDeviceBrand.trim()) { setError('Please enter a brand for the new device.'); return; }
     if (isNewDevice && !newDeviceCategory.trim()) { setError('Please enter a category for the new device.'); return; }
     if (!serviceInput.trim()) { setError('Please select or enter a service.'); return; }
-    const priceNum = parseFloat(price);
-    if (!price || isNaN(priceNum) || priceNum < 0) { setError('Please enter a valid price (0 or greater).'); return; }
+    let resolvedPrice: number | null = null;
+    if (!priceIsNull) {
+      const priceNum = parseFloat(price);
+      if (!price || isNaN(priceNum) || priceNum < 0) { setError('Please enter a valid price (0 or greater).'); return; }
+      resolvedPrice = priceNum;
+    }
 
     setIsSubmitting(true);
     try {
@@ -127,9 +135,9 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelet
       }
 
       if (isEditMode && editRow) {
-        await priceSheetService.updatePriceEntry(editRow.id, resolvedDeviceId, resolvedServiceId, priceNum);
+        await priceSheetService.updatePriceEntry(editRow.id, resolvedDeviceId, resolvedServiceId, resolvedPrice);
       } else {
-        await priceSheetService.createPriceEntry(resolvedDeviceId, resolvedServiceId, priceNum);
+        await priceSheetService.createPriceEntry(resolvedDeviceId, resolvedServiceId, resolvedPrice);
       }
 
       onSuccess();
@@ -299,10 +307,23 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelet
                   step="0.01"
                   className={inputClass}
                   placeholder="0.00"
-                  value={price}
+                  value={priceIsNull ? '' : price}
+                  disabled={priceIsNull}
                   onChange={(e) => setPrice(e.target.value)}
                   onFocus={(e) => e.target.select()}
                 />
+                <label className="mt-2 flex items-center gap-2 cursor-pointer text-sm text-gray-600 dark:text-gray-400">
+                  <input
+                    type="checkbox"
+                    checked={priceIsNull}
+                    onChange={(e) => {
+                      setPriceIsNull(e.target.checked);
+                      if (e.target.checked) setPrice('');
+                    }}
+                    className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+                  />
+                  Mark as N/A (price not available)
+                </label>
               </div>
 
             </div>

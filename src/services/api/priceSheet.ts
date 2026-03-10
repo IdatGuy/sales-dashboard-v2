@@ -4,7 +4,7 @@ export interface PriceSheetRow {
   id: string;
   device_id: string;
   service_id: string;
-  price: string; // numeric stored as string from Postgres
+  price: string | null; // numeric stored as string from Postgres; null = N/A
   is_active: boolean;
   created_at: string;
 }
@@ -125,13 +125,13 @@ export const priceSheetService = {
     if (error) throw error;
     return (data as { id: string }).id;
   },
-  async createPriceEntry(deviceId: string, serviceId: string, price: number): Promise<void> {
+  async createPriceEntry(deviceId: string, serviceId: string, price: number | null): Promise<void> {
     const { error } = await supabase
       .from('price_sheet')
       .insert({ device_id: deviceId, service_id: serviceId, price });
     if (error) throw error;
   },
-  async updatePriceEntry(id: string, deviceId: string, serviceId: string, price: number): Promise<void> {
+  async updatePriceEntry(id: string, deviceId: string, serviceId: string, price: number | null): Promise<void> {
     const { error } = await supabase
       .from('price_sheet')
       .update({ device_id: deviceId, service_id: serviceId, price })
