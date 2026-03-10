@@ -130,14 +130,14 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
       >
         <table className="min-w-max border-collapse bg-white dark:bg-gray-800">
           <thead>
-            <tr className="bg-gray-50 dark:bg-gray-700/60">
-              <th className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-700/60 px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap border-b border-r border-gray-200 dark:border-gray-700">
+            <tr className="bg-gray-50 dark:bg-gray-700">
+              <th className="sticky left-0 top-0 z-20 bg-gray-50 dark:bg-gray-700 px-4 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap border-b border-r border-gray-200 dark:border-gray-700">
                 Device
               </th>
               {services.map((s) => (
                 <th
                   key={s.id}
-                  className="px-3 py-2 text-center text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap min-w-[90px] border-b border-r border-gray-200 dark:border-gray-700"
+                  className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-center text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap min-w-[90px] border-b border-r border-gray-200 dark:border-gray-700"
                 >
                   {s.name}
                 </th>
