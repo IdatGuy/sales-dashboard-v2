@@ -5,6 +5,7 @@ interface StatusTransition {
   allowedRoles: UserRole[];
   condition?: (order: Order) => boolean;
   conditionReason?: string;
+  warning?: string;
 }
 
 interface OrderStatusConfig {
@@ -22,6 +23,11 @@ export const STATUS_CONFIG: OrderStatusConfig[] = [
     transitions: [
       { to: 'need to order', allowedRoles: ['employee', 'manager', 'admin'] },
       { to: 'cancelled',     allowedRoles: ['employee', 'manager', 'admin'] },
+      {
+        to: 'completed',
+        allowedRoles: ['employee', 'manager', 'admin'],
+        warning: 'This action is not reversible. The order will be permanently marked as completed.',
+      },
     ],
   },
   {
@@ -126,4 +132,11 @@ export function canTransition(
     return { allowed: false, reason: match.conditionReason };
   }
   return { allowed: true };
+}
+
+export function getTransitionWarning(from: Order['status'], to: Order['status']): string | undefined {
+  return STATUS_CONFIG
+    .find(s => s.name === from)
+    ?.transitions.find(t => t.to === to)
+    ?.warning;
 }

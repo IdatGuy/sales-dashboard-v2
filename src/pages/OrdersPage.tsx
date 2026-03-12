@@ -5,9 +5,9 @@ import StoreSelector from '../components/common/StoreSelector';
 import OrderList from '../components/orders/OrderList';
 import CreateOrderModal from '../components/orders/CreateOrderModal';
 import { ordersService, Order, can_transition, UserRole } from '../services/api/orders';
-import { ALL_STATUSES, TERMINAL_STATUSES } from '../lib/orderStatusConfig';
+import { ALL_STATUSES, TERMINAL_STATUSES, getTransitionWarning } from '../lib/orderStatusConfig';
 import { useDashboard } from '../context/DashboardContext';
-import { Plus, Grid2x2, X, Search } from 'lucide-react';
+import { Plus, Grid2x2, X, Search, AlertTriangle } from 'lucide-react';
 
 const FALLBACK_STATUSES: Order['status'][] = ALL_STATUSES;
 const defaultActiveStatuses = (all: Order['status'][]) => all.filter(s => !TERMINAL_STATUSES.has(s));
@@ -609,6 +609,16 @@ const OrdersPage: React.FC = () => {
                       </span>
                     </label>
                   ))}
+
+                  {activeOrder && (() => {
+                    const warning = getTransitionWarning(activeOrder.status, newStatus);
+                    return warning ? (
+                      <div className="mt-1 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-600 rounded-md flex gap-2 items-start">
+                        <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                        <p className="text-sm text-amber-800 dark:text-amber-200">{warning}</p>
+                      </div>
+                    ) : null;
+                  })()}
 
                   {newStatus === 'need to order' && activeOrder?.is_depot_repair && (
                     <div className="pt-3 border-t border-gray-200 dark:border-gray-600 space-y-3">
