@@ -122,6 +122,7 @@ export type Database = {
           cleanings: number | null
           created_at: string | null
           created_by: string | null
+          custom_metrics: Json | null
           date: string
           home_connects: number | null
           home_plus: number | null
@@ -135,6 +136,7 @@ export type Database = {
           cleanings?: number | null
           created_at?: string | null
           created_by?: string | null
+          custom_metrics?: Json | null
           date: string
           home_connects?: number | null
           home_plus?: number | null
@@ -148,6 +150,7 @@ export type Database = {
           cleanings?: number | null
           created_at?: string | null
           created_by?: string | null
+          custom_metrics?: Json | null
           date?: string
           home_connects?: number | null
           home_plus?: number | null

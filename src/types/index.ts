@@ -31,9 +31,10 @@ export interface Sale {
   salesAmount: number;
   accessorySales: number;
   homeConnects: number;
-  homePlus: number; // New property for Home Plus sales
-  cleanings: number; // New property for cleanings
-  repairs: number; // New property for repairs
+  homePlus: number;
+  cleanings: number;
+  repairs: number;
+  customMetrics: Record<string, number>;
 }
 
 export interface Commission {

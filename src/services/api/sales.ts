@@ -18,11 +18,11 @@ function transformDbSaleToSale(dbSale: Sale): UISale {
     date: dbSale.date,
     salesAmount: dbSale.sales_amount ?? 0,
     accessorySales: dbSale.accessory_sales ?? 0,
-    
     homeConnects: dbSale.home_connects ?? 0,
     homePlus: dbSale.home_plus ?? 0,
     cleanings: dbSale.cleanings ?? 0,
     repairs: dbSale.repairs ?? 0,
+    customMetrics: (dbSale.custom_metrics as Record<string, number>) ?? {},
   };
 }
 
@@ -33,6 +33,7 @@ export interface DailySalesInput {
   homePlus?: number;
   cleanings?: number;
   repairs?: number;
+  customMetrics?: Record<string, number>;
 }
 
 export async function upsertDailySales(
@@ -53,6 +54,7 @@ export async function upsertDailySales(
         home_plus: data.homePlus ?? null,
         cleanings: data.cleanings ?? null,
         repairs: data.repairs ?? null,
+        custom_metrics: data.customMetrics ?? {},
         created_by: createdBy,
       },
       { onConflict: 'store_id,date' }

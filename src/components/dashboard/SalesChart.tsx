@@ -16,6 +16,7 @@ import { Sale } from "../../types";
 import { useDashboard } from "../../context/DashboardContext";
 import { useTheme } from "../../context/ThemeContext";
 import { STORAGE_KEYS } from "../../lib/constants";
+import { getSaleValueForMetric } from "../../lib/metricUtils";
 
 ChartJS.register(
   CategoryScale,
@@ -34,7 +35,7 @@ interface SalesChartProps {
 }
 
 const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
-  const { timeFrame } = useDashboard();
+  const { timeFrame, visibleMetrics } = useDashboard();
   const { isDarkMode } = useTheme();
 
   // Initialize showAccumulated from localStorage, defaulting to true
@@ -76,6 +77,7 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
           homePlus: 0,
           cleanings: 0,
           repairs: 0,
+          customMetrics: {},
         };
       }
       monthlyMap[monthKey].salesAmount += sale.salesAmount;
@@ -104,6 +106,8 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     const mostRecent =
       displaySales.length > 0 ? [displaySales[displaySales.length - 1]] : [];
     dateLabels = mostRecent.map((sale) => sale.date);
+    const METRIC_COLORS_DARK = ["#fbbf24", "#34d399", "#f472b6", "#f87171", "#a78bfa", "#fb923c", "#60a5fa"];
+    const METRIC_COLORS_LIGHT = ["#f59e42", "#059669", "#ec4899", "#ef4444", "#8b5cf6", "#f97316", "#3b82f6"];
     data = {
       labels: mostRecent.map((sale) => {
         const [year, month, day] = sale.date.split("-").map(Number);
@@ -117,36 +121,14 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
           backgroundColor: isDarkMode ? "#38bdf8" : "#2563eb",
           yAxisID: "y-dollars",
         },
-        {
-          label: "Accessory Sales",
-          data: mostRecent.map((sale) => sale.accessorySales ?? 0),
-          backgroundColor: isDarkMode ? "#fbbf24" : "#f59e42",
-          yAxisID: "y-dollars",
-        },
-        {
-          label: "Home Connects",
-          data: mostRecent.map((sale) => sale.homeConnects ?? 0),
-          backgroundColor: isDarkMode ? "#34d399" : "#059669",
-          yAxisID: "y-counts",
-        },
-        {
-          label: "Home Plus",
-          data: mostRecent.map((sale) => sale.homePlus ?? 0),
-          backgroundColor: isDarkMode ? "#f472b6" : "#ec4899",
-          yAxisID: "y-counts",
-        },
-        {
-          label: "Cleanings",
-          data: mostRecent.map((sale) => sale.cleanings ?? 0),
-          backgroundColor: isDarkMode ? "#f87171" : "#ef4444",
-          yAxisID: "y-counts",
-        },
-        {
-          label: "Repairs",
-          data: mostRecent.map((sale) => sale.repairs ?? 0),
-          backgroundColor: isDarkMode ? "#a78bfa" : "#8b5cf6",
-          yAxisID: "y-counts",
-        },
+        ...visibleMetrics.map((metric, i) => ({
+          label: metric.label,
+          data: mostRecent.map((sale) => getSaleValueForMetric(sale, metric)),
+          backgroundColor: isDarkMode
+            ? METRIC_COLORS_DARK[i % METRIC_COLORS_DARK.length]
+            : METRIC_COLORS_LIGHT[i % METRIC_COLORS_LIGHT.length],
+          yAxisID: metric.unitType === "currency" ? "y-dollars" : "y-counts",
+        })),
       ],
     };
   } else {

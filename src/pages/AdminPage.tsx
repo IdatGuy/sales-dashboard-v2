@@ -1,6 +1,7 @@
 import React from 'react';
 import Navbar from '../components/common/Navbar';
 import { useAuth } from '../context/AuthContext';
+import MetricDefinitionsPanel from '../components/admin/MetricDefinitionsPanel';
 
 const AdminPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -27,6 +28,10 @@ const AdminPage: React.FC = () => {
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
               <p className="text-sm text-gray-500 dark:text-gray-400">More admin tools will be added here.</p>
             </div>
+          </div>
+
+          <div className="mt-6">
+            <MetricDefinitionsPanel />
           </div>
         </div>
       </main>

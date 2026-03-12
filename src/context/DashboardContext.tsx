@@ -4,6 +4,7 @@ import React, {
   useState,
   ReactNode,
   useEffect,
+  useMemo,
 } from "react";
 import { Store, TimeFrame, Sale, CacheEntry } from "../types";
 import {
@@ -12,6 +13,10 @@ import {
 } from "../services/api/sales";
 import { getStoresByIds, getAllStores } from "../services/api/stores";
 import { useAuth } from "../context/AuthContext";
+import {
+  getMetricDefinitions,
+  MetricDefinition,
+} from "../services/api/metricDefinitions";
 
 interface SalesData {
   daily: Sale[];
@@ -39,6 +44,10 @@ interface DashboardContextType {
   isLoading: boolean;
   getSalesForPeriod: () => Sale[];
   refreshSalesData: () => void;
+  metricDefinitions: MetricDefinition[];
+  visibleMetrics: MetricDefinition[];
+  isMetricsLoading: boolean;
+  refreshMetricDefinitions: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -79,6 +88,28 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
       new Date().getDate()
     )
   );
+
+  // Metric definitions state
+  const [metricDefinitions, setMetricDefinitions] = useState<MetricDefinition[]>([]);
+  const [isMetricsLoading, setIsMetricsLoading] = useState(true);
+
+  const visibleMetrics = useMemo(
+    () => metricDefinitions.filter((d) => d.isVisible),
+    [metricDefinitions]
+  );
+
+  const refreshMetricDefinitions = React.useCallback(() => {
+    getMetricDefinitions().then((defs) => {
+      setMetricDefinitions(defs);
+    });
+  }, []);
+
+  useEffect(() => {
+    getMetricDefinitions().then((defs) => {
+      setMetricDefinitions(defs);
+      setIsMetricsLoading(false);
+    });
+  }, []);
 
   // Cache state
   const [dailySalesCache, setDailySalesCache] = useState<
@@ -362,6 +393,10 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     isLoading,
     getSalesForPeriod,
     refreshSalesData,
+    metricDefinitions,
+    visibleMetrics,
+    isMetricsLoading,
+    refreshMetricDefinitions,
   };
 
   return (

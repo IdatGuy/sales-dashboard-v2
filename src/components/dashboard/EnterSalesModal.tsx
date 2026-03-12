@@ -4,6 +4,7 @@ import { Store } from "../../types";
 import { useDashboard } from "../../context/DashboardContext";
 import { useAuth } from "../../context/AuthContext";
 import { upsertDailySales } from "../../services/api/sales";
+import { BUILTIN_KEY_TO_SALE_PROP } from "../../lib/metricUtils";
 
 interface EnterSalesModalProps {
   store: Store;
@@ -19,17 +20,12 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { salesData, refreshSalesData } = useDashboard();
+  const { salesData, refreshSalesData, visibleMetrics } = useDashboard();
   const { currentUser } = useAuth();
 
   const [selectedDate, setSelectedDate] = useState(todayStr);
-  const [formValues, setFormValues] = useState({
+  const [formValues, setFormValues] = useState<Record<string, string>>({
     salesAmount: "",
-    accessorySales: "",
-    homeConnects: "",
-    homePlus: "",
-    cleanings: "",
-    repairs: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
@@ -45,31 +41,27 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
     const existing = salesData.daily.find((s) => s.date === selectedDate) ?? null;
     setExistingRecord(!!existing);
 
-    if (existing) {
-      setFormValues({
-        salesAmount: existing.salesAmount ? String(existing.salesAmount) : "",
-        accessorySales: existing.accessorySales ? String(existing.accessorySales) : "",
-        homeConnects: existing.homeConnects ? String(existing.homeConnects) : "",
-        homePlus: existing.homePlus ? String(existing.homePlus) : "",
-        cleanings: existing.cleanings ? String(existing.cleanings) : "",
-        repairs: existing.repairs ? String(existing.repairs) : "",
-      });
-    } else {
-      setFormValues({
-        salesAmount: "",
-        accessorySales: "",
-        homeConnects: "",
-        homePlus: "",
-        cleanings: "",
-        repairs: "",
-      });
-    }
+    const newValues: Record<string, string> = {
+      salesAmount: existing?.salesAmount ? String(existing.salesAmount) : "",
+    };
 
+    visibleMetrics.forEach((m) => {
+      if (m.isBuiltin) {
+        const prop = BUILTIN_KEY_TO_SALE_PROP[m.key];
+        const val = existing && prop ? (existing[prop] as number) : 0;
+        newValues[m.key] = val ? String(val) : "";
+      } else {
+        const val = existing?.customMetrics[m.key] ?? 0;
+        newValues[m.key] = val ? String(val) : "";
+      }
+    });
+
+    setFormValues(newValues);
     setShowOverwriteConfirm(false);
     setSaveStatus(null);
     setErrorMessage(null);
     setValidationError(null);
-  }, [isOpen, selectedDate, salesData.daily]);
+  }, [isOpen, selectedDate, salesData.daily, visibleMetrics]);
 
   if (!isOpen) return null;
 
@@ -90,16 +82,32 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
 
     setIsLoading(true);
 
+    // Build payload: split visibleMetrics into builtin fields and custom metrics
+    const builtinPayload: Record<string, number | undefined> = {};
+    const customMetricsPayload: Record<string, number> = {};
+
+    visibleMetrics.forEach((m) => {
+      const rawVal = formValues[m.key];
+      const numVal = rawVal ? Number(rawVal) : undefined;
+      if (m.isBuiltin) {
+        const prop = BUILTIN_KEY_TO_SALE_PROP[m.key] as string;
+        builtinPayload[prop] = numVal;
+      } else {
+        customMetricsPayload[m.key] = numVal ?? 0;
+      }
+    });
+
     const result = await upsertDailySales(
       store.id,
       selectedDate,
       {
         salesAmount: Number(formValues.salesAmount),
-        accessorySales: formValues.accessorySales ? Number(formValues.accessorySales) : undefined,
-        homeConnects: formValues.homeConnects ? Number(formValues.homeConnects) : undefined,
-        homePlus: formValues.homePlus ? Number(formValues.homePlus) : undefined,
-        cleanings: formValues.cleanings ? Number(formValues.cleanings) : undefined,
-        repairs: formValues.repairs ? Number(formValues.repairs) : undefined,
+        accessorySales: builtinPayload.accessorySales,
+        homeConnects: builtinPayload.homeConnects,
+        homePlus: builtinPayload.homePlus,
+        cleanings: builtinPayload.cleanings,
+        repairs: builtinPayload.repairs,
+        customMetrics: customMetricsPayload,
       },
       currentUser!.id
     );
@@ -124,17 +132,14 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
     handleSubmit({ preventDefault: () => {} } as React.FormEvent);
   };
 
-  const numericInput = (
-    field: keyof typeof formValues,
-    allowDecimal = false
-  ) => ({
+  const numericInput = (key: string, allowDecimal = false) => ({
     type: "text" as const,
     inputMode: "numeric" as const,
-    value: formValues[field],
+    value: formValues[key] ?? "",
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       const pattern = allowDecimal ? /[^0-9.]/g : /[^0-9]/g;
       const value = e.target.value.replace(pattern, "");
-      setFormValues((prev) => ({ ...prev, [field]: value }));
+      setFormValues((prev) => ({ ...prev, [key]: value }));
       setValidationError(null);
     },
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
@@ -201,40 +206,14 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
               <input {...numericInput("salesAmount", true)} />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Accessory Sales ($)
-              </label>
-              <input {...numericInput("accessorySales", true)} />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Home Connects (units)
-              </label>
-              <input {...numericInput("homeConnects")} />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Home Plus (units)
-              </label>
-              <input {...numericInput("homePlus")} />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Cleanings (units)
-              </label>
-              <input {...numericInput("cleanings")} />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Repairs (units)
-              </label>
-              <input {...numericInput("repairs")} />
-            </div>
+            {visibleMetrics.map((metric) => (
+              <div key={metric.key}>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  {metric.label} ({metric.unitType === "currency" ? "$" : "units"})
+                </label>
+                <input {...numericInput(metric.key, metric.unitType === "currency")} />
+              </div>
+            ))}
           </div>
 
           {showOverwriteConfirm && (
