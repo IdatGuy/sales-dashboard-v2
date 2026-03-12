@@ -10,3 +10,11 @@ export async function getStoresByIds(storeIds: string[]): Promise<Tables<'stores
   if (error) throw new Error('Failed to fetch stores');
   return (data || []) as Tables<'stores'>[];
 }
+
+export async function getAllStores(): Promise<Tables<'stores'>[]> {
+  const { data, error } = await supabase
+    .from('stores')
+    .select('id, name, location');
+  if (error) throw new Error('Failed to fetch stores');
+  return (data || []) as Tables<'stores'>[];
+}

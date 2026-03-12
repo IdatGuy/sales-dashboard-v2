@@ -10,7 +10,7 @@ import {
   getStoreDailySales,
   getStoreMonthlySales,
 } from "../services/api/sales";
-import { getStoresByIds } from "../services/api/stores";
+import { getStoresByIds, getAllStores } from "../services/api/stores";
 import { useAuth } from "../context/AuthContext";
 
 interface SalesData {
@@ -292,8 +292,17 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
           (a: { storeId: string }) => a.storeId
         );
         try {
-          const stores = await getStoresByIds(storeIds);
-          setStores(stores);
+          const assignedStores = await getStoresByIds(storeIds);
+          if (currentUser.hasDepotAccess) {
+            const allStores = await getAllStores();
+            const mergedMap = new Map(assignedStores.map((s) => [s.id, s]));
+            for (const s of allStores) {
+              if (!mergedMap.has(s.id)) mergedMap.set(s.id, s);
+            }
+            setStores(Array.from(mergedMap.values()));
+          } else {
+            setStores(assignedStores);
+          }
         } catch (error) {
           console.error("Error fetching stores:", error);
           setStores([]);

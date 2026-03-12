@@ -5,9 +5,9 @@ import StoreSelector from '../components/common/StoreSelector';
 import OrderList from '../components/orders/OrderList';
 import CreateOrderModal from '../components/orders/CreateOrderModal';
 import { ordersService, Order, can_transition, UserRole } from '../services/api/orders';
-import { ALL_STATUSES, TERMINAL_STATUSES } from '../lib/orderStatusConfig';
+import { ALL_STATUSES, TERMINAL_STATUSES, getTransitionWarning } from '../lib/orderStatusConfig';
 import { useDashboard } from '../context/DashboardContext';
-import { Plus, Grid2x2, X, Search } from 'lucide-react';
+import { Plus, Grid2x2, X, Search, AlertTriangle } from 'lucide-react';
 
 const FALLBACK_STATUSES: Order['status'][] = ALL_STATUSES;
 const defaultActiveStatuses = (all: Order['status'][]) => all.filter(s => !TERMINAL_STATUSES.has(s));
@@ -34,6 +34,8 @@ const OrdersPage: React.FC = () => {
   const [partEta, setPartEta] = useState<string>('');
   const [cancellationReason, setCancellationReason] = useState('');
   const [returnRequiredReason, setReturnRequiredReason] = useState('');
+  const [depotPartLink, setDepotPartLink] = useState('');
+  const [depotPartDescription, setDepotPartDescription] = useState('');
   const [reasonError, setReasonError] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -42,9 +44,15 @@ const OrdersPage: React.FC = () => {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const userRole = (currentUser?.role ?? 'employee') as UserRole;
+  const isDepotUser = currentUser?.hasDepotAccess ?? false;
+  const userAssignedStoreIds = new Set(currentUser?.userStoreAccess?.map((a) => a.storeId) ?? []);
+  const createOrderStores = availableStores.filter((s) => userAssignedStoreIds.has(s.id));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorNotification, setShowErrorNotification] = useState(false);
   const [viewAllStores, setViewAllStores] = useState(false);
+  const [depotViewStoreId, setDepotViewStoreId] = useState<string | null>(null);
+  const [depotStoreIds, setDepotStoreIds] = useState<string[]>([]);
+  const depotStores = availableStores.filter(s => depotStoreIds.includes(s.id));
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<25 | 50 | 75 | 100>(25);
   const [totalOrders, setTotalOrders] = useState(0);
@@ -58,10 +66,21 @@ const OrdersPage: React.FC = () => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchTerm]);
 
+  // Fetch store IDs that have depot orders (depot users only)
+  useEffect(() => {
+    if (!isDepotUser) return;
+    ordersService.getStoresWithDepotOrders().then(setDepotStoreIds);
+  }, [isDepotUser]);
+
+  // Clear depot view when selected store changes
+  useEffect(() => {
+    setDepotViewStoreId(null);
+  }, [selectedStore]);
+
   // Reset to page 1 when anything other than page itself changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedStore, viewAllStores, currentUser, statusFilters, pageSize, debouncedSearchTerm]);
+  }, [selectedStore, viewAllStores, depotViewStoreId, currentUser, statusFilters, pageSize, debouncedSearchTerm]);
 
   useEffect(() => {
     if (statusFilters.length === 0) {
@@ -77,7 +96,9 @@ const OrdersPage: React.FC = () => {
         let result: { orders: Order[]; total: number };
         if (viewAllStores && currentUser?.userStoreAccess) {
           const storeIds = currentUser.userStoreAccess.map((access) => access.storeId);
-          result = await ordersService.getOrders(undefined, storeIds, statusFilters, currentPage, pageSize, debouncedSearchTerm);
+          result = await ordersService.getOrders(undefined, storeIds, statusFilters, currentPage, pageSize, debouncedSearchTerm, isDepotUser);
+        } else if (depotViewStoreId) {
+          result = await ordersService.getOrders(undefined, undefined, statusFilters, currentPage, pageSize, debouncedSearchTerm, false, depotViewStoreId);
         } else {
           result = await ordersService.getOrders(selectedStore?.id, undefined, statusFilters, currentPage, pageSize, debouncedSearchTerm);
         }
@@ -98,7 +119,7 @@ const OrdersPage: React.FC = () => {
 
     fetchOrders();
     return () => { aborted = true; };
-  }, [selectedStore, viewAllStores, currentUser, statusFilters, currentPage, pageSize, debouncedSearchTerm]);
+  }, [selectedStore, viewAllStores, depotViewStoreId, currentUser, statusFilters, currentPage, pageSize, debouncedSearchTerm]);
 
   useEffect(() => {
     let aborted = false;
@@ -108,7 +129,9 @@ const OrdersPage: React.FC = () => {
         let fetched: Order['status'][];
         if (viewAllStores && currentUser?.userStoreAccess) {
           const storeIds = currentUser.userStoreAccess.map(a => a.storeId);
-          fetched = await ordersService.getDistinctStatuses(undefined, storeIds);
+          fetched = await ordersService.getDistinctStatuses(undefined, storeIds, isDepotUser);
+        } else if (depotViewStoreId) {
+          fetched = await ordersService.getDistinctStatuses(undefined, undefined, false, depotViewStoreId);
         } else {
           fetched = await ordersService.getDistinctStatuses(selectedStore?.id);
         }
@@ -126,7 +149,7 @@ const OrdersPage: React.FC = () => {
     };
     fetchStatuses();
     return () => { aborted = true; };
-  }, [selectedStore, viewAllStores, currentUser]);
+  }, [selectedStore, viewAllStores, depotViewStoreId, currentUser]);
 
   const handleOrderCreated = (newOrder: Order) => {
     setOrders((prev) => [newOrder, ...prev]);
@@ -172,6 +195,8 @@ const OrdersPage: React.FC = () => {
     setPartEta('');
     setCancellationReason('');
     setReturnRequiredReason('');
+    setDepotPartLink('');
+    setDepotPartDescription('');
     setReasonError('');
   };
 
@@ -227,6 +252,38 @@ const OrdersPage: React.FC = () => {
         closeStatusModal();
       } catch (e) {
         setErrorMessage(e instanceof Error ? e.message : 'Failed to cancel order.');
+        setShowErrorNotification(true);
+      } finally {
+        setIsUpdating(false);
+      }
+      return;
+    }
+
+    if (newStatus === 'need to order' && activeOrder.is_depot_repair) {
+      const needsPartLink = !activeOrder.part_link && !depotPartLink.trim();
+      const needsPartDesc = !activeOrder.part_description && !depotPartDescription.trim();
+      if (needsPartLink || needsPartDesc) {
+        setReasonError('Part link and description are required before advancing to Need to Order.');
+        return;
+      }
+      setIsUpdating(true);
+      try {
+        await ordersService.updateOrder(activeOrder.id, {
+          status: 'need to order',
+          part_link: depotPartLink.trim() || activeOrder.part_link,
+          part_description: depotPartDescription.trim() || activeOrder.part_description,
+        });
+        setOrders(prev =>
+          prev
+            .map(o => o.id === activeOrder.id
+              ? { ...o, status: 'need to order' as const, part_link: depotPartLink.trim() || activeOrder.part_link, part_description: depotPartDescription.trim() || activeOrder.part_description }
+              : o
+            )
+            .filter(o => statusFilters.includes(o.status))
+        );
+        closeStatusModal();
+      } catch (e) {
+        setErrorMessage(e instanceof Error ? e.message : 'Failed to update order.');
         setShowErrorNotification(true);
       } finally {
         setIsUpdating(false);
@@ -305,7 +362,7 @@ const OrdersPage: React.FC = () => {
 
   // Valid statuses for the active order's modal
   const activeOrderValidStatuses = activeOrder
-    ? ALL_STATUSES.filter(s => s === activeOrder.status || can_transition(activeOrder, s, userRole).allowed)
+    ? ALL_STATUSES.filter(s => s === activeOrder.status || can_transition(activeOrder, s, userRole, isDepotUser).allowed)
     : [];
 
   return (
@@ -316,12 +373,23 @@ const OrdersPage: React.FC = () => {
         <div className="px-4 sm:px-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4 sm:mb-0">
-              Work Orders & Parts Management {viewAllStores && '(All Stores)'}
+              Work Orders & Parts Management{' '}
+              {viewAllStores
+                ? '(All Stores)'
+                : depotViewStoreId
+                ? `(${availableStores.find(s => s.id === depotViewStoreId)?.name ?? ''} — Depot)`
+                : ''}
             </h1>
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-              {!viewAllStores && <StoreSelector />}
+              {!viewAllStores && (
+                <StoreSelector
+                  depotStores={isDepotUser ? depotStores : []}
+                  selectedDepotStoreId={depotViewStoreId}
+                  onDepotStoreSelect={(store) => setDepotViewStoreId(store?.id ?? null)}
+                />
+              )}
               <button
-                onClick={() => setViewAllStores(!viewAllStores)}
+                onClick={() => { setViewAllStores(!viewAllStores); setDepotViewStoreId(null); }}
                 className={`flex items-center justify-center px-4 py-2 rounded-md transition-colors font-medium ${
                   viewAllStores
                     ? 'bg-primary-600 text-white hover:bg-primary-700'
@@ -348,7 +416,11 @@ const OrdersPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {viewAllStores ? 'All Orders' : selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
+                    {viewAllStores
+                      ? 'All Orders'
+                      : depotViewStoreId
+                      ? `Depot Orders — ${availableStores.find(s => s.id === depotViewStoreId)?.name ?? ''}`
+                      : selectedStore ? `Orders - ${selectedStore.name}` : 'All Orders'}
                   </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {totalOrders} order{totalOrders !== 1 ? 's' : ''} found
@@ -538,6 +610,52 @@ const OrdersPage: React.FC = () => {
                     </label>
                   ))}
 
+                  {activeOrder && (() => {
+                    const warning = getTransitionWarning(activeOrder.status, newStatus);
+                    return warning ? (
+                      <div className="mt-1 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-600 rounded-md flex gap-2 items-start">
+                        <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                        <p className="text-sm text-amber-800 dark:text-amber-200">{warning}</p>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {newStatus === 'need to order' && activeOrder?.is_depot_repair && (
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-600 space-y-3">
+                      {!activeOrder.part_link && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Part Link <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="url"
+                            value={depotPartLink}
+                            onChange={(e) => { setDepotPartLink(e.target.value); setReasonError(''); }}
+                            placeholder="https://"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-primary-500 focus:border-primary-500"
+                          />
+                        </div>
+                      )}
+                      {!activeOrder.part_description && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Part Description <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            value={depotPartDescription}
+                            onChange={(e) => { setDepotPartDescription(e.target.value); setReasonError(''); }}
+                            rows={2}
+                            placeholder="Required"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-primary-500 focus:border-primary-500"
+                          />
+                        </div>
+                      )}
+                      {reasonError && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{reasonError}</p>
+                      )}
+                    </div>
+                  )}
+
                   {newStatus === 'return required' && (
                     <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -617,7 +735,7 @@ const OrdersPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setCopySource(null); }}
         onSuccess={handleOrderCreated}
-        availableStores={availableStores}
+        availableStores={createOrderStores}
         technicianName={currentUser.name}
         initialData={copySource ?? undefined}
       />

@@ -4,6 +4,7 @@ export interface User {
   email: string;
   role: 'employee' | 'manager' | 'admin';
   isActive: boolean;
+  hasDepotAccess: boolean;
   userStoreAccess: UserStoreAccess[]; // Updated to use UserStoreAccess
 }
 
@@ -13,6 +14,7 @@ export interface ManagedUser {
   email: string;
   role: 'employee' | 'manager' | 'admin';
   isActive: boolean;
+  hasDepotAccess: boolean;
   storeIds: string[];
 }
 

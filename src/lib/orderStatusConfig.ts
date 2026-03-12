@@ -5,6 +5,7 @@ interface StatusTransition {
   allowedRoles: UserRole[];
   condition?: (order: Order) => boolean;
   conditionReason?: string;
+  warning?: string;
 }
 
 interface OrderStatusConfig {
@@ -15,6 +16,20 @@ interface OrderStatusConfig {
 }
 
 export const STATUS_CONFIG: OrderStatusConfig[] = [
+  {
+    name: 'in transit',
+    isTerminal: false,
+    colorClass: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+    transitions: [
+      { to: 'need to order', allowedRoles: ['employee', 'manager', 'admin'] },
+      { to: 'cancelled',     allowedRoles: ['employee', 'manager', 'admin'] },
+      {
+        to: 'completed',
+        allowedRoles: ['employee', 'manager', 'admin'],
+        warning: 'This action is not reversible. The order will be permanently marked as completed.',
+      },
+    ],
+  },
   {
     name: 'need to order',
     isTerminal: false,
@@ -95,9 +110,14 @@ export function getStatusColor(status: string): string {
 export function canTransition(
   order: Order,
   to: Order['status'],
-  role: UserRole
+  role: UserRole,
+  hasDepotAccess: boolean = false
 ): { allowed: boolean; reason?: string } {
   if (role === 'admin') return { allowed: true };
+
+  if (order.status === 'in transit' && !hasDepotAccess) {
+    return { allowed: false, reason: 'Only users with depot access can update in transit orders.' };
+  }
 
   const fromConfig = STATUS_CONFIG.find(s => s.name === order.status);
   if (!fromConfig) return { allowed: false, reason: 'Unknown source status.' };
@@ -112,4 +132,11 @@ export function canTransition(
     return { allowed: false, reason: match.conditionReason };
   }
   return { allowed: true };
+}
+
+export function getTransitionWarning(from: Order['status'], to: Order['status']): string | undefined {
+  return STATUS_CONFIG
+    .find(s => s.name === from)
+    ?.transitions.find(t => t.to === to)
+    ?.warning;
 }
