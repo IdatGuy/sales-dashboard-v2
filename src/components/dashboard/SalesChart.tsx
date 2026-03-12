@@ -35,7 +35,7 @@ interface SalesChartProps {
 }
 
 const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
-  const { timeFrame, visibleMetrics } = useDashboard();
+  const { timeFrame, visibleMetrics, deprecatedMetrics, salesData } = useDashboard();
   const { isDarkMode } = useTheme();
 
   // Initialize showAccumulated from localStorage, defaulting to true
@@ -108,6 +108,10 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     dateLabels = mostRecent.map((sale) => sale.date);
     const METRIC_COLORS_DARK = ["#fbbf24", "#34d399", "#f472b6", "#f87171", "#a78bfa", "#fb923c", "#60a5fa"];
     const METRIC_COLORS_LIGHT = ["#f59e42", "#059669", "#ec4899", "#ef4444", "#8b5cf6", "#f97316", "#3b82f6"];
+    const deprecatedWithData = deprecatedMetrics.filter((m) =>
+      salesData.daily.some((sale) => getSaleValueForMetric(sale, m) > 0)
+    );
+    const allMetrics = [...visibleMetrics, ...deprecatedWithData];
     data = {
       labels: mostRecent.map((sale) => {
         const [year, month, day] = sale.date.split("-").map(Number);
@@ -121,12 +125,12 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
           backgroundColor: isDarkMode ? "#38bdf8" : "#2563eb",
           yAxisID: "y-dollars",
         },
-        ...visibleMetrics.map((metric, i) => ({
-          label: metric.label,
+        ...allMetrics.map((metric, i) => ({
+          label: metric.isDeprecated ? `${metric.label} (historical)` : metric.label,
           data: mostRecent.map((sale) => getSaleValueForMetric(sale, metric)),
-          backgroundColor: isDarkMode
+          backgroundColor: (isDarkMode
             ? METRIC_COLORS_DARK[i % METRIC_COLORS_DARK.length]
-            : METRIC_COLORS_LIGHT[i % METRIC_COLORS_LIGHT.length],
+            : METRIC_COLORS_LIGHT[i % METRIC_COLORS_LIGHT.length]) + (metric.isDeprecated ? "99" : ""),
           yAxisID: metric.unitType === "currency" ? "y-dollars" : "y-counts",
         })),
       ],

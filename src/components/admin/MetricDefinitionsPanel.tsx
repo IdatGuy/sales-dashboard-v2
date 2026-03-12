@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ChevronUp, ChevronDown, Trash2, Plus, Check, AlertCircle } from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2, Plus, Check, AlertCircle, Archive, ArchiveRestore } from "lucide-react";
 import {
   MetricDefinition,
   getMetricDefinitions,
@@ -107,6 +107,21 @@ const MetricDefinitionsPanel: React.FC = () => {
     }
   }
 
+  async function handleToggleDeprecated(def: MetricDefinition) {
+    setSaveStatus("saving");
+    const result = await updateMetricDefinition(def.id, { isDeprecated: !def.isDeprecated });
+    if (result.success) {
+      setDefinitions((prev) =>
+        prev.map((d) => (d.id === def.id ? { ...d, isDeprecated: !d.isDeprecated } : d))
+      );
+      refreshMetricDefinitions();
+      setSaveStatus("success");
+      setTimeout(() => setSaveStatus("idle"), 1500);
+    } else {
+      setSaveStatus("error");
+    }
+  }
+
   async function handleDelete(id: string) {
     setSaveStatus("saving");
     const result = await deleteMetricDefinition(id);
@@ -152,14 +167,18 @@ const MetricDefinitionsPanel: React.FC = () => {
         </span>
       </div>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        Configure which metrics appear on the dashboard. Toggle visibility, rename labels, reorder, or add new metrics.
+        Configure which metrics appear on the dashboard. Toggle visibility, rename labels, reorder, or add new metrics. Deprecated metrics are hidden from data entry but still shown in historical charts where data exists.
       </p>
 
       <div className="space-y-2 mb-4">
         {definitions.map((def, i) => (
           <div
             key={def.id}
-            className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-md"
+            className={`flex items-center gap-2 p-2 rounded-md ${
+              def.isDeprecated
+                ? "bg-gray-100 dark:bg-gray-750 opacity-60"
+                : "bg-gray-50 dark:bg-gray-700"
+            }`}
           >
             <div className="flex flex-col gap-0.5 shrink-0">
               <button
@@ -193,6 +212,12 @@ const MetricDefinitionsPanel: React.FC = () => {
               className="flex-1 min-w-0 px-2 py-1 text-sm border border-transparent hover:border-gray-300 dark:hover:border-gray-500 focus:border-primary-400 dark:focus:border-primary-400 rounded bg-transparent dark:text-white focus:outline-none focus:bg-white dark:focus:bg-gray-600"
             />
 
+            {def.isDeprecated && (
+              <span className="shrink-0 text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300">
+                Deprecated
+              </span>
+            )}
+
             <span
               className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
                 def.unitType === "currency"
@@ -203,15 +228,29 @@ const MetricDefinitionsPanel: React.FC = () => {
               {def.unitType === "currency" ? "$" : "#"}
             </span>
 
-            <label className="shrink-0 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={def.isVisible}
-                onChange={() => handleToggleVisible(def)}
-                className="form-checkbox h-3.5 w-3.5"
-              />
-              Visible
-            </label>
+            {!def.isDeprecated && (
+              <label className="shrink-0 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={def.isVisible}
+                  onChange={() => handleToggleVisible(def)}
+                  className="form-checkbox h-3.5 w-3.5"
+                />
+                Visible
+              </label>
+            )}
+
+            <button
+              onClick={() => handleToggleDeprecated(def)}
+              className={`shrink-0 p-1 ${
+                def.isDeprecated
+                  ? "text-amber-500 hover:text-green-500 dark:hover:text-green-400"
+                  : "text-gray-400 hover:text-amber-500 dark:hover:text-amber-400"
+              }`}
+              title={def.isDeprecated ? "Restore metric" : "Deprecate metric (hide from entry, keep historical data)"}
+            >
+              {def.isDeprecated ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+            </button>
 
             {!def.isBuiltin && (
               <div className="shrink-0">

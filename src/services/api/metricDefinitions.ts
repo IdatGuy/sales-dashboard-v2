@@ -8,6 +8,7 @@ export interface MetricDefinition {
   isVisible: boolean;
   sortOrder: number;
   isBuiltin: boolean;
+  isDeprecated: boolean;
 }
 
 function transform(row: Record<string, unknown>): MetricDefinition {
@@ -19,6 +20,7 @@ function transform(row: Record<string, unknown>): MetricDefinition {
     isVisible: row.is_visible as boolean,
     sortOrder: row.sort_order as number,
     isBuiltin: row.is_builtin as boolean,
+    isDeprecated: (row.is_deprecated as boolean) ?? false,
   };
 }
 
@@ -70,12 +72,13 @@ export async function createMetricDefinition(
 
 export async function updateMetricDefinition(
   id: string,
-  updates: { label?: string; isVisible?: boolean; sortOrder?: number }
+  updates: { label?: string; isVisible?: boolean; sortOrder?: number; isDeprecated?: boolean }
 ): Promise<{ success: boolean; error?: string }> {
   const dbUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (updates.label !== undefined) dbUpdates.label = updates.label;
   if (updates.isVisible !== undefined) dbUpdates.is_visible = updates.isVisible;
   if (updates.sortOrder !== undefined) dbUpdates.sort_order = updates.sortOrder;
+  if (updates.isDeprecated !== undefined) dbUpdates.is_deprecated = updates.isDeprecated;
 
   const { error } = await supabase
     .from('sales_metric_definitions')

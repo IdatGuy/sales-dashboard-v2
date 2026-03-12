@@ -46,6 +46,7 @@ interface DashboardContextType {
   refreshSalesData: () => void;
   metricDefinitions: MetricDefinition[];
   visibleMetrics: MetricDefinition[];
+  deprecatedMetrics: MetricDefinition[];
   isMetricsLoading: boolean;
   refreshMetricDefinitions: () => void;
 }
@@ -94,7 +95,12 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
   const [isMetricsLoading, setIsMetricsLoading] = useState(true);
 
   const visibleMetrics = useMemo(
-    () => metricDefinitions.filter((d) => d.isVisible),
+    () => metricDefinitions.filter((d) => d.isVisible && !d.isDeprecated),
+    [metricDefinitions]
+  );
+
+  const deprecatedMetrics = useMemo(
+    () => metricDefinitions.filter((d) => d.isDeprecated),
     [metricDefinitions]
   );
 
@@ -395,6 +401,7 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     refreshSalesData,
     metricDefinitions,
     visibleMetrics,
+    deprecatedMetrics,
     isMetricsLoading,
     refreshMetricDefinitions,
   };
