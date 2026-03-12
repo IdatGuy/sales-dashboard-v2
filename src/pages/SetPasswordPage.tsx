@@ -135,7 +135,7 @@ const SetPasswordPage: React.FC = () => {
         </div>
 
         <div className="mt-8 bg-white dark:bg-gray-800 py-8 px-6 shadow sm:rounded-lg">
-          {error ? (
+          {!sessionReady ? (
             <div className="flex items-start gap-2 bg-red-50 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 px-4 py-3 rounded-md text-sm">
               <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
               {error}
