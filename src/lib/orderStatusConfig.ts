@@ -115,8 +115,8 @@ export function canTransition(
 ): { allowed: boolean; reason?: string } {
   if (role === 'admin') return { allowed: true };
 
-  if (order.is_depot_repair && !hasDepotAccess) {
-    return { allowed: false, reason: 'Only users with depot access can update depot repair orders.' };
+  if (order.status === 'in transit' && !hasDepotAccess) {
+    return { allowed: false, reason: 'Only users with depot access can update in transit orders.' };
   }
 
   const fromConfig = STATUS_CONFIG.find(s => s.name === order.status);
