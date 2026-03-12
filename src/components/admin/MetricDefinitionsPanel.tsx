@@ -176,7 +176,7 @@ const MetricDefinitionsPanel: React.FC = () => {
             key={def.id}
             className={`flex items-center gap-2 p-2 rounded-md ${
               def.isDeprecated
-                ? "bg-gray-100 dark:bg-gray-750 opacity-60"
+                ? "bg-gray-100 dark:bg-gray-800 opacity-60"
                 : "bg-gray-50 dark:bg-gray-700"
             }`}
           >
