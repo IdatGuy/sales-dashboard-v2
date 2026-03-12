@@ -32,21 +32,6 @@ const MetricDefinitionsPanel: React.FC = () => {
     setIsLoading(false);
   }
 
-  async function handleToggleVisible(def: MetricDefinition) {
-    setSaveStatus("saving");
-    const result = await updateMetricDefinition(def.id, { isVisible: !def.isVisible });
-    if (result.success) {
-      setDefinitions((prev) =>
-        prev.map((d) => (d.id === def.id ? { ...d, isVisible: !d.isVisible } : d))
-      );
-      refreshMetricDefinitions();
-      setSaveStatus("success");
-      setTimeout(() => setSaveStatus("idle"), 1500);
-    } else {
-      setSaveStatus("error");
-    }
-  }
-
   async function handleLabelBlur(def: MetricDefinition) {
     const pending = editingLabels[def.id];
     if (pending === undefined || pending === def.label) {
@@ -167,7 +152,7 @@ const MetricDefinitionsPanel: React.FC = () => {
         </span>
       </div>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        Configure which metrics appear on the dashboard. Toggle visibility, rename labels, reorder, or add new metrics. Deprecated metrics are hidden from data entry but still shown in historical charts where data exists.
+        Configure which metrics appear on the dashboard. Rename labels, reorder, or add new metrics. Deprecated metrics are hidden from data entry but still shown in historical charts where data exists.
       </p>
 
       <div className="space-y-2 mb-4">
@@ -227,18 +212,6 @@ const MetricDefinitionsPanel: React.FC = () => {
             >
               {def.unitType === "currency" ? "$" : "#"}
             </span>
-
-            {!def.isDeprecated && (
-              <label className="shrink-0 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={def.isVisible}
-                  onChange={() => handleToggleVisible(def)}
-                  className="form-checkbox h-3.5 w-3.5"
-                />
-                Visible
-              </label>
-            )}
 
             <button
               onClick={() => handleToggleDeprecated(def)}

@@ -95,7 +95,7 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
   const [isMetricsLoading, setIsMetricsLoading] = useState(true);
 
   const visibleMetrics = useMemo(
-    () => metricDefinitions.filter((d) => d.isVisible && !d.isDeprecated),
+    () => metricDefinitions.filter((d) => !d.isDeprecated),
     [metricDefinitions]
   );
 
