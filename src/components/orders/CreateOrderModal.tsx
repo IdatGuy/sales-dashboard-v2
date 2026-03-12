@@ -352,9 +352,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               </div>
 
               {/* Part Description */}
+              {!formData.isDepotRepair && (
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Part Description {formData.isDepotRepair ? '' : '*'}
+                  Part Description *
                 </label>
                 <textarea
                   name="part_description"
@@ -362,12 +363,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   onChange={handleInputChange}
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
-                  required={!formData.isDepotRepair}
+                  required
                 />
-                {formData.isDepotRepair && (
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Required before advancing from 'In Transit'</p>
-                )}
               </div>
+              )}
 
               {/* Notes */}
               <div className="sm:col-span-2">
@@ -400,9 +399,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               </div>
 
               {/* Part Link */}
+              {!formData.isDepotRepair && (
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Part Link {formData.isDepotRepair ? '' : '*'}
+                  Part Link *
                 </label>
                 <input
                   type="url"
@@ -411,12 +411,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   onChange={handleInputChange}
                   placeholder="https://"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
-                  required={!formData.isDepotRepair}
+                  required
                 />
-                {formData.isDepotRepair && (
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Required before advancing from 'In Transit'</p>
-                )}
               </div>
+              )}
             </div>
           </form>
 
