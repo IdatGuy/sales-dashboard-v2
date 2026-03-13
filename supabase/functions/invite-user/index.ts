@@ -8,6 +8,7 @@ interface InvitePayload {
   name: string;
   role: UserRole;
   storeIds: string[];
+  hasDepotAccess?: boolean;
 }
 
 const UUID_RE =
@@ -80,7 +81,7 @@ Deno.serve(async (req: Request) => {
 
     // Parse invite payload
     const body: InvitePayload = await req.json();
-    const { email, name, role, storeIds } = body;
+    const { email, name, role, storeIds, hasDepotAccess } = body;
 
     if (!email || !name || !role || !storeIds || storeIds.length === 0) {
       return jsonError(
@@ -164,6 +165,14 @@ Deno.serve(async (req: Request) => {
         500,
         siteUrl
       );
+    }
+
+    // Set depot access if requested (profile was created by trigger with default false)
+    if (hasDepotAccess === true) {
+      await adminClient
+        .from("profiles")
+        .update({ has_depot_access: true })
+        .eq("id", newUserId);
     }
 
     return new Response(JSON.stringify({ success: true, userId: newUserId }), {

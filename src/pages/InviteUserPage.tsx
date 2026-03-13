@@ -24,6 +24,7 @@ const InviteUserPage: React.FC = () => {
     "employee"
   );
   const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
+  const [hasDepotAccess, setHasDepotAccess] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +74,7 @@ const InviteUserPage: React.FC = () => {
             name,
             role,
             storeIds: selectedStoreIds,
+            hasDepotAccess,
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -94,6 +96,7 @@ const InviteUserPage: React.FC = () => {
       setName("");
       setRole("employee");
       setSelectedStoreIds([]);
+      setHasDepotAccess(false);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to send invitation.";
@@ -197,6 +200,21 @@ const InviteUserPage: React.FC = () => {
                 ))}
               </div>
             )}
+          </div>
+
+          <div>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasDepotAccess}
+                onChange={(e) => setHasDepotAccess(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span className="text-sm font-medium">Depot Access</span>
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-7">
+              Grants access to orders across all stores.
+            </p>
           </div>
 
           <div className="flex justify-end">

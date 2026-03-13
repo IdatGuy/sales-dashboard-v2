@@ -13,7 +13,7 @@ interface EditUserModalProps {
   availableStores: Pick<Store, 'id' | 'name' | 'location'>[];
   callerRole: 'manager' | 'admin';
   onClose: () => void;
-  onSave: (userId: string, updates: { name: string; role: string; storeIds: string[] }) => Promise<void>;
+  onSave: (userId: string, updates: { name: string; role: string; storeIds: string[]; hasDepotAccess: boolean }) => Promise<void>;
 }
 
 const EditUserModal: React.FC<EditUserModalProps> = ({
@@ -26,6 +26,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   const [name, setName] = useState(user.name);
   const [role, setRole] = useState(user.role);
   const [storeIds, setStoreIds] = useState<string[]>(user.storeIds);
+  const [hasDepotAccess, setHasDepotAccess] = useState(user.hasDepotAccess);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -44,7 +45,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     setError('');
     setIsLoading(true);
     try {
-      await onSave(user.id, { name, role, storeIds });
+      await onSave(user.id, { name, role, storeIds, hasDepotAccess });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update user.');
@@ -137,6 +138,21 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                 ))}
               </div>
             )}
+          </div>
+
+          <div>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasDepotAccess}
+                onChange={(e) => setHasDepotAccess(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Depot Access</span>
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-7">
+              Grants access to orders across all stores.
+            </p>
           </div>
 
           <div className="flex justify-end space-x-3 pt-2">
@@ -276,7 +292,7 @@ const UsersPage: React.FC = () => {
 
   const handleSave = async (
     userId: string,
-    updates: { name: string; role: string; storeIds: string[] }
+    updates: { name: string; role: string; storeIds: string[]; hasDepotAccess: boolean }
   ) => {
     await usersService.updateUser(userId, updates);
     setListData((prev) => {
@@ -290,6 +306,7 @@ const UsersPage: React.FC = () => {
                 name: updates.name,
                 role: updates.role as ManagedUser['role'],
                 storeIds: updates.storeIds,
+                hasDepotAccess: updates.hasDepotAccess,
               }
             : u
         ),
@@ -405,7 +422,14 @@ const UsersPage: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <RoleBadge role={user.role} />
+                            <div className="flex items-center gap-2">
+                              <RoleBadge role={user.role} />
+                              {user.hasDepotAccess && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+                                  Depot
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-600 dark:text-gray-300">

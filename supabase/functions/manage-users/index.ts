@@ -111,7 +111,7 @@ Deno.serve(async (req: Request) => {
 
       let profilesQuery = adminClient
         .from("profiles")
-        .select("id, username, role, is_active")
+        .select("id, username, role, is_active, has_depot_access")
         .neq("id", callerUser.id);
 
       if (callerRole === "manager") {
@@ -130,6 +130,7 @@ Deno.serve(async (req: Request) => {
         username: string;
         role: UserRole;
         is_active: boolean;
+        has_depot_access: boolean;
       }[];
 
       // For managers: filter to users who share at least one store
@@ -184,6 +185,7 @@ Deno.serve(async (req: Request) => {
         email: emailMap[p.id] ?? "",
         role: p.role,
         isActive: p.is_active,
+        hasDepotAccess: p.has_depot_access ?? false,
         storeIds: storeAccessMap[p.id] ?? [],
       }));
 
@@ -196,7 +198,7 @@ Deno.serve(async (req: Request) => {
 
     // ── update ────────────────────────────────────────────────────────────────
     if (action === "update") {
-      const { userId, name, role, storeIds } = body;
+      const { userId, name, role, storeIds, hasDepotAccess } = body;
 
       if (!userId || !UUID_RE.test(userId)) {
         return jsonError("Invalid userId", 400, siteUrl);
@@ -285,6 +287,7 @@ Deno.serve(async (req: Request) => {
       const profileUpdate: Record<string, unknown> = {};
       if (name !== undefined) profileUpdate.username = name;
       if (role !== undefined) profileUpdate.role = role;
+      if (hasDepotAccess !== undefined) profileUpdate.has_depot_access = hasDepotAccess;
 
       if (Object.keys(profileUpdate).length > 0) {
         const { error: updateError } = await adminClient

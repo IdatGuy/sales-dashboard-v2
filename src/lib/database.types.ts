@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
   public: {
     Tables: {
       commissions: {
@@ -53,45 +58,150 @@ export type Database = {
           },
         ]
       }
-      documents: {
+      devices: {
         Row: {
-          category: string | null
-          content_type: string | null
-          created_at: string | null
-          file_size: number | null
-          file_url: string
+          brand: string
+          category: string
+          created_at: string
           id: string
           name: string
-          updated_at: string | null
-          uploaded_by: string | null
         }
         Insert: {
-          category?: string | null
-          content_type?: string | null
-          created_at?: string | null
-          file_size?: number | null
-          file_url: string
+          brand: string
+          category: string
+          created_at?: string
           id?: string
           name: string
-          updated_at?: string | null
-          uploaded_by?: string | null
         }
         Update: {
-          category?: string | null
-          content_type?: string | null
-          created_at?: string | null
-          file_size?: number | null
-          file_url?: string
+          brand?: string
+          category?: string
+          created_at?: string
           id?: string
           name?: string
-          updated_at?: string | null
-          uploaded_by?: string | null
         }
         Relationships: []
+      }
+      order_list: {
+        Row: {
+          cancellation_reason: string | null
+          check_in_date: string
+          created_at: string
+          cx_name: string
+          cx_phone: string
+          home_connect: boolean
+          id: string
+          is_depot_repair: boolean
+          notes: string | null
+          order_date: string | null
+          part_description: string | null
+          part_eta: string | null
+          part_link: string | null
+          return_required_reason: string | null
+          status: string
+          store_id: string
+          technician: string
+          wo_link: string
+          wo_number: string
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          check_in_date: string
+          created_at?: string
+          cx_name: string
+          cx_phone: string
+          home_connect?: boolean
+          id?: string
+          is_depot_repair?: boolean
+          notes?: string | null
+          order_date?: string | null
+          part_description?: string | null
+          part_eta?: string | null
+          part_link?: string | null
+          return_required_reason?: string | null
+          status?: string
+          store_id?: string
+          technician: string
+          wo_link: string
+          wo_number: string
+        }
+        Update: {
+          cancellation_reason?: string | null
+          check_in_date?: string
+          created_at?: string
+          cx_name?: string
+          cx_phone?: string
+          home_connect?: boolean
+          id?: string
+          is_depot_repair?: boolean
+          notes?: string | null
+          order_date?: string | null
+          part_description?: string | null
+          part_eta?: string | null
+          part_link?: string | null
+          return_required_reason?: string | null
+          status?: string
+          store_id?: string
+          technician?: string
+          wo_link?: string
+          wo_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_list_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_sheet: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          is_active: boolean
+          price: number | null
+          service_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          is_active?: boolean
+          price?: number | null
+          service_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          is_active?: boolean
+          price?: number | null
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_sheet_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_sheet_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
           created_at: string | null
+          has_depot_access: boolean
           id: string
           is_active: boolean
           role: Database["public"]["Enums"]["user_role"]
@@ -100,6 +210,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          has_depot_access?: boolean
           id: string
           is_active?: boolean
           role?: Database["public"]["Enums"]["user_role"]
@@ -108,6 +219,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          has_depot_access?: boolean
           id?: string
           is_active?: boolean
           role?: Database["public"]["Enums"]["user_role"]
@@ -127,7 +239,7 @@ export type Database = {
           home_connects: number | null
           home_plus: number | null
           repairs: number | null
-          sales_amount: number
+          sales_amount: number | null
           store_id: string
           updated_at: string | null
         }
@@ -141,7 +253,7 @@ export type Database = {
           home_connects?: number | null
           home_plus?: number | null
           repairs?: number | null
-          sales_amount?: number
+          sales_amount?: number | null
           store_id: string
           updated_at?: string | null
         }
@@ -155,7 +267,7 @@ export type Database = {
           home_connects?: number | null
           home_plus?: number | null
           repairs?: number | null
-          sales_amount?: number
+          sales_amount?: number | null
           store_id?: string
           updated_at?: string | null
         }
@@ -169,35 +281,89 @@ export type Database = {
           },
         ]
       }
+      sales_metric_definitions: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_builtin: boolean
+          is_deprecated: boolean
+          is_visible: boolean
+          key: string
+          label: string
+          sort_order: number
+          unit_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_builtin?: boolean
+          is_deprecated?: boolean
+          is_visible?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          unit_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_builtin?: boolean
+          is_deprecated?: boolean
+          is_visible?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          unit_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+        }
+        Relationships: []
+      }
       store_goals: {
         Row: {
           accessory_goal: number
           created_at: string | null
           home_connect_goal: number
-          id: string
           month: string
           sales_goal: number
-          store_id: string | null
+          store_id: string
           updated_at: string | null
         }
         Insert: {
           accessory_goal?: number
           created_at?: string | null
           home_connect_goal?: number
-          id?: string
           month: string
           sales_goal?: number
-          store_id?: string | null
+          store_id: string
           updated_at?: string | null
         }
         Update: {
           accessory_goal?: number
           created_at?: string | null
           home_connect_goal?: number
-          id?: string
           month?: string
           sales_goal?: number
-          store_id?: string | null
+          store_id?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -216,6 +382,7 @@ export type Database = {
           id: string
           location: string
           name: string
+          name_abbr: string | null
           updated_at: string | null
         }
         Insert: {
@@ -223,6 +390,7 @@ export type Database = {
           id?: string
           location: string
           name: string
+          name_abbr?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -230,6 +398,7 @@ export type Database = {
           id?: string
           location?: string
           name?: string
+          name_abbr?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -261,84 +430,6 @@ export type Database = {
             referencedRelation: "stores"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "user_store_access_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      order_list: {
-        Row: {
-          id: number
-          created_at: string
-          check_in_date: string
-          order_date: string | null
-          part_eta: string | null
-          home_connect: boolean
-          wo_number: string
-          part_description: string
-          technician: string
-          store_id: string
-          cx_name: string
-          cx_phone: string
-          notes: string | null
-          cancellation_reason: string | null
-          return_required_reason: string | null
-          status: 'need to order' | 'ordered' | 'received' | 'return required' | 'return authorized' | 'return complete' | 'completed' | 'cancelled'
-          wo_link: string
-          part_link: string
-        }
-        Insert: {
-          id?: number
-          created_at?: string
-          check_in_date: string
-          order_date?: string | null
-          part_eta?: string | null
-          home_connect?: boolean
-          wo_number: string
-          part_description: string
-          technician: string
-          store_id?: string
-          cx_name: string
-          cx_phone: string
-          notes?: string | null
-          cancellation_reason?: string | null
-          return_required_reason?: string | null
-          status?: 'need to order' | 'ordered' | 'received' | 'return required' | 'completed' | 'cancelled'
-          wo_link: string
-          part_link: string
-        }
-        Update: {
-          id?: number
-          created_at?: string
-          check_in_date?: string
-          order_date?: string | null
-          part_eta?: string | null
-          home_connect?: boolean
-          wo_number?: string
-          part_description?: string
-          technician?: string
-          store_id?: string
-          cx_name?: string
-          cx_phone?: string
-          notes?: string | null
-          cancellation_reason?: string | null
-          return_required_reason?: string | null
-          status?: 'need to order' | 'ordered' | 'received' | 'return required' | 'completed' | 'cancelled'
-          wo_link?: string
-          part_link?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "order_list_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
         ]
       }
     }
@@ -348,19 +439,27 @@ export type Database = {
     Functions: {
       search_price_sheet: {
         Args: { search_term: string }
-        Returns: Array<{
-          id: string
-          device_id: string
-          service_id: string
-          price: string
-          is_active: boolean
+        Returns: {
           created_at: string
-          device_name: string | null
-          service_name: string | null
-        }>
+          device_id: string
+          device_name: string
+          id: string
+          is_active: boolean
+          price: string
+          service_id: string
+          service_name: string
+        }[]
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
+      device_category:
+        | "Phone"
+        | "Tablet"
+        | "Computer"
+        | "Game Console"
+        | "Other"
       user_role: "employee" | "manager" | "admin"
     }
     CompositeTypes: {
@@ -369,21 +468,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -401,14 +504,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -424,14 +529,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -447,14 +554,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -462,14 +571,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
@@ -477,6 +588,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      device_category: ["Phone", "Tablet", "Computer", "Game Console", "Other"],
       user_role: ["employee", "manager", "admin"],
     },
   },

@@ -27,7 +27,7 @@ export const usersService = {
 
   async updateUser(
     userId: string,
-    updates: { name?: string; role?: string; storeIds?: string[] }
+    updates: { name?: string; role?: string; storeIds?: string[]; hasDepotAccess?: boolean }
   ): Promise<void> {
     await invoke('update', { userId, ...updates });
   },
