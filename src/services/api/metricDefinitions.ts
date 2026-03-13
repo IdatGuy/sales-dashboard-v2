@@ -4,7 +4,7 @@ export interface MetricDefinition {
   id: string;
   key: string;
   label: string;
-  unitType: 'currency' | 'count';
+  unitType: 'currency' | 'count' | 'percentage';
   isVisible: boolean;
   sortOrder: number;
   isBuiltin: boolean;
@@ -39,7 +39,7 @@ export async function getMetricDefinitions(): Promise<MetricDefinition[]> {
 
 export async function createMetricDefinition(
   label: string,
-  unitType: 'currency' | 'count'
+  unitType: 'currency' | 'count' | 'percentage'
 ): Promise<{ success: boolean; definition?: MetricDefinition; error?: string }> {
   const { data: existing } = await supabase
     .from('sales_metric_definitions')

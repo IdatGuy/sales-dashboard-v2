@@ -16,7 +16,7 @@ const MetricDefinitionsPanel: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newLabel, setNewLabel] = useState("");
-  const [newUnitType, setNewUnitType] = useState<"currency" | "count">("count");
+  const [newUnitType, setNewUnitType] = useState<"currency" | "count" | "percentage">("count");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [editingLabels, setEditingLabels] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -207,10 +207,12 @@ const MetricDefinitionsPanel: React.FC = () => {
               className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
                 def.unitType === "currency"
                   ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                  : def.unitType === "percentage"
+                  ? "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300"
                   : "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
               }`}
             >
-              {def.unitType === "currency" ? "$" : "#"}
+              {def.unitType === "currency" ? "$" : def.unitType === "percentage" ? "%" : "#"}
             </span>
 
             <button
@@ -270,11 +272,12 @@ const MetricDefinitionsPanel: React.FC = () => {
           />
           <select
             value={newUnitType}
-            onChange={(e) => setNewUnitType(e.target.value as "currency" | "count")}
+            onChange={(e) => setNewUnitType(e.target.value as "currency" | "count" | "percentage")}
             className="text-sm border border-gray-300 dark:border-gray-500 rounded px-2 py-1 bg-white dark:bg-gray-600 dark:text-white"
           >
             <option value="count">Count (#)</option>
             <option value="currency">Currency ($)</option>
+            <option value="percentage">Percentage (%)</option>
           </select>
           <button
             onClick={handleAddNew}

@@ -6,7 +6,7 @@ import Navbar from "../components/common/Navbar";
 import StoreSelector from "../components/common/StoreSelector";
 import PeriodNavigator from "../components/common/PeriodNavigator";
 import TimeFrameToggle from "../components/common/TimeFrameToggle";
-import SalesChart from "../components/dashboard/SalesChart";
+import MetricGroupChart from "../components/dashboard/MetricGroupChart";
 import GoalsProgress from "../components/dashboard/GoalsProgress";
 import SalesProjection from "../components/dashboard/SalesProjection";
 import EnterSalesModal from "../components/dashboard/EnterSalesModal";
@@ -24,6 +24,8 @@ const DashboardPage: React.FC = () => {
     salesData: contextSalesData,
     isLoading,
     updateStoreGoals,
+    visibleMetrics,
+    deprecatedMetrics,
   } = useDashboard();
   const { currentUser } = useAuth();
 
@@ -80,6 +82,40 @@ const DashboardPage: React.FC = () => {
 
   // Get filtered sales data for the current period
   const salesData = getSalesForPeriod();
+
+  // Group metrics by unit type for separate charts
+  const metricsByUnitType = useMemo(() => {
+    const groups: Record<string, typeof visibleMetrics> = {};
+    const allSalesData = timeFrame.period === "year"
+      ? contextSalesData.monthly
+      : contextSalesData.daily;
+
+    for (const unitType of ["currency", "count", "percentage"] as const) {
+      const visible = visibleMetrics.filter((m) => m.unitType === unitType);
+      const deprecatedWithData = deprecatedMetrics.filter(
+        (m) =>
+          m.unitType === unitType &&
+          allSalesData.some((sale) => {
+            if (m.isBuiltin) {
+              const prop = ({
+                accessory_sales: "accessorySales",
+                home_connects: "homeConnects",
+                home_plus: "homePlus",
+                cleanings: "cleanings",
+                repairs: "repairs",
+              } as Record<string, string>)[m.key];
+              return prop ? ((sale as any)[prop] ?? 0) > 0 : false;
+            }
+            return (sale.customMetrics[m.key] ?? 0) > 0;
+          })
+      );
+      const combined = [...visible, ...deprecatedWithData];
+      if (combined.length > 0) {
+        groups[unitType] = combined;
+      }
+    }
+    return groups;
+  }, [visibleMetrics, deprecatedMetrics, contextSalesData, timeFrame.period]);
 
   // Memoize expensive calculations
   const goalProgress = useMemo(() => {
@@ -215,11 +251,29 @@ const DashboardPage: React.FC = () => {
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Left Column */}
               <div className="flex-1 flex flex-col">
-                {/* Sales Chart */}
-                <div className="animate-slide-up mb-6">
-                  <SalesChart sales={salesData} />
-                </div>
-
+                {/* Per-unit-type metric charts (currency chart always shown and includes salesAmount) */}
+                {(["currency", "count", "percentage"] as const).map((unitType) => {
+                  const metrics = metricsByUnitType[unitType] ?? [];
+                  const isCurrency = unitType === "currency";
+                  // Always render the currency chart (salesAmount lives there); skip others if empty
+                  if (!isCurrency && metrics.length === 0) return null;
+                  const titles = {
+                    currency: `${timeFrame.label} Sales`,
+                    count: "Count Metrics",
+                    percentage: "Percentage Metrics",
+                  };
+                  return (
+                    <div key={unitType} className="animate-slide-up mb-6">
+                      <MetricGroupChart
+                        sales={salesData}
+                        metrics={metrics}
+                        unitType={unitType}
+                        title={titles[unitType]}
+                        includeSalesAmount={isCurrency}
+                      />
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Right Column */}

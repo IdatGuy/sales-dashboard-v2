@@ -16,7 +16,6 @@ import { Sale } from "../../types";
 import { useDashboard } from "../../context/DashboardContext";
 import { useTheme } from "../../context/ThemeContext";
 import { STORAGE_KEYS } from "../../lib/constants";
-import { getSaleValueForMetric } from "../../lib/metricUtils";
 
 ChartJS.register(
   CategoryScale,
@@ -35,22 +34,16 @@ interface SalesChartProps {
 }
 
 const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
-  const { timeFrame, visibleMetrics, deprecatedMetrics, salesData } = useDashboard();
+  const { timeFrame } = useDashboard();
   const { isDarkMode } = useTheme();
 
-  // Initialize showAccumulated from localStorage, defaulting to true
   const [showAccumulated, setShowAccumulated] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED);
     return saved !== null ? JSON.parse(saved) : true;
   });
 
-  const chartRef = React.useRef<ChartJS<
-    "line" | "bar",
-    number[],
-    string
-  > | null>(null);
+  const chartRef = React.useRef<ChartJS<"line" | "bar", number[], string> | null>(null);
 
-  // Save showAccumulated to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEYS.SALES_CHART_ACCUMULATED,
@@ -58,14 +51,13 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     );
   }, [showAccumulated]);
 
-  // Filter and process sales based on timeframe
   let displaySales = sales;
 
   // For yearly: aggregate daily sales into monthly totals
   if (timeFrame.period === "year") {
     const monthlyMap: { [key: string]: Sale } = {};
     sales.forEach((sale) => {
-      const monthKey = sale.date.substring(0, 7); // YYYY-MM
+      const monthKey = sale.date.substring(0, 7);
       if (!monthlyMap[monthKey]) {
         monthlyMap[monthKey] = {
           id: `${sale.storeId}-${monthKey}`,
@@ -99,40 +91,26 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     });
   }
 
-  // Prepare data based on time frame
   let data, ChartComponent, dateLabels: string[];
+
   if (timeFrame.period === "day") {
     ChartComponent = Bar;
     const mostRecent =
       displaySales.length > 0 ? [displaySales[displaySales.length - 1]] : [];
     dateLabels = mostRecent.map((sale) => sale.date);
-    const METRIC_COLORS_DARK = ["#fbbf24", "#34d399", "#f472b6", "#f87171", "#a78bfa", "#fb923c", "#60a5fa"];
-    const METRIC_COLORS_LIGHT = ["#f59e42", "#059669", "#ec4899", "#ef4444", "#8b5cf6", "#f97316", "#3b82f6"];
-    const deprecatedWithData = deprecatedMetrics.filter((m) =>
-      salesData.daily.some((sale) => getSaleValueForMetric(sale, m) > 0)
-    );
-    const allMetrics = [...visibleMetrics, ...deprecatedWithData];
     data = {
       labels: mostRecent.map((sale) => {
         const [year, month, day] = sale.date.split("-").map(Number);
-        const date = new Date(year, month - 1, day);
-        return date.toLocaleDateString(undefined, { weekday: "short" });
+        return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+          weekday: "short",
+        });
       }),
       datasets: [
         {
           label: "Sales",
           data: mostRecent.map((sale) => sale.salesAmount),
           backgroundColor: isDarkMode ? "#38bdf8" : "#2563eb",
-          yAxisID: "y-dollars",
         },
-        ...allMetrics.map((metric, i) => ({
-          label: metric.isDeprecated ? `${metric.label} (historical)` : metric.label,
-          data: mostRecent.map((sale) => getSaleValueForMetric(sale, metric)),
-          backgroundColor: (isDarkMode
-            ? METRIC_COLORS_DARK[i % METRIC_COLORS_DARK.length]
-            : METRIC_COLORS_LIGHT[i % METRIC_COLORS_LIGHT.length]) + (metric.isDeprecated ? "99" : ""),
-          yAxisID: metric.unitType === "currency" ? "y-dollars" : "y-counts",
-        })),
       ],
     };
   } else {
@@ -142,14 +120,14 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
       labels: displaySales.map((sale) => {
         if (timeFrame.period === "year") {
           const [year, month] = sale.date.split("-").map(Number);
-          const date = new Date(year, month - 1, 1);
-          return date.toLocaleDateString(undefined, {
+          return new Date(year, month - 1, 1).toLocaleDateString(undefined, {
             month: "short",
           });
         }
         const [year, month, day] = sale.date.split("-").map(Number);
-        const date = new Date(year, month - 1, day);
-        return date.toLocaleDateString(undefined, { weekday: "short" });
+        return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+          weekday: "short",
+        });
       }),
       datasets: [
         {
@@ -170,96 +148,19 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     };
   }
 
-  const baseScales = {
-    x: {
-      grid: { display: false },
-      ticks: { color: isDarkMode ? "#cbd5e1" : "#64748b" },
-    },
-  };
-
-  const scalesConfig =
-    timeFrame.period === "day"
-      ? {
-          ...baseScales,
-          "y-dollars": {
-            type: "linear" as const,
-            position: "left" as const,
-            beginAtZero: true,
-            grid: {
-              color: isDarkMode
-                ? "rgba(51, 65, 85, 0.5)"
-                : "rgba(203, 213, 225, 0.5)",
-            },
-            ticks: {
-              color: isDarkMode ? "#cbd5e1" : "#64748b",
-              callback: (value: any) => `$${value.toLocaleString()}`,
-            },
-            title: {
-              display: true,
-              text: "Dollars",
-              color: isDarkMode ? "#cbd5e1" : "#64748b",
-            },
-          },
-          "y-counts": {
-            type: "linear" as const,
-            position: "right" as const,
-            beginAtZero: true,
-            grid: { display: false }, // Keep grid lines off for the secondary axis for clarity
-            ticks: {
-              color: isDarkMode ? "#cbd5e1" : "#64748b",
-              callback: (value: any) => value.toLocaleString(),
-            },
-            title: {
-              display: true,
-              text: "Count",
-              color: isDarkMode ? "#cbd5e1" : "#64748b",
-            },
-          },
-        }
-      : {
-          ...baseScales,
-          y: {
-            // Single Y-axis for month/year view
-            type: "linear" as const,
-            position: "left" as const,
-            beginAtZero: true,
-            grid: {
-              color: isDarkMode
-                ? "rgba(51, 65, 85, 0.5)"
-                : "rgba(203, 213, 225, 0.5)",
-            },
-            ticks: {
-              color: isDarkMode ? "#cbd5e1" : "#64748b",
-              callback: (value: any) => `$${value.toLocaleString()}`,
-            },
-            title: {
-              display: true,
-              text: "Sales Amount",
-              color: isDarkMode ? "#cbd5e1" : "#64748b",
-            },
-          },
-        };
-
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: true,
-      },
+      legend: { display: true },
       tooltip: {
         backgroundColor: isDarkMode
           ? "rgba(30, 41, 59, 0.95)"
           : "rgba(255, 255, 255, 0.9)",
         titleColor: isDarkMode ? "#f1f5f9" : "#1e293b",
         bodyColor: isDarkMode ? "#cbd5e1" : "#334155",
-        titleFont: {
-          size: 14,
-          weight: "bold" as const,
-        },
-        bodyFont: {
-          size: 14,
-        },
+        titleFont: { size: 14, weight: "bold" as const },
+        bodyFont: { size: 14 },
         padding: 12,
         borderColor: isDarkMode
           ? "rgba(51, 65, 85, 0.7)"
@@ -268,48 +169,52 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
         displayColors: true,
         callbacks: {
           title: function (context: any) {
-            // context[0].dataIndex gives the index in the data array
             const idx = context[0].dataIndex;
-            // Use dateLabels to get the original date string
             const dateStr = dateLabels[idx];
-            // Parse date safely to avoid timezone issues
             const [year, month, day] = dateStr.split("-").map(Number);
-            const date = new Date(year, month - 1, day); // month is 0-indexed
-            return date.toLocaleDateString(undefined, {
+            return new Date(year, month - 1, day).toLocaleDateString(undefined, {
               month: "short",
               day: "numeric",
             });
           },
           label: function (context: any) {
             let label = context.dataset.label || "";
-            if (label) {
-              label += ": ";
-            }
+            if (label) label += ": ";
             if (context.parsed.y !== null) {
-              // For month/year view, or y-dollars in day view
-              if (
-                context.dataset.yAxisID === "y-dollars" ||
-                (!context.dataset.yAxisID && timeFrame.period !== "day")
-              ) {
-                label += `$${context.parsed.y.toLocaleString()}`;
-              } else {
-                // For y-counts in day view
-                label += context.parsed.y.toLocaleString();
-              }
+              label += `$${context.parsed.y.toLocaleString()}`;
             }
             return label;
           },
         },
       },
     },
-    scales: scalesConfig,
-    interaction: {
-      mode: "index" as const,
-      intersect: false,
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: isDarkMode ? "#cbd5e1" : "#64748b" },
+      },
+      y: {
+        type: "linear" as const,
+        position: "left" as const,
+        beginAtZero: true,
+        grid: {
+          color: isDarkMode
+            ? "rgba(51, 65, 85, 0.5)"
+            : "rgba(203, 213, 225, 0.5)",
+        },
+        ticks: {
+          color: isDarkMode ? "#cbd5e1" : "#64748b",
+          callback: (value: any) => `$${value.toLocaleString()}`,
+        },
+        title: {
+          display: true,
+          text: "Sales Amount",
+          color: isDarkMode ? "#cbd5e1" : "#64748b",
+        },
+      },
     },
-    animation: {
-      duration: 1000,
-    },
+    interaction: { mode: "index" as const, intersect: false },
+    animation: { duration: 1000 },
   };
 
   useEffect(() => {
@@ -318,7 +223,6 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     }
   }, [timeFrame, sales]);
 
-  // Handle no data
   if (!sales || sales.length === 0) {
     return (
       <div className="rounded-lg shadow-md p-4 bg-white dark:bg-gray-800 h-64 flex flex-col items-center justify-center">
@@ -332,7 +236,6 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     );
   }
 
-  // Use the timeFrame.label directly for the chart title
   function getChartTitle() {
     return `${timeFrame.label} Sales`;
   }

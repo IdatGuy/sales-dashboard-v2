@@ -209,7 +209,7 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
             {visibleMetrics.map((metric) => (
               <div key={metric.key}>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {metric.label} ({metric.unitType === "currency" ? "$" : "units"})
+                  {metric.label} ({metric.unitType === "currency" ? "$" : metric.unitType === "percentage" ? "%" : "units"})
                 </label>
                 <input {...numericInput(metric.key, metric.unitType === "currency")} />
               </div>
