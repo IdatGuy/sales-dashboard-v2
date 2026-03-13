@@ -17,6 +17,7 @@ import { MetricDefinition } from "../../services/api/metricDefinitions";
 import { useDashboard } from "../../context/DashboardContext";
 import { useTheme } from "../../context/ThemeContext";
 import { getSaleValueForMetric } from "../../lib/metricUtils";
+import { countBusinessDays } from "../../lib/dateUtils";
 
 ChartJS.register(
   CategoryScale,
@@ -46,7 +47,7 @@ interface MetricGroupChartProps {
 
 const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
   ({ sales = [], metrics, unitType, title, includeSalesAmount = false, showAccumulated, hideSundays }) => {
-    const { timeFrame } = useDashboard();
+    const { timeFrame, currentDate } = useDashboard();
     const { isDarkMode } = useTheme();
 
     const chartRef = React.useRef<ChartJS<"line" | "bar", number[], string> | null>(null);
@@ -124,6 +125,72 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
       });
     }
 
+    // --- Projection for incomplete current period ---
+    const today = new Date();
+    let isIncomplete = false;
+    let projectedSalesValue = 0;
+    const projectedMetricValues: Record<string, number> = {};
+    let projectedLabel = "";
+    let projectedDateLabel = "";
+
+    const selectedYear = currentDate.getFullYear();
+    const selectedMonth = currentDate.getMonth();
+
+    if (timeFrame.period === "month") {
+      const isCurrentMonth =
+        selectedYear === today.getFullYear() && selectedMonth === today.getMonth();
+      const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+      const currentDay = today.getDate();
+      if (isCurrentMonth && currentDay < daysInMonth) {
+        const completedDay = currentDay - 1;
+        const completedBizDays = countBusinessDays(1, completedDay, selectedYear, selectedMonth);
+        if (completedBizDays > 0) {
+          isIncomplete = true;
+          const currentTotal = displaySales.reduce((s, sale) => s + sale.salesAmount, 0);
+          const dailyAvg = currentTotal / completedBizDays;
+          const remainingBizDays = countBusinessDays(currentDay, daysInMonth, selectedYear, selectedMonth);
+          projectedSalesValue = showAccumulated
+            ? currentTotal + dailyAvg * remainingBizDays
+            : dailyAvg;
+          metrics.forEach((metric) => {
+            const mt = displaySales.reduce((s, sale) => s + getDisplayValue(sale, metric), 0);
+            const ma = mt / completedBizDays;
+            projectedMetricValues[metric.key] = showAccumulated
+              ? mt + ma * remainingBizDays
+              : ma;
+          });
+          const endDate = new Date(selectedYear, selectedMonth, daysInMonth);
+          projectedLabel = endDate.toLocaleDateString(undefined, { weekday: "short" });
+          projectedDateLabel = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+        }
+      }
+    } else if (timeFrame.period === "year") {
+      const isCurrentYear = selectedYear === today.getFullYear();
+      const currentMonth = today.getMonth();
+      if (isCurrentYear && currentMonth < 11) {
+        const completedMonths = currentMonth;
+        if (completedMonths > 0) {
+          isIncomplete = true;
+          const currentTotal = displaySales.reduce((s, sale) => s + sale.salesAmount, 0);
+          const monthlyAvg = currentTotal / completedMonths;
+          const remainingMonths = 12 - (currentMonth + 1);
+          projectedSalesValue = showAccumulated
+            ? currentTotal + monthlyAvg * remainingMonths
+            : monthlyAvg;
+          metrics.forEach((metric) => {
+            const mt = displaySales.reduce((s, sale) => s + getDisplayValue(sale, metric), 0);
+            const ma = mt / completedMonths;
+            projectedMetricValues[metric.key] = showAccumulated
+              ? mt + ma * remainingMonths
+              : ma;
+          });
+          projectedLabel = new Date(selectedYear, 11, 1).toLocaleDateString(undefined, { month: "short" });
+          projectedDateLabel = `${selectedYear}-12-01`;
+        }
+      }
+    }
+    // ------------------------------------------------
+
     const formatValue = (value: number) => {
       if (unitType === "currency") return `$${value.toLocaleString()}`;
       if (unitType === "percentage") return `${value}%`;
@@ -192,21 +259,41 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
         });
       });
 
+      if (isIncomplete) {
+        labels.push(projectedLabel);
+        dateLabels.push(projectedDateLabel);
+      }
+
+      const projectedIdx = labels.length - 1;
+
       const salesDataset = includeSalesAmount
         ? [
             {
               label: showAccumulated ? "Accumulated Sales" : "Sales",
-              data: accumulatedSales.map((sale) => sale.salesAmount),
+              data: [
+                ...accumulatedSales.map((sale) => sale.salesAmount),
+                ...(isIncomplete ? [Math.round(projectedSalesValue)] : []),
+              ],
               borderColor: primaryColor,
               backgroundColor: isDarkMode
                 ? "rgba(56, 189, 248, 0.1)"
                 : "rgba(37, 99, 235, 0.1)",
               tension: 0.4,
               fill: true,
-              pointRadius: 4,
-              pointBackgroundColor: primaryColor,
+              pointRadius: isIncomplete
+                ? (ctx: any) => ctx.dataIndex === projectedIdx ? 3 : 4
+                : 4,
+              pointBackgroundColor: isIncomplete
+                ? (ctx: any) => ctx.dataIndex === projectedIdx ? primaryColor + "80" : primaryColor
+                : primaryColor,
               pointBorderColor: "white",
               pointBorderWidth: 2,
+              segment: isIncomplete ? {
+                borderDash: (ctx: any) =>
+                  ctx.p1DataIndex === projectedIdx ? [6, 4] : undefined,
+                borderColor: (ctx: any) =>
+                  ctx.p1DataIndex === projectedIdx ? primaryColor + "99" : undefined,
+              } : undefined,
             },
           ]
         : [];
@@ -219,21 +306,35 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
             const color = isDarkMode
               ? METRIC_COLORS_DARK[i % METRIC_COLORS_DARK.length]
               : METRIC_COLORS_LIGHT[i % METRIC_COLORS_LIGHT.length];
+            const baseData = showAccumulated && accumulatedMetricData[metric.key]
+              ? accumulatedMetricData[metric.key]
+              : displaySales.map((sale) => getDisplayValue(sale, metric));
             return {
               label: metric.isDeprecated
                 ? `${metric.label} (historical)`
                 : showAccumulated ? `Accumulated ${metric.label}` : metric.label,
-              data: showAccumulated && accumulatedMetricData[metric.key]
-                ? accumulatedMetricData[metric.key]
-                : displaySales.map((sale) => getDisplayValue(sale, metric)),
+              data: [
+                ...baseData,
+                ...(isIncomplete ? [Math.round(projectedMetricValues[metric.key] ?? 0)] : []),
+              ],
               borderColor: color + (metric.isDeprecated ? "99" : ""),
               backgroundColor: color + (metric.isDeprecated ? "22" : "1a"),
               tension: 0.4,
               fill: false,
-              pointRadius: 4,
-              pointBackgroundColor: color,
+              pointRadius: isIncomplete
+                ? (ctx: any) => ctx.dataIndex === projectedIdx ? 3 : 4
+                : 4,
+              pointBackgroundColor: isIncomplete
+                ? (ctx: any) => ctx.dataIndex === projectedIdx ? color + "80" : color
+                : color,
               pointBorderColor: "white",
               pointBorderWidth: 2,
+              segment: isIncomplete ? {
+                borderDash: (ctx: any) =>
+                  ctx.p1DataIndex === projectedIdx ? [6, 4] : undefined,
+                borderColor: (ctx: any) =>
+                  ctx.p1DataIndex === projectedIdx ? color + "99" : undefined,
+              } : undefined,
             };
           }),
         ],
@@ -264,10 +365,13 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
               const idx = context[0].dataIndex;
               const dateStr = dateLabels[idx];
               const [year, month, day] = dateStr.split("-").map(Number);
-              return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+              const dateLabel = new Date(year, month - 1, day).toLocaleDateString(undefined, {
                 month: "short",
                 day: "numeric",
               });
+              return isIncomplete && idx === dateLabels.length - 1
+                ? `${dateLabel} (Projected)`
+                : dateLabel;
             },
             label: function (context: any) {
               let label = context.dataset.label || "";
