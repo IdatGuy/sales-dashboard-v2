@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { useDashboard } from "../context/DashboardContext";
 import { useAuth } from "../context/AuthContext";
+import { STORAGE_KEYS } from "../lib/constants";
 import Navbar from "../components/common/Navbar";
 import StoreSelector from "../components/common/StoreSelector";
 import PeriodNavigator from "../components/common/PeriodNavigator";
@@ -38,6 +39,15 @@ const DashboardPage: React.FC = () => {
   const [isEnterSalesOpen, setIsEnterSalesOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
 
+  const [showAccumulated, setShowAccumulated] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED);
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [hideSundays, setHideSundays] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.SALES_CHART_HIDE_SUNDAYS);
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+
   const handleGoalSave = (goals: {
     salesGoal: number;
     accessoryGoal: number;
@@ -47,6 +57,14 @@ const DashboardPage: React.FC = () => {
       updateStoreGoals(selectedStore.id, goals);
     }
   };
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED, JSON.stringify(showAccumulated));
+  }, [showAccumulated]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.SALES_CHART_HIDE_SUNDAYS, JSON.stringify(hideSundays));
+  }, [hideSundays]);
 
   // Load store goals when store or date changes (skip for yearly view)
   useEffect(() => {
@@ -251,6 +269,34 @@ const DashboardPage: React.FC = () => {
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Left Column */}
               <div className="flex-1 flex flex-col">
+                {/* Global chart controls */}
+                {(timeFrame.period === "month" || timeFrame.period === "year") && (
+                  <div className="flex items-center gap-4 mb-4">
+                    {(timeFrame.period === "month" || timeFrame.period === "year") && (
+                      <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={showAccumulated}
+                          onChange={() => setShowAccumulated((v) => !v)}
+                          className="form-checkbox"
+                        />
+                        <span>Accumulated</span>
+                      </label>
+                    )}
+                    {timeFrame.period === "month" && (
+                      <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={hideSundays}
+                          onChange={() => setHideSundays((v) => !v)}
+                          className="form-checkbox"
+                        />
+                        <span>Hide Sundays</span>
+                      </label>
+                    )}
+                  </div>
+                )}
+
                 {/* Per-unit-type metric charts (currency chart always shown and includes salesAmount) */}
                 {(["currency", "count", "percentage"] as const).map((unitType) => {
                   const metrics = metricsByUnitType[unitType] ?? [];
@@ -270,6 +316,8 @@ const DashboardPage: React.FC = () => {
                         unitType={unitType}
                         title={titles[unitType]}
                         includeSalesAmount={isCurrency}
+                        showAccumulated={showAccumulated}
+                        hideSundays={hideSundays}
                       />
                     </div>
                   );

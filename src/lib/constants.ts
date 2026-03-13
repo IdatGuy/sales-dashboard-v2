@@ -10,4 +10,5 @@ export const STORAGE_KEYS = {
   CURRENT_USER: 'currentUser',
   THEME: 'theme',
   SALES_CHART_ACCUMULATED: 'salesChart-showAccumulated',
+  SALES_CHART_HIDE_SUNDAYS: 'salesChart-hideSundays',
 } as const;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -16,7 +16,6 @@ import { Sale } from "../../types";
 import { MetricDefinition } from "../../services/api/metricDefinitions";
 import { useDashboard } from "../../context/DashboardContext";
 import { useTheme } from "../../context/ThemeContext";
-import { STORAGE_KEYS } from "../../lib/constants";
 import { getSaleValueForMetric } from "../../lib/metricUtils";
 
 ChartJS.register(
@@ -41,26 +40,16 @@ interface MetricGroupChartProps {
   title: string;
   /** When true, prepends salesAmount as the first dataset (used for the currency chart) */
   includeSalesAmount?: boolean;
+  showAccumulated: boolean;
+  hideSundays: boolean;
 }
 
 const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
-  ({ sales = [], metrics, unitType, title, includeSalesAmount = false }) => {
+  ({ sales = [], metrics, unitType, title, includeSalesAmount = false, showAccumulated, hideSundays }) => {
     const { timeFrame } = useDashboard();
     const { isDarkMode } = useTheme();
 
-    const [showAccumulated, setShowAccumulated] = useState(() => {
-      const saved = localStorage.getItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED);
-      return saved !== null ? JSON.parse(saved) : true;
-    });
-
     const chartRef = React.useRef<ChartJS<"line" | "bar", number[], string> | null>(null);
-
-    useEffect(() => {
-      localStorage.setItem(
-        STORAGE_KEYS.SALES_CHART_ACCUMULATED,
-        JSON.stringify(showAccumulated)
-      );
-    }, [showAccumulated]);
 
     // For yearly: aggregate daily sales into monthly totals
     let displaySales = sales;
@@ -92,6 +81,14 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
       displaySales = Object.values(monthlyMap).sort((a, b) =>
         a.date.localeCompare(b.date)
       );
+    }
+
+    // Filter out Sundays in month view (locations are always closed on Sundays)
+    if (timeFrame.period === "month" && hideSundays) {
+      displaySales = displaySales.filter((sale) => {
+        const [year, month, day] = sale.date.split("-").map(Number);
+        return new Date(year, month - 1, day).getDay() !== 0;
+      });
     }
 
     // For year-aggregated sales, builtin metric values were stored in customMetrics
@@ -342,17 +339,6 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
             {title}
           </h3>
-          {(timeFrame.period === "month" || timeFrame.period === "year") && (
-              <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
-                <input
-                  type="checkbox"
-                  checked={showAccumulated}
-                  onChange={() => setShowAccumulated((v: boolean) => !v)}
-                  className="form-checkbox"
-                />
-                <span>Accumulated</span>
-              </label>
-            )}
         </div>
         <div className="h-64">
           <ChartComponent
