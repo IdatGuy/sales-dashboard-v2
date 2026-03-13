@@ -4,16 +4,11 @@ import { useDashboard } from "../../context/DashboardContext";
 import { parseDateString, countBusinessDays } from "../../lib/dateUtils";
 
 interface SalesProjectionProps {
-  // Remove the props since we'll calculate internally
-  storeGoals?: {
-    salesGoal: number;
-    accessoryGoal: number;
-    homeConnectGoal: number;
-  };
+  projectionGoalValue?: number | null;
 }
 
 const SalesProjection: React.FC<SalesProjectionProps> = React.memo(
-  ({ storeGoals }) => {
+  ({ projectionGoalValue }) => {
     const { timeFrame, currentDate, salesData } = useDashboard();
 
     // Calculate projections based on timeframe and selected date
@@ -209,22 +204,20 @@ const SalesProjection: React.FC<SalesProjectionProps> = React.memo(
     let StatusIcon = CheckCircle;
 
     if (!isComplete) {
-      // For incomplete periods, compare projected total against store goals
-      let targetGoal = 50000; // Default fallback
+      // For incomplete periods, compare projected total against the total sales goal
+      let targetGoal = 0;
 
-      if (storeGoals?.salesGoal && storeGoals.salesGoal > 0) {
-        if (period === "month") {
-          targetGoal = storeGoals.salesGoal;
-        } else {
-          // For yearly, multiply monthly goal by 12
-          targetGoal = storeGoals.salesGoal * 12;
-        }
+      if (projectionGoalValue && projectionGoalValue > 0) {
+        targetGoal = period === "year" ? projectionGoalValue * 12 : projectionGoalValue;
       }
 
       const projectedPercentage =
-        targetGoal > 0 ? (projectedTotal / targetGoal) * 100 : 0;
+        targetGoal > 0 ? (projectedTotal / targetGoal) * 100 : null;
 
-      if (projectedPercentage >= 110) {
+      if (projectedPercentage === null) {
+        statusColor = "text-gray-400";
+        statusText = "No Goal Set";
+      } else if (projectedPercentage >= 110) {
         statusColor = "text-green-500";
         statusText = "Ahead of Goal";
       } else if (projectedPercentage >= 90) {

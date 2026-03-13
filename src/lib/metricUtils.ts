@@ -2,6 +2,7 @@ import { Sale } from '../types';
 import { MetricDefinition } from '../services/api/metricDefinitions';
 
 export const BUILTIN_KEY_TO_SALE_PROP: Record<string, keyof Sale> = {
+  total_sales: 'salesAmount',
   accessory_sales: 'accessorySales',
   home_connects: 'homeConnects',
   home_plus: 'homePlus',

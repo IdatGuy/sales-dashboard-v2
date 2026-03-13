@@ -338,32 +338,62 @@ export type Database = {
         }
         Relationships: []
       }
-      store_goals: {
+      goal_definitions: {
         Row: {
-          accessory_goal: number
+          id: string
+          name: string
+          metric_keys: string[]
+          unit_type: string
+          sort_order: number
+          is_deprecated: boolean
           created_at: string | null
-          home_connect_goal: number
-          month: string
-          sales_goal: number
-          store_id: string
           updated_at: string | null
         }
         Insert: {
-          accessory_goal?: number
+          id?: string
+          name: string
+          metric_keys: string[]
+          unit_type: string
+          sort_order?: number
+          is_deprecated?: boolean
           created_at?: string | null
-          home_connect_goal?: number
-          month: string
-          sales_goal?: number
-          store_id: string
           updated_at?: string | null
         }
         Update: {
-          accessory_goal?: number
+          id?: string
+          name?: string
+          metric_keys?: string[]
+          unit_type?: string
+          sort_order?: number
+          is_deprecated?: boolean
           created_at?: string | null
-          home_connect_goal?: number
-          month?: string
-          sales_goal?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      store_goals: {
+        Row: {
+          store_id: string // uuid
+          month: string
+          goal_definition_id: string
+          target_value: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          store_id: string
+          month: string
+          goal_definition_id: string
+          target_value?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
           store_id?: string
+          month?: string
+          goal_definition_id?: string
+          target_value?: number
+          created_at?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -372,6 +402,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_goals_goal_definition_id_fkey"
+            columns: ["goal_definition_id"]
+            isOneToOne: false
+            referencedRelation: "goal_definitions"
             referencedColumns: ["id"]
           },
         ]

@@ -8,11 +8,12 @@ import StoreSelector from "../components/common/StoreSelector";
 import PeriodNavigator from "../components/common/PeriodNavigator";
 import TimeFrameToggle from "../components/common/TimeFrameToggle";
 import MetricGroupChart from "../components/dashboard/MetricGroupChart";
-import GoalsProgress from "../components/dashboard/GoalsProgress";
+import GoalsProgress, { GoalProgressItem } from "../components/dashboard/GoalsProgress";
 import SalesProjection from "../components/dashboard/SalesProjection";
 import EnterSalesModal from "../components/dashboard/EnterSalesModal";
 import GoalSettingsModal from "../components/dashboard/GoalSettingsModal";
-import { goalsService } from "../services/api/goals";
+import { goalsService, StoreGoalsMap } from "../services/api/goals";
+import { getSaleValueForMetric } from "../lib/metricUtils";
 
 const DashboardPage: React.FC = () => {
   const {
@@ -24,18 +25,14 @@ const DashboardPage: React.FC = () => {
     getSalesForPeriod,
     salesData: contextSalesData,
     isLoading,
-    updateStoreGoals,
     visibleMetrics,
     deprecatedMetrics,
+    metricDefinitions,
+    activeGoalDefinitions,
   } = useDashboard();
   const { currentUser } = useAuth();
 
-  const [storeGoals, setStoreGoals] = useState({
-    salesGoal: 0,
-    accessoryGoal: 0,
-    homeConnectGoal: 0,
-  });
-
+  const [storeGoalsMap, setStoreGoalsMap] = useState<StoreGoalsMap>({});
   const [isEnterSalesOpen, setIsEnterSalesOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
 
@@ -48,16 +45,6 @@ const DashboardPage: React.FC = () => {
     return saved !== null ? JSON.parse(saved) : false;
   });
 
-  const handleGoalSave = (goals: {
-    salesGoal: number;
-    accessoryGoal: number;
-    homeConnectGoal: number;
-  }) => {
-    if (selectedStore) {
-      updateStoreGoals(selectedStore.id, goals);
-    }
-  };
-
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED, JSON.stringify(showAccumulated));
   }, [showAccumulated]);
@@ -66,37 +53,24 @@ const DashboardPage: React.FC = () => {
     localStorage.setItem(STORAGE_KEYS.SALES_CHART_HIDE_SUNDAYS, JSON.stringify(hideSundays));
   }, [hideSundays]);
 
+  const currentMonthStr = useMemo(
+    () =>
+      `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}`,
+    [currentDate]
+  );
+
   // Load store goals when store or date changes (skip for yearly view)
   useEffect(() => {
     if (selectedStore && timeFrame.period !== "year") {
-      const currentMonth = `${currentDate.getFullYear()}-${(
-        currentDate.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}`;
-      goalsService
-        .getStoreGoals(selectedStore.id, currentMonth)
-        .then((goals) => {
-          if (goals) {
-            setStoreGoals(goals);
-          } else {
-            // Reset to zeros when no goals found
-            setStoreGoals({
-              salesGoal: 0,
-              accessoryGoal: 0,
-              homeConnectGoal: 0,
-            });
-          }
-        });
-    } else if (timeFrame.period === "year") {
-      // Reset goals when in yearly view
-      setStoreGoals({
-        salesGoal: 0,
-        accessoryGoal: 0,
-        homeConnectGoal: 0,
+      goalsService.getStoreGoals(selectedStore.id, currentMonthStr).then((map) => {
+        setStoreGoalsMap(map);
       });
+    } else if (timeFrame.period === "year") {
+      setStoreGoalsMap({});
     }
-  }, [selectedStore, currentDate, timeFrame.period]);
+  }, [selectedStore, currentMonthStr, timeFrame.period]);
 
   // Get filtered sales data for the current period
   const salesData = getSalesForPeriod();
@@ -104,9 +78,10 @@ const DashboardPage: React.FC = () => {
   // Group metrics by unit type for separate charts
   const metricsByUnitType = useMemo(() => {
     const groups: Record<string, typeof visibleMetrics> = {};
-    const allSalesData = timeFrame.period === "year"
-      ? contextSalesData.monthly
-      : contextSalesData.daily;
+    const allSalesData =
+      timeFrame.period === "year"
+        ? contextSalesData.monthly
+        : contextSalesData.daily;
 
     for (const unitType of ["currency", "count", "percentage"] as const) {
       const visible = visibleMetrics.filter((m) => m.unitType === unitType);
@@ -116,13 +91,14 @@ const DashboardPage: React.FC = () => {
           allSalesData.some((sale) => {
             if (m.isBuiltin) {
               const prop = ({
+                total_sales: "salesAmount",
                 accessory_sales: "accessorySales",
                 home_connects: "homeConnects",
                 home_plus: "homePlus",
                 cleanings: "cleanings",
                 repairs: "repairs",
               } as Record<string, string>)[m.key];
-              return prop ? ((sale as any)[prop] ?? 0) > 0 : false;
+              return prop ? ((sale as Record<string, unknown>)[prop] ?? 0) > 0 : false;
             }
             return (sale.customMetrics[m.key] ?? 0) > 0;
           })
@@ -135,65 +111,43 @@ const DashboardPage: React.FC = () => {
     return groups;
   }, [visibleMetrics, deprecatedMetrics, contextSalesData, timeFrame.period]);
 
-  // Memoize expensive calculations
-  const goalProgress = useMemo(() => {
-    // Always use full month's sales data for goal calculations
+  // Build metric totals for goal progress calculation
+  const metricTotals = useMemo(() => {
     const monthlySales = contextSalesData.daily;
-    const totalAccessory = monthlySales.reduce(
-      (sum, sale) => sum + sale.accessorySales,
-      0
+    const totals: Record<string, number> = {};
+    for (const sale of monthlySales) {
+      for (const metric of metricDefinitions) {
+        totals[metric.key] = (totals[metric.key] ?? 0) + getSaleValueForMetric(sale, metric);
+      }
+    }
+    return totals;
+  }, [contextSalesData.daily, metricDefinitions]);
+
+  // Compute goal progress items (only goals with a non-zero target)
+  const goalProgressItems = useMemo((): GoalProgressItem[] => {
+    if (timeFrame.period === "year") return [];
+    return activeGoalDefinitions
+      .filter((g) => (storeGoalsMap[g.id] ?? 0) > 0)
+      .map((g) => {
+        const target = storeGoalsMap[g.id];
+        const current = g.metricKeys.reduce(
+          (sum, key) => sum + (metricTotals[key] ?? 0),
+          0
+        );
+        const percentage = target > 0 ? Math.round((current / target) * 100) : 0;
+        return { goalDefinition: g, current, target, percentage };
+      });
+  }, [activeGoalDefinitions, storeGoalsMap, metricTotals, timeFrame.period]);
+
+  // Find the total sales goal (a goal definition whose only metric key is 'total_sales')
+  const projectionGoalValue = useMemo(() => {
+    const totalSalesGoal = activeGoalDefinitions.find(
+      (g) => g.metricKeys.length === 1 && g.metricKeys[0] === "total_sales"
     );
-    const totalHomeConnect = monthlySales.reduce(
-      (sum, sale) => sum + sale.homeConnects,
-      0
-    );
-    const totalHomePlus = monthlySales.reduce(
-      (sum, sale) => sum + (sale.homePlus || 0),
-      0
-    );
-    const totalHomeConnectAndPlus = totalHomeConnect + totalHomePlus;
-
-    return {
-      accessory: {
-        current: totalAccessory,
-        goal: storeGoals.accessoryGoal,
-        percentage:
-          storeGoals.accessoryGoal > 0
-            ? Math.round((totalAccessory / storeGoals.accessoryGoal) * 100)
-            : 0,
-      },
-      homeConnect: {
-        current: totalHomeConnectAndPlus,
-        goal: storeGoals.homeConnectGoal,
-        percentage:
-          storeGoals.homeConnectGoal > 0
-            ? Math.round(
-                (totalHomeConnectAndPlus / storeGoals.homeConnectGoal) * 100
-              )
-            : 0,
-      },
-    };
-  }, [contextSalesData.daily, storeGoals]);
-
-  const currentTotal = useMemo(
-    () =>
-      contextSalesData.daily.reduce((sum, sale) => sum + sale.salesAmount, 0),
-    [contextSalesData.daily]
-  );
-
-
-  // Calculate sales progress for goals - always use monthly total
-  const salesProgress = useMemo(() => {
-    const salesPercentage =
-      storeGoals.salesGoal > 0
-        ? Math.round((currentTotal / storeGoals.salesGoal) * 100)
-        : 0;
-    return {
-      current: currentTotal,
-      goal: storeGoals.salesGoal,
-      percentage: salesPercentage,
-    };
-  }, [currentTotal, storeGoals.salesGoal]);
+    if (!totalSalesGoal) return null;
+    const target = storeGoalsMap[totalSalesGoal.id] ?? 0;
+    return target > 0 ? target : null;
+  }, [activeGoalDefinitions, storeGoalsMap]);
 
   const periodLabel = useMemo(() => {
     if (timeFrame.period === "day") {
@@ -297,11 +251,10 @@ const DashboardPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Per-unit-type metric charts (currency chart always shown and includes salesAmount) */}
+                {/* Per-unit-type metric charts */}
                 {(["currency", "count", "percentage"] as const).map((unitType) => {
                   const metrics = metricsByUnitType[unitType] ?? [];
                   const isCurrency = unitType === "currency";
-                  // Always render the currency chart (salesAmount lives there); skip others if empty
                   if (!isCurrency && metrics.length === 0) return null;
                   const titles = {
                     currency: `${timeFrame.label} Sales`,
@@ -326,23 +279,13 @@ const DashboardPage: React.FC = () => {
 
               {/* Right Column */}
               <div className="w-full lg:w-80 flex flex-col gap-6">
-                <div
-                  className="animate-slide-up"
-                  style={{ animationDelay: "0.1s" }}
-                >
-                  <SalesProjection storeGoals={storeGoals} />
+                <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
+                  <SalesProjection projectionGoalValue={projectionGoalValue} />
                 </div>
                 {/* Goals Progress - show for daily and monthly views */}
                 {timeFrame.period !== "year" && (
-                  <div
-                    className="animate-slide-up"
-                    style={{ animationDelay: "0.2s" }}
-                  >
-                    <GoalsProgress
-                      salesProgress={salesProgress}
-                      accessoryProgress={goalProgress.accessory}
-                      homeConnectProgress={goalProgress.homeConnect}
-                    />
+                  <div className="animate-slide-up" style={{ animationDelay: "0.2s" }}>
+                    <GoalsProgress items={goalProgressItems} />
                   </div>
                 )}
               </div>
@@ -360,12 +303,13 @@ const DashboardPage: React.FC = () => {
         store={selectedStore}
         isOpen={isGoalModalOpen}
         onClose={() => setIsGoalModalOpen(false)}
-        onSave={handleGoalSave}
-        currentMonth={`${currentDate.getFullYear()}-${(
-          currentDate.getMonth() + 1
-        )
-          .toString()
-          .padStart(2, "0")}`}
+        onSave={() => {
+          // Reload goals after save
+          goalsService.getStoreGoals(selectedStore.id, currentMonthStr).then((map) => {
+            setStoreGoalsMap(map);
+          });
+        }}
+        currentMonth={currentMonthStr}
       />
     </div>
   );

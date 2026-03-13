@@ -17,6 +17,10 @@ import {
   getMetricDefinitions,
   MetricDefinition,
 } from "../services/api/metricDefinitions";
+import {
+  listGoalDefinitions,
+  GoalDefinition,
+} from "../services/api/goalDefinitions";
 
 interface SalesData {
   daily: Sale[];
@@ -29,14 +33,6 @@ interface DashboardContextType {
   setSelectedStore: (store: Store) => void;
   setTimeFrame: (timeFrame: TimeFrame) => void;
   availableStores: Store[];
-  updateStoreGoals: (
-    storeId: string,
-    goals: {
-      salesGoal: number;
-      accessoryGoal: number;
-      homeConnectGoal: number;
-    }
-  ) => void;
   currentDate: Date;
   handlePrev: () => void;
   handleNext: () => void;
@@ -49,6 +45,9 @@ interface DashboardContextType {
   deprecatedMetrics: MetricDefinition[];
   isMetricsLoading: boolean;
   refreshMetricDefinitions: () => void;
+  goalDefinitions: GoalDefinition[];
+  activeGoalDefinitions: GoalDefinition[];
+  refreshGoalDefinitions: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -114,6 +113,26 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     getMetricDefinitions().then((defs) => {
       setMetricDefinitions(defs);
       setIsMetricsLoading(false);
+    });
+  }, []);
+
+  // Goal definitions state
+  const [goalDefinitions, setGoalDefinitions] = useState<GoalDefinition[]>([]);
+
+  const activeGoalDefinitions = useMemo(
+    () => goalDefinitions.filter((d) => !d.isDeprecated),
+    [goalDefinitions]
+  );
+
+  const refreshGoalDefinitions = React.useCallback(() => {
+    listGoalDefinitions().then((defs) => {
+      setGoalDefinitions(defs);
+    });
+  }, []);
+
+  useEffect(() => {
+    listGoalDefinitions().then((defs) => {
+      setGoalDefinitions(defs);
     });
   }, []);
 
@@ -303,25 +322,6 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     }
   };
 
-  const updateStoreGoals = (
-    storeId: string,
-    goals: {
-      salesGoal: number;
-      accessoryGoal: number;
-      homeConnectGoal: number;
-    }
-  ) => {
-    const updatedStores = stores.map((store) =>
-      store.id === storeId ? { ...store, ...goals } : store
-    );
-    setStores(updatedStores);
-
-    // Update selected store if it's the one being modified
-    if (selectedStore?.id === storeId) {
-      setSelectedStore({ ...selectedStore, ...goals });
-    }
-  };
-
   useEffect(() => {
     const fetchStores = async () => {
       if (currentUser && currentUser.userStoreAccess) {
@@ -391,7 +391,6 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     setSelectedStore: selectStore,
     setTimeFrame: setTimeFrameWithDate,
     availableStores: stores,
-    updateStoreGoals,
     currentDate,
     handlePrev,
     handleNext,
@@ -404,6 +403,9 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     deprecatedMetrics,
     isMetricsLoading,
     refreshMetricDefinitions,
+    goalDefinitions,
+    activeGoalDefinitions,
+    refreshGoalDefinitions,
   };
 
   return (

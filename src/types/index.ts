@@ -64,6 +64,15 @@ export interface GoalProgress {
   percentage: number;
 }
 
+export interface GoalDefinition {
+  id: string;
+  name: string;
+  metricKeys: string[];
+  unitType: 'currency' | 'count' | 'percentage';
+  sortOrder: number;
+  isDeprecated: boolean;
+}
+
 export interface TimeFrame {
   period: 'day' | 'month' | 'year';
   label: string;

@@ -2,6 +2,7 @@ import React from 'react';
 import Navbar from '../components/common/Navbar';
 import { useAuth } from '../context/AuthContext';
 import MetricDefinitionsPanel from '../components/admin/MetricDefinitionsPanel';
+import GoalDefinitionsPanel from '../components/admin/GoalDefinitionsPanel';
 
 const AdminPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -32,6 +33,10 @@ const AdminPage: React.FC = () => {
 
           <div className="mt-6">
             <MetricDefinitionsPanel />
+          </div>
+
+          <div className="mt-6">
+            <GoalDefinitionsPanel />
           </div>
         </div>
       </main>
