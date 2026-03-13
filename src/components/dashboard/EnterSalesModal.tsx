@@ -12,8 +12,11 @@ interface EnterSalesModalProps {
   onClose: () => void;
 }
 
-const today = new Date();
-const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+const getYesterdayStr = () => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+};
 
 const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
   store,
@@ -23,7 +26,7 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
   const { salesData, refreshSalesData, visibleMetrics } = useDashboard();
   const { currentUser } = useAuth();
 
-  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [selectedDate, setSelectedDate] = useState(getYesterdayStr);
   const [formValues, setFormValues] = useState<Record<string, string>>({
     salesAmount: "",
   });
