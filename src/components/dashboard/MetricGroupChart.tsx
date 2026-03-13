@@ -49,7 +49,6 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
     const { isDarkMode } = useTheme();
 
     const [showAccumulated, setShowAccumulated] = useState(() => {
-      if (!includeSalesAmount) return false;
       const saved = localStorage.getItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED);
       return saved !== null ? JSON.parse(saved) : true;
     });
@@ -57,13 +56,11 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
     const chartRef = React.useRef<ChartJS<"line" | "bar", number[], string> | null>(null);
 
     useEffect(() => {
-      if (includeSalesAmount) {
-        localStorage.setItem(
-          STORAGE_KEYS.SALES_CHART_ACCUMULATED,
-          JSON.stringify(showAccumulated)
-        );
-      }
-    }, [showAccumulated, includeSalesAmount]);
+      localStorage.setItem(
+        STORAGE_KEYS.SALES_CHART_ACCUMULATED,
+        JSON.stringify(showAccumulated)
+      );
+    }, [showAccumulated]);
 
     // For yearly: aggregate daily sales into monthly totals
     let displaySales = sales;
@@ -105,10 +102,9 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
       return getSaleValueForMetric(sale, metric);
     }
 
-    // Apply accumulated toggle to salesAmount only
+    // Apply accumulated toggle to salesAmount
     let accumulatedSales = displaySales;
     if (
-      includeSalesAmount &&
       (timeFrame.period === "month" || timeFrame.period === "year") &&
       showAccumulated
     ) {
@@ -116,6 +112,18 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
       accumulatedSales = displaySales.map((sale) => {
         runningTotal += sale.salesAmount;
         return { ...sale, salesAmount: runningTotal };
+      });
+    }
+
+    // Pre-compute accumulated values per metric key
+    const accumulatedMetricData: Record<string, number[]> = {};
+    if (showAccumulated && (timeFrame.period === "month" || timeFrame.period === "year")) {
+      metrics.forEach((metric) => {
+        let runningTotal = 0;
+        accumulatedMetricData[metric.key] = displaySales.map((sale) => {
+          runningTotal += getDisplayValue(sale, metric);
+          return runningTotal;
+        });
       });
     }
 
@@ -215,8 +223,12 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
               ? METRIC_COLORS_DARK[i % METRIC_COLORS_DARK.length]
               : METRIC_COLORS_LIGHT[i % METRIC_COLORS_LIGHT.length];
             return {
-              label: metric.isDeprecated ? `${metric.label} (historical)` : metric.label,
-              data: displaySales.map((sale) => getDisplayValue(sale, metric)),
+              label: metric.isDeprecated
+                ? `${metric.label} (historical)`
+                : showAccumulated ? `Accumulated ${metric.label}` : metric.label,
+              data: showAccumulated && accumulatedMetricData[metric.key]
+                ? accumulatedMetricData[metric.key]
+                : displaySales.map((sale) => getDisplayValue(sale, metric)),
               borderColor: color + (metric.isDeprecated ? "99" : ""),
               backgroundColor: color + (metric.isDeprecated ? "22" : "1a"),
               tension: 0.4,
@@ -330,8 +342,7 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
             {title}
           </h3>
-          {includeSalesAmount &&
-            (timeFrame.period === "month" || timeFrame.period === "year") && (
+          {(timeFrame.period === "month" || timeFrame.period === "year") && (
               <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
                 <input
                   type="checkbox"
