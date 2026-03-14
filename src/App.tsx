@@ -17,6 +17,7 @@ import AdminPage from "./pages/AdminPage";
 import InviteUserPage from "./pages/InviteUserPage";
 import UsersPage from "./pages/UsersPage";
 import SetPasswordPage from "./pages/SetPasswordPage";
+import MorningBriefingPage from "./pages/MorningBriefingPage";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -120,6 +121,16 @@ const AppContent = () => {
           ) : (
             <SetPasswordPage />
           )
+        }
+      />
+      <Route
+        path="/morning"
+        element={
+          <ProtectedRoute>
+            <DashboardProvider>
+              <MorningBriefingPage />
+            </DashboardProvider>
+          </ProtectedRoute>
         }
       />
       <Route path="*" element={<Navigate to="/dashboard" />} />

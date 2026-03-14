@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-import { LogOut, BarChart, Menu, X, Sun, Moon, Package, Shield, Tag, Users } from "lucide-react";
+import { LogOut, BarChart, Menu, X, Sun, Moon, Package, Shield, Tag, Users, Coffee } from "lucide-react";
 
 const Navbar: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -23,6 +23,7 @@ const Navbar: React.FC = () => {
 
   const navLinks = [
     { to: "/dashboard", icon: <BarChart size={18} />, label: "Dashboard" },
+    { to: "/morning", icon: <Coffee size={18} />, label: "Morning" },
     { to: "/orders", icon: <Package size={18} />, label: "Orders" },
     { to: "/prices", icon: <Tag size={18} />, label: "Price Sheet" },
   ];
