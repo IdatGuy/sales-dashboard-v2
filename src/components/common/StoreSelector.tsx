@@ -57,6 +57,7 @@ const StoreSelector: React.FC<StoreSelectorProps> = ({
   }, []);
 
   if ((!selectedStore && !selectedDepotStoreId) || userStores.length === 0) return null;
+  if (userStores.length === 1 && depotStores.length === 0) return null;
 
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
