@@ -117,6 +117,7 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
     const accumulatedMetricData: Record<string, number[]> = {};
     if (showAccumulated && (timeFrame.period === "month" || timeFrame.period === "year")) {
       metrics.forEach((metric) => {
+        if (metric.unitType === "percentage") return;
         let runningTotal = 0;
         accumulatedMetricData[metric.key] = displaySales.map((sale) => {
           runningTotal += getDisplayValue(sale, metric);
@@ -155,9 +156,9 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
           metrics.forEach((metric) => {
             const mt = displaySales.reduce((s, sale) => s + getDisplayValue(sale, metric), 0);
             const ma = mt / completedBizDays;
-            projectedMetricValues[metric.key] = showAccumulated
-              ? mt + ma * remainingBizDays
-              : ma;
+            projectedMetricValues[metric.key] = (metric.unitType === "percentage" || !showAccumulated)
+              ? ma
+              : mt + ma * remainingBizDays;
           });
           const endDate = new Date(selectedYear, selectedMonth, daysInMonth);
           projectedLabel = endDate.toLocaleDateString(undefined, { weekday: "short" });
@@ -180,9 +181,9 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
           metrics.forEach((metric) => {
             const mt = displaySales.reduce((s, sale) => s + getDisplayValue(sale, metric), 0);
             const ma = mt / completedMonths;
-            projectedMetricValues[metric.key] = showAccumulated
-              ? mt + ma * remainingMonths
-              : ma;
+            projectedMetricValues[metric.key] = (metric.unitType === "percentage" || !showAccumulated)
+              ? ma
+              : mt + ma * remainingMonths;
           });
           projectedLabel = new Date(selectedYear, 11, 1).toLocaleDateString(undefined, { month: "short" });
           projectedDateLabel = `${selectedYear}-12-01`;
@@ -306,13 +307,14 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
             const color = isDarkMode
               ? METRIC_COLORS_DARK[i % METRIC_COLORS_DARK.length]
               : METRIC_COLORS_LIGHT[i % METRIC_COLORS_LIGHT.length];
-            const baseData = showAccumulated && accumulatedMetricData[metric.key]
+            const isPercentage = metric.unitType === "percentage";
+            const baseData = (!isPercentage && showAccumulated && accumulatedMetricData[metric.key])
               ? accumulatedMetricData[metric.key]
               : displaySales.map((sale) => getDisplayValue(sale, metric));
             return {
               label: metric.isDeprecated
                 ? `${metric.label} (historical)`
-                : showAccumulated ? `Accumulated ${metric.label}` : metric.label,
+                : (showAccumulated && !isPercentage) ? `Accumulated ${metric.label}` : metric.label,
               data: [
                 ...baseData,
                 ...(isIncomplete ? [Math.round(projectedMetricValues[metric.key] ?? 0)] : []),
