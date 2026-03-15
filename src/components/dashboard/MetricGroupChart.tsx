@@ -39,14 +39,11 @@ interface MetricGroupChartProps {
   metrics: MetricDefinition[];
   unitType: "currency" | "count" | "percentage";
   title: string;
-  /** When true, prepends salesAmount as the first dataset (used for the currency chart) */
-  includeSalesAmount?: boolean;
   showAccumulated: boolean;
-  hideSundays: boolean;
 }
 
 const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
-  ({ sales = [], metrics, unitType, title, includeSalesAmount = false, showAccumulated, hideSundays }) => {
+  ({ sales = [], metrics, unitType, title, showAccumulated }) => {
     const { timeFrame, currentDate } = useDashboard();
     const { isDarkMode } = useTheme();
 
@@ -63,20 +60,13 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
             id: `${sale.storeId}-${monthKey}`,
             storeId: sale.storeId,
             date: `${monthKey}-01`,
-            salesAmount: 0,
-            accessorySales: 0,
-            homeConnects: 0,
-            homePlus: 0,
-            cleanings: 0,
-            repairs: 0,
-            customMetrics: {},
+            metrics: {},
           };
         }
-        monthlyMap[monthKey].salesAmount += sale.salesAmount;
         metrics.forEach((metric) => {
           const val = getSaleValueForMetric(sale, metric);
-          monthlyMap[monthKey].customMetrics[metric.key] =
-            (monthlyMap[monthKey].customMetrics[metric.key] ?? 0) + val;
+          monthlyMap[monthKey].metrics[metric.key] =
+            (monthlyMap[monthKey].metrics[metric.key] ?? 0) + val;
         });
       });
       displaySales = Object.values(monthlyMap).sort((a, b) =>
@@ -84,23 +74,7 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
       );
     }
 
-    // Filter out Sundays in month view (locations are always closed on Sundays)
-    if (timeFrame.period === "month" && hideSundays) {
-      displaySales = displaySales.filter((sale) => {
-        const [year, month, day] = sale.date.split("-").map(Number);
-        return new Date(year, month - 1, day).getDay() !== 0;
-      });
-    }
-
-    // For year-aggregated sales, builtin metric values were stored in customMetrics
-    function getDisplayValue(sale: Sale, metric: MetricDefinition): number {
-      if (timeFrame.period === "year") {
-        return sale.customMetrics[metric.key] ?? 0;
-      }
-      return getSaleValueForMetric(sale, metric);
-    }
-
-    // Apply accumulated toggle to salesAmount
+    // Apply accumulated toggle to gross_revenue
     let accumulatedSales = displaySales;
     if (
       (timeFrame.period === "month" || timeFrame.period === "year") &&
@@ -108,8 +82,8 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
     ) {
       let runningTotal = 0;
       accumulatedSales = displaySales.map((sale) => {
-        runningTotal += sale.salesAmount;
-        return { ...sale, salesAmount: runningTotal };
+        runningTotal += sale.metrics['gross_revenue'] ?? 0;
+        return { ...sale, metrics: { ...sale.metrics, gross_revenue: runningTotal } };
       });
     }
 
@@ -120,7 +94,7 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
         if (metric.unitType === "percentage") return;
         let runningTotal = 0;
         accumulatedMetricData[metric.key] = displaySales.map((sale) => {
-          runningTotal += getDisplayValue(sale, metric);
+          runningTotal += getSaleValueForMetric(sale, metric);
           return runningTotal;
         });
       });
@@ -147,18 +121,21 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
         const completedBizDays = countBusinessDays(1, completedDay, selectedYear, selectedMonth);
         if (completedBizDays > 0) {
           isIncomplete = true;
-          const currentTotal = displaySales.reduce((s, sale) => s + sale.salesAmount, 0);
+          const currentTotal = displaySales.reduce((s, sale) => s + (sale.metrics['gross_revenue'] ?? 0), 0);
           const dailyAvg = currentTotal / completedBizDays;
           const remainingBizDays = countBusinessDays(currentDay, daysInMonth, selectedYear, selectedMonth);
           projectedSalesValue = showAccumulated
             ? currentTotal + dailyAvg * remainingBizDays
             : dailyAvg;
           metrics.forEach((metric) => {
-            const mt = displaySales.reduce((s, sale) => s + getDisplayValue(sale, metric), 0);
-            const ma = mt / completedBizDays;
-            projectedMetricValues[metric.key] = (metric.unitType === "percentage" || !showAccumulated)
-              ? ma
-              : mt + ma * remainingBizDays;
+            if (metric.unitType === "percentage") {
+              const lastEntry = [...displaySales].reverse().find((s) => s.metrics[metric.key] !== undefined);
+              projectedMetricValues[metric.key] = lastEntry ? (lastEntry.metrics[metric.key] ?? 0) : 0;
+            } else {
+              const mt = displaySales.reduce((s, sale) => s + getSaleValueForMetric(sale, metric), 0);
+              const ma = mt / completedBizDays;
+              projectedMetricValues[metric.key] = showAccumulated ? mt + ma * remainingBizDays : ma;
+            }
           });
           const endDate = new Date(selectedYear, selectedMonth, daysInMonth);
           projectedLabel = endDate.toLocaleDateString(undefined, { weekday: "short" });
@@ -172,18 +149,21 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
         const completedMonths = currentMonth;
         if (completedMonths > 0) {
           isIncomplete = true;
-          const currentTotal = displaySales.reduce((s, sale) => s + sale.salesAmount, 0);
+          const currentTotal = displaySales.reduce((s, sale) => s + (sale.metrics['gross_revenue'] ?? 0), 0);
           const monthlyAvg = currentTotal / completedMonths;
           const remainingMonths = 12 - (currentMonth + 1);
           projectedSalesValue = showAccumulated
             ? currentTotal + monthlyAvg * remainingMonths
             : monthlyAvg;
           metrics.forEach((metric) => {
-            const mt = displaySales.reduce((s, sale) => s + getDisplayValue(sale, metric), 0);
-            const ma = mt / completedMonths;
-            projectedMetricValues[metric.key] = (metric.unitType === "percentage" || !showAccumulated)
-              ? ma
-              : mt + ma * remainingMonths;
+            if (metric.unitType === "percentage") {
+              const lastEntry = [...displaySales].reverse().find((s) => s.metrics[metric.key] !== undefined);
+              projectedMetricValues[metric.key] = lastEntry ? (lastEntry.metrics[metric.key] ?? 0) : 0;
+            } else {
+              const mt = displaySales.reduce((s, sale) => s + getSaleValueForMetric(sale, metric), 0);
+              const ma = mt / completedMonths;
+              projectedMetricValues[metric.key] = showAccumulated ? mt + ma * remainingMonths : ma;
+            }
           });
           projectedLabel = new Date(selectedYear, 11, 1).toLocaleDateString(undefined, { month: "short" });
           projectedDateLabel = `${selectedYear}-12-01`;
@@ -199,9 +179,6 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
     };
 
     const formatTick = (value: any) => formatValue(Number(value));
-
-    const salesColor = { dark: "#38bdf8", light: "#2563eb" };
-    const primaryColor = isDarkMode ? salesColor.dark : salesColor.light;
 
     let data, ChartComponent, dateLabels: string[];
 
@@ -219,23 +196,12 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
         });
       });
 
-      const salesDataset = includeSalesAmount
-        ? [
-            {
-              label: "Sales",
-              data: mostRecent.map((sale) => sale.salesAmount),
-              backgroundColor: primaryColor,
-            },
-          ]
-        : [];
-
       data = {
         labels,
         datasets: [
-          ...salesDataset,
           ...metrics.map((metric, i) => ({
             label: metric.isDeprecated ? `${metric.label} (historical)` : metric.label,
-            data: mostRecent.map((sale) => getDisplayValue(sale, metric)),
+            data: mostRecent.map((sale) => getSaleValueForMetric(sale, metric)),
             backgroundColor:
               (isDarkMode
                 ? METRIC_COLORS_DARK[i % METRIC_COLORS_DARK.length]
@@ -267,42 +233,9 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
 
       const projectedIdx = labels.length - 1;
 
-      const salesDataset = includeSalesAmount
-        ? [
-            {
-              label: showAccumulated ? "Accumulated Sales" : "Sales",
-              data: [
-                ...accumulatedSales.map((sale) => sale.salesAmount),
-                ...(isIncomplete ? [Math.round(projectedSalesValue)] : []),
-              ],
-              borderColor: primaryColor,
-              backgroundColor: isDarkMode
-                ? "rgba(56, 189, 248, 0.1)"
-                : "rgba(37, 99, 235, 0.1)",
-              tension: 0.4,
-              fill: true,
-              pointRadius: isIncomplete
-                ? (ctx: any) => ctx.dataIndex === projectedIdx ? 3 : 4
-                : 4,
-              pointBackgroundColor: isIncomplete
-                ? (ctx: any) => ctx.dataIndex === projectedIdx ? primaryColor + "80" : primaryColor
-                : primaryColor,
-              pointBorderColor: "white",
-              pointBorderWidth: 2,
-              segment: isIncomplete ? {
-                borderDash: (ctx: any) =>
-                  ctx.p1DataIndex === projectedIdx ? [6, 4] : undefined,
-                borderColor: (ctx: any) =>
-                  ctx.p1DataIndex === projectedIdx ? primaryColor + "99" : undefined,
-              } : undefined,
-            },
-          ]
-        : [];
-
       data = {
         labels,
         datasets: [
-          ...salesDataset,
           ...metrics.map((metric, i) => {
             const color = isDarkMode
               ? METRIC_COLORS_DARK[i % METRIC_COLORS_DARK.length]
@@ -310,7 +243,7 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
             const isPercentage = metric.unitType === "percentage";
             const baseData = (!isPercentage && showAccumulated && accumulatedMetricData[metric.key])
               ? accumulatedMetricData[metric.key]
-              : displaySales.map((sale) => getDisplayValue(sale, metric));
+              : displaySales.map((sale) => getSaleValueForMetric(sale, metric));
             return {
               label: metric.isDeprecated
                 ? `${metric.label} (historical)`

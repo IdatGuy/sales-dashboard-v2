@@ -230,44 +230,26 @@ export type Database = {
       }
       sales: {
         Row: {
-          accessory_sales: number | null
-          cleanings: number | null
           created_at: string | null
           created_by: string | null
-          custom_metrics: Json | null
           date: string
-          home_connects: number | null
-          home_plus: number | null
-          repairs: number | null
-          sales_amount: number | null
+          metrics: Json
           store_id: string
           updated_at: string | null
         }
         Insert: {
-          accessory_sales?: number | null
-          cleanings?: number | null
           created_at?: string | null
           created_by?: string | null
-          custom_metrics?: Json | null
           date: string
-          home_connects?: number | null
-          home_plus?: number | null
-          repairs?: number | null
-          sales_amount?: number | null
+          metrics?: Json
           store_id: string
           updated_at?: string | null
         }
         Update: {
-          accessory_sales?: number | null
-          cleanings?: number | null
           created_at?: string | null
           created_by?: string | null
-          custom_metrics?: Json | null
           date?: string
-          home_connects?: number | null
-          home_plus?: number | null
-          repairs?: number | null
-          sales_amount?: number | null
+          metrics?: Json
           store_id?: string
           updated_at?: string | null
         }

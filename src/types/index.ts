@@ -28,13 +28,7 @@ export interface Sale {
   id: string;
   storeId: string;
   date: string;
-  salesAmount: number;
-  accessorySales: number;
-  homeConnects: number;
-  homePlus: number;
-  cleanings: number;
-  repairs: number;
-  customMetrics: Record<string, number>;
+  metrics: Record<string, number>;
 }
 
 export interface Commission {

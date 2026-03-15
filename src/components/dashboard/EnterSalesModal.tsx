@@ -4,7 +4,6 @@ import { Store } from "../../types";
 import { useDashboard } from "../../context/DashboardContext";
 import { useAuth } from "../../context/AuthContext";
 import { upsertDailySales } from "../../services/api/sales";
-import { BUILTIN_KEY_TO_SALE_PROP } from "../../lib/metricUtils";
 
 interface EnterSalesModalProps {
   store: Store;
@@ -27,9 +26,7 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
   const { currentUser } = useAuth();
 
   const [selectedDate, setSelectedDate] = useState(getYesterdayStr);
-  const [formValues, setFormValues] = useState<Record<string, string>>({
-    salesAmount: "",
-  });
+  const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [existingRecord, setExistingRecord] = useState<boolean>(false);
@@ -44,19 +41,10 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
     const existing = salesData.daily.find((s) => s.date === selectedDate) ?? null;
     setExistingRecord(!!existing);
 
-    const newValues: Record<string, string> = {
-      salesAmount: existing?.salesAmount ? String(existing.salesAmount) : "",
-    };
-
+    const newValues: Record<string, string> = {};
     visibleMetrics.forEach((m) => {
-      if (m.isBuiltin) {
-        const prop = BUILTIN_KEY_TO_SALE_PROP[m.key];
-        const val = existing && prop ? (existing[prop] as number) : 0;
-        newValues[m.key] = val ? String(val) : "";
-      } else {
-        const val = existing?.customMetrics[m.key] ?? 0;
-        newValues[m.key] = val ? String(val) : "";
-      }
+      const val = existing?.metrics[m.key] ?? 0;
+      newValues[m.key] = val ? String(val) : "";
     });
 
     setFormValues(newValues);
@@ -72,9 +60,9 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
     e.preventDefault();
     setValidationError(null);
 
-    const salesAmountNum = Number(formValues.salesAmount);
-    if (!formValues.salesAmount || isNaN(salesAmountNum)) {
-      setValidationError("Sales amount is required and must be a valid number.");
+    const grossRevenueNum = Number(formValues["gross_revenue"]);
+    if (!formValues["gross_revenue"] || isNaN(grossRevenueNum)) {
+      setValidationError("Gross revenue is required and must be a valid number.");
       return;
     }
 
@@ -85,33 +73,18 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
 
     setIsLoading(true);
 
-    // Build payload: split visibleMetrics into builtin fields and custom metrics
-    const builtinPayload: Record<string, number | undefined> = {};
-    const customMetricsPayload: Record<string, number> = {};
-
+    const metricsPayload: Record<string, number> = {};
     visibleMetrics.forEach((m) => {
       const rawVal = formValues[m.key];
-      const numVal = rawVal ? Number(rawVal) : undefined;
-      if (m.isBuiltin) {
-        const prop = BUILTIN_KEY_TO_SALE_PROP[m.key] as string;
-        builtinPayload[prop] = numVal;
-      } else {
-        customMetricsPayload[m.key] = numVal ?? 0;
+      if (rawVal) {
+        metricsPayload[m.key] = Number(rawVal);
       }
     });
 
     const result = await upsertDailySales(
       store.id,
       selectedDate,
-      {
-        salesAmount: Number(formValues.salesAmount),
-        accessorySales: builtinPayload.accessorySales,
-        homeConnects: builtinPayload.homeConnects,
-        homePlus: builtinPayload.homePlus,
-        cleanings: builtinPayload.cleanings,
-        repairs: builtinPayload.repairs,
-        customMetrics: customMetricsPayload,
-      },
+      { metrics: metricsPayload },
       currentUser!.id
     );
 
@@ -202,17 +175,12 @@ const EnterSalesModal: React.FC<EnterSalesModalProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Sales Amount ($) <span className="text-red-500">*</span>
-              </label>
-              <input {...numericInput("salesAmount", true)} />
-            </div>
-
             {visibleMetrics.map((metric) => (
               <div key={metric.key}>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {metric.label} ({metric.unitType === "currency" ? "$" : metric.unitType === "percentage" ? "%" : "units"})
+                  {metric.label}{" "}
+                  ({metric.unitType === "currency" ? "$" : metric.unitType === "percentage" ? "%" : "units"})
+                  {metric.key === "gross_revenue" && <span className="text-red-500 ml-1">*</span>}
                 </label>
                 <input {...numericInput(metric.key, metric.unitType === "currency")} />
               </div>

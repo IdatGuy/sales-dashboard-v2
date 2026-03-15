@@ -39,7 +39,7 @@ const SalesProjection: React.FC<SalesProjectionProps> = React.memo(
         });
 
         const currentTotal = monthSales.reduce(
-          (sum, sale) => sum + sale.salesAmount,
+          (sum, sale) => sum + (sale.metrics['gross_revenue'] ?? 0),
           0
         );
 
@@ -128,7 +128,7 @@ const SalesProjection: React.FC<SalesProjectionProps> = React.memo(
         });
 
         const currentTotal = yearSales.reduce(
-          (sum, sale) => sum + sale.salesAmount,
+          (sum, sale) => sum + (sale.metrics['gross_revenue'] ?? 0),
           0
         );
 

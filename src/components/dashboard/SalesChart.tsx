@@ -63,16 +63,11 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
           id: `${sale.storeId}-${monthKey}`,
           storeId: sale.storeId,
           date: `${monthKey}-01`,
-          salesAmount: 0,
-          accessorySales: 0,
-          homeConnects: 0,
-          homePlus: 0,
-          cleanings: 0,
-          repairs: 0,
-          customMetrics: {},
+          metrics: { gross_revenue: 0 },
         };
       }
-      monthlyMap[monthKey].salesAmount += sale.salesAmount;
+      monthlyMap[monthKey].metrics['gross_revenue'] =
+        (monthlyMap[monthKey].metrics['gross_revenue'] ?? 0) + (sale.metrics['gross_revenue'] ?? 0);
     });
     displaySales = Object.values(monthlyMap).sort((a, b) =>
       a.date.localeCompare(b.date)
@@ -86,8 +81,8 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
   ) {
     let runningTotal = 0;
     displaySales = displaySales.map((sale) => {
-      runningTotal += sale.salesAmount;
-      return { ...sale, salesAmount: runningTotal };
+      runningTotal += sale.metrics['gross_revenue'] ?? 0;
+      return { ...sale, metrics: { ...sale.metrics, gross_revenue: runningTotal } };
     });
   }
 
@@ -108,7 +103,7 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
       datasets: [
         {
           label: "Sales",
-          data: mostRecent.map((sale) => sale.salesAmount),
+          data: mostRecent.map((sale) => sale.metrics['gross_revenue'] ?? 0),
           backgroundColor: isDarkMode ? "#38bdf8" : "#2563eb",
         },
       ],
@@ -132,7 +127,7 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
       datasets: [
         {
           label: showAccumulated ? "Accumulated Sales" : "Sales",
-          data: displaySales.map((sale) => sale.salesAmount),
+          data: displaySales.map((sale) => sale.metrics['gross_revenue'] ?? 0),
           borderColor: isDarkMode ? "#38bdf8" : "#2563eb",
           backgroundColor: isDarkMode
             ? "rgba(56, 189, 248, 0.1)"

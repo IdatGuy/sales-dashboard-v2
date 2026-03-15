@@ -16,24 +16,12 @@ function transformDbSaleToSale(dbSale: Sale): UISale {
     id: `${dbSale.store_id}-${dbSale.date}`,
     storeId: dbSale.store_id,
     date: dbSale.date,
-    salesAmount: dbSale.sales_amount ?? 0,
-    accessorySales: dbSale.accessory_sales ?? 0,
-    homeConnects: dbSale.home_connects ?? 0,
-    homePlus: dbSale.home_plus ?? 0,
-    cleanings: dbSale.cleanings ?? 0,
-    repairs: dbSale.repairs ?? 0,
-    customMetrics: (dbSale.custom_metrics as Record<string, number>) ?? {},
+    metrics: (dbSale.metrics as Record<string, number>) ?? {},
   };
 }
 
 export interface DailySalesInput {
-  salesAmount: number;
-  accessorySales?: number;
-  homeConnects?: number;
-  homePlus?: number;
-  cleanings?: number;
-  repairs?: number;
-  customMetrics?: Record<string, number>;
+  metrics: Record<string, number>;
 }
 
 export async function upsertDailySales(
@@ -48,13 +36,7 @@ export async function upsertDailySales(
       {
         store_id: storeId,
         date,
-        sales_amount: data.salesAmount,
-        accessory_sales: data.accessorySales ?? null,
-        home_connects: data.homeConnects ?? null,
-        home_plus: data.homePlus ?? null,
-        cleanings: data.cleanings ?? null,
-        repairs: data.repairs ?? null,
-        custom_metrics: data.customMetrics ?? {},
+        metrics: data.metrics,
         created_by: createdBy,
       },
       { onConflict: 'store_id,date' }
@@ -106,4 +88,41 @@ export async function getStoreMonthlySales(storeId: string, year: string): Promi
     return [];
   }
   return (data || []).map(transformDbSaleToSale);
+}
+
+export interface CsvSalesRow {
+  store_id: string;
+  date: string;
+  [metricKey: string]: string | number;
+}
+
+export async function bulkUpsertSalesFromCsv(
+  rows: Array<{ store_id: string; date: string; metrics: Record<string, number> }>,
+  createdBy: string
+): Promise<{ inserted: number; errors: string[] }> {
+  const records = rows.map((row) => ({
+    store_id: row.store_id,
+    date: row.date,
+    created_by: createdBy,
+    metrics: row.metrics,
+  }));
+
+  const CHUNK_SIZE = 50;
+  const errors: string[] = [];
+  let inserted = 0;
+
+  for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+    const chunk = records.slice(i, i + CHUNK_SIZE);
+    const { error, data } = await supabase
+      .from('sales')
+      .upsert(chunk, { onConflict: 'store_id,date' })
+      .select();
+    if (error) {
+      errors.push(`Rows ${i + 1}–${i + chunk.length}: ${error.message}`);
+    } else {
+      inserted += data?.length ?? chunk.length;
+    }
+  }
+
+  return { inserted, errors };
 }

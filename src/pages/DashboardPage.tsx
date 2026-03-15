@@ -40,18 +40,9 @@ const DashboardPage: React.FC = () => {
     const saved = localStorage.getItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED);
     return saved !== null ? JSON.parse(saved) : true;
   });
-  const [hideSundays, setHideSundays] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SALES_CHART_HIDE_SUNDAYS);
-    return saved !== null ? JSON.parse(saved) : false;
-  });
-
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED, JSON.stringify(showAccumulated));
   }, [showAccumulated]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SALES_CHART_HIDE_SUNDAYS, JSON.stringify(hideSundays));
-  }, [hideSundays]);
 
   const currentMonthStr = useMemo(
     () =>
@@ -88,20 +79,7 @@ const DashboardPage: React.FC = () => {
       const deprecatedWithData = deprecatedMetrics.filter(
         (m) =>
           m.unitType === unitType &&
-          allSalesData.some((sale) => {
-            if (m.isBuiltin) {
-              const prop = ({
-                total_sales: "salesAmount",
-                accessory_sales: "accessorySales",
-                home_connects: "homeConnects",
-                home_plus: "homePlus",
-                cleanings: "cleanings",
-                repairs: "repairs",
-              } as Record<string, string>)[m.key];
-              return prop ? ((sale as Record<string, unknown>)[prop] ?? 0) > 0 : false;
-            }
-            return (sale.customMetrics[m.key] ?? 0) > 0;
-          })
+          allSalesData.some((sale) => (sale.metrics[m.key] ?? 0) > 0)
       );
       const combined = [...visible, ...deprecatedWithData];
       if (combined.length > 0) {
@@ -111,13 +89,24 @@ const DashboardPage: React.FC = () => {
     return groups;
   }, [visibleMetrics, deprecatedMetrics, contextSalesData, timeFrame.period]);
 
-  // Build metric totals for goal progress calculation
+  // Build metric totals for goal progress calculation.
+  // Percentage metrics use the most recently entered value (running rate);
+  // all other metrics are summed across the month.
   const metricTotals = useMemo(() => {
-    const monthlySales = contextSalesData.daily;
+    const monthlySales = [...contextSalesData.daily].sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
     const totals: Record<string, number> = {};
-    for (const sale of monthlySales) {
-      for (const metric of metricDefinitions) {
-        totals[metric.key] = (totals[metric.key] ?? 0) + getSaleValueForMetric(sale, metric);
+    for (const metric of metricDefinitions) {
+      if (metric.unitType === "percentage") {
+        for (const sale of monthlySales) {
+          const val = sale.metrics[metric.key];
+          if (val !== undefined) totals[metric.key] = val;
+        }
+      } else {
+        for (const sale of monthlySales) {
+          totals[metric.key] = (totals[metric.key] ?? 0) + getSaleValueForMetric(sale, metric);
+        }
       }
     }
     return totals;
@@ -139,10 +128,10 @@ const DashboardPage: React.FC = () => {
       });
   }, [activeGoalDefinitions, storeGoalsMap, metricTotals, timeFrame.period]);
 
-  // Find the total sales goal (a goal definition whose only metric key is 'total_sales')
+  // Find the gross revenue goal (a goal definition whose only metric key is 'gross_revenue')
   const projectionGoalValue = useMemo(() => {
     const totalSalesGoal = activeGoalDefinitions.find(
-      (g) => g.metricKeys.length === 1 && g.metricKeys[0] === "total_sales"
+      (g) => g.metricKeys.length === 1 && g.metricKeys[0] === "gross_revenue"
     );
     if (!totalSalesGoal) return null;
     const target = storeGoalsMap[totalSalesGoal.id] ?? 0;
@@ -226,28 +215,15 @@ const DashboardPage: React.FC = () => {
                 {/* Global chart controls */}
                 {(timeFrame.period === "month" || timeFrame.period === "year") && (
                   <div className="flex items-center gap-4 mb-4">
-                    {(timeFrame.period === "month" || timeFrame.period === "year") && (
-                      <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
-                        <input
-                          type="checkbox"
-                          checked={showAccumulated}
-                          onChange={() => setShowAccumulated((v) => !v)}
-                          className="form-checkbox"
-                        />
-                        <span>Accumulated</span>
-                      </label>
-                    )}
-                    {timeFrame.period === "month" && (
-                      <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
-                        <input
-                          type="checkbox"
-                          checked={hideSundays}
-                          onChange={() => setHideSundays((v) => !v)}
-                          className="form-checkbox"
-                        />
-                        <span>Hide Sundays</span>
-                      </label>
-                    )}
+                    <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={showAccumulated}
+                        onChange={() => setShowAccumulated((v) => !v)}
+                        className="form-checkbox"
+                      />
+                      <span>Accumulated</span>
+                    </label>
                   </div>
                 )}
 
@@ -268,9 +244,7 @@ const DashboardPage: React.FC = () => {
                         metrics={metrics}
                         unitType={unitType}
                         title={titles[unitType]}
-                        includeSalesAmount={isCurrency}
                         showAccumulated={showAccumulated}
-                        hideSundays={hideSundays}
                       />
                     </div>
                   );
