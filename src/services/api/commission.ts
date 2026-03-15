@@ -1,5 +1,6 @@
 // services/api/commission.ts
 import { supabase } from '../../lib/supabase';
+import { logger } from '../../lib/logger';
 import { Database } from '../../lib/database.types';
 import { Commission } from '../../types';
 
@@ -23,31 +24,31 @@ function transformDbCommissionToCommission(dbCommission: DbCommission): Commissi
   };
 }
 
-export async function getUserCommission(userId: string, month: string): Promise<Commission | null> {
-  try {
-    const { data, error } = await supabase
-      .from('commissions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('month', month)
-      .single();
-
-    if (error) {
-      console.error('Error fetching user commission:', error);
-      return null;
-    }
-
-    if (!data) {
-      return null;
-    }
-
-    return transformDbCommissionToCommission(data);
-  } catch (error) {
-    console.error('Error fetching user commission:', error);
-    return null;
-  }
-}
-
 export const commissionService = {
-  getUserCommission,
+  async getUserCommission(userId: string, month: string): Promise<Commission | null> {
+    try {
+      const { data, error } = await supabase
+        .from('commissions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('month', month)
+        .single();
+
+      if (error) {
+        logger.error('Error fetching user commission:', error);
+        return null;
+      }
+
+      if (!data) {
+        return null;
+      }
+
+      return transformDbCommissionToCommission(data);
+    } catch (error: unknown) {
+      logger.error('Error fetching user commission:', error);
+      return null;
+    }
+  },
 };
+
+export const { getUserCommission } = commissionService;

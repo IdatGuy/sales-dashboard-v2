@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,12 +10,13 @@ import {
   Tooltip,
   Legend,
   Filler,
+  TooltipItem,
 } from "chart.js";
 import { Line, Bar } from "react-chartjs-2";
 import { Sale } from "../../types";
 import { useDashboard } from "../../context/DashboardContext";
 import { useTheme } from "../../context/ThemeContext";
-import { STORAGE_KEYS } from "../../lib/constants";
+import { aggregateDailySalesToMonthly, accumulateSales } from "../../lib/salesUtils";
 
 ChartJS.register(
   CategoryScale,
@@ -34,44 +35,16 @@ interface SalesChartProps {
 }
 
 const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
-  const { timeFrame } = useDashboard();
+  const { timeFrame, showAccumulated, setShowAccumulated } = useDashboard();
   const { isDarkMode } = useTheme();
 
-  const [showAccumulated, setShowAccumulated] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED);
-    return saved !== null ? JSON.parse(saved) : true;
-  });
-
   const chartRef = React.useRef<ChartJS<"line" | "bar", number[], string> | null>(null);
-
-  useEffect(() => {
-    localStorage.setItem(
-      STORAGE_KEYS.SALES_CHART_ACCUMULATED,
-      JSON.stringify(showAccumulated)
-    );
-  }, [showAccumulated]);
 
   let displaySales = sales;
 
   // For yearly: aggregate daily sales into monthly totals
   if (timeFrame.period === "year") {
-    const monthlyMap: { [key: string]: Sale } = {};
-    sales.forEach((sale) => {
-      const monthKey = sale.date.substring(0, 7);
-      if (!monthlyMap[monthKey]) {
-        monthlyMap[monthKey] = {
-          id: `${sale.storeId}-${monthKey}`,
-          storeId: sale.storeId,
-          date: `${monthKey}-01`,
-          metrics: { gross_revenue: 0 },
-        };
-      }
-      monthlyMap[monthKey].metrics['gross_revenue'] =
-        (monthlyMap[monthKey].metrics['gross_revenue'] ?? 0) + (sale.metrics['gross_revenue'] ?? 0);
-    });
-    displaySales = Object.values(monthlyMap).sort((a, b) =>
-      a.date.localeCompare(b.date)
-    );
+    displaySales = aggregateDailySalesToMonthly(sales);
   }
 
   // Accumulate sales if toggle is on and period is "month" or "year"
@@ -79,11 +52,7 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
     (timeFrame.period === "month" || timeFrame.period === "year") &&
     showAccumulated
   ) {
-    let runningTotal = 0;
-    displaySales = displaySales.map((sale) => {
-      runningTotal += sale.metrics['gross_revenue'] ?? 0;
-      return { ...sale, metrics: { ...sale.metrics, gross_revenue: runningTotal } };
-    });
+    displaySales = accumulateSales(displaySales);
   }
 
   let data, ChartComponent, dateLabels: string[];
@@ -163,7 +132,7 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
         borderWidth: 1,
         displayColors: true,
         callbacks: {
-          title: function (context: any) {
+          title: function (context: TooltipItem<"line" | "bar">[]) {
             const idx = context[0].dataIndex;
             const dateStr = dateLabels[idx];
             const [year, month, day] = dateStr.split("-").map(Number);
@@ -172,7 +141,7 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
               day: "numeric",
             });
           },
-          label: function (context: any) {
+          label: function (context: TooltipItem<"line" | "bar">) {
             let label = context.dataset.label || "";
             if (label) label += ": ";
             if (context.parsed.y !== null) {
@@ -199,7 +168,7 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
         },
         ticks: {
           color: isDarkMode ? "#cbd5e1" : "#64748b",
-          callback: (value: any) => `$${value.toLocaleString()}`,
+          callback: (value: number | string) => `$${Number(value).toLocaleString()}`,
         },
         title: {
           display: true,
@@ -255,9 +224,9 @@ const SalesChart: React.FC<SalesChartProps> = React.memo(({ sales = [] }) => {
       </div>
       <div className="h-64">
         <ChartComponent
-          ref={chartRef as any}
+          ref={chartRef as React.Ref<ChartJS<"line" | "bar", number[], string>>}
           data={data}
-          options={options as any}
+          options={options}
           className="animate-fade-in"
         />
       </div>

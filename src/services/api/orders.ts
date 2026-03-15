@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import { canTransition } from '../../lib/orderStatusConfig';
+import { logger } from '../../lib/logger';
 
 export interface Order {
   id: number;
@@ -25,10 +26,6 @@ export interface Order {
 
 export type UserRole = 'employee' | 'manager' | 'admin';
 
-export interface TransitionResult {
-  allowed: boolean;
-  reason?: string;
-}
 
 /**
  * Checks whether a status transition is permitted for the given user role.
@@ -40,7 +37,7 @@ export function can_transition(
   targetStatus: Order['status'],
   userRole: UserRole,
   hasDepotAccess: boolean = false
-): TransitionResult {
+): { allowed: boolean; reason?: string } {
   return canTransition(order, targetStatus, userRole, hasDepotAccess);
 }
 
@@ -93,13 +90,13 @@ export const ordersService = {
       const { data, error, count } = await query;
 
       if (error) {
-        console.error('Error fetching orders:', error);
+        logger.error('Error fetching orders:', error);
         return { orders: [], total: 0 };
       }
 
       return { orders: data as Order[], total: count ?? 0 };
-    } catch (error) {
-      console.error('Error fetching orders:', error);
+    } catch (error: unknown) {
+      logger.error('Error fetching orders:', error);
       return { orders: [], total: 0 };
     }
   },
@@ -126,7 +123,7 @@ export const ordersService = {
       }
       const { data, error } = await query;
       if (error) {
-        console.error('Error fetching distinct statuses:', error);
+        logger.error('Error fetching distinct statuses:', error);
         return [];
       }
       const seen = new Set<string>();
@@ -155,13 +152,13 @@ export const ordersService = {
         .single();
 
       if (error) {
-        console.error('Error fetching order:', error);
+        logger.error('Error fetching order:', error);
         return null;
       }
 
       return data as Order;
-    } catch (error) {
-      console.error('Error fetching order:', error);
+    } catch (error: unknown) {
+      logger.error('Error fetching order:', error);
       return null;
     }
   },
@@ -178,13 +175,13 @@ export const ordersService = {
         .single();
 
       if (error) {
-        console.error('Error creating order:', error);
+        logger.error('Error creating order:', error);
         return null;
       }
 
       return data as Order;
-    } catch (error) {
-      console.error('Error creating order:', error);
+    } catch (error: unknown) {
+      logger.error('Error creating order:', error);
       return null;
     }
   },
@@ -217,7 +214,7 @@ export const ordersService = {
       }
 
       return data as Order;
-    } catch (err) {
+    } catch (err: unknown) {
       // Re-throw our custom errors
       if (err instanceof Error) {
         throw err;
@@ -248,7 +245,7 @@ export const ordersService = {
       }
 
       return data as Order;
-    } catch (err) {
+    } catch (err: unknown) {
       if (err instanceof Error) {
         throw err;
       }
@@ -284,13 +281,13 @@ export const ordersService = {
         .eq('id', id);
 
       if (error) {
-        console.error('Error deleting order:', error);
+        logger.error('Error deleting order:', error);
         return false;
       }
 
       return true;
-    } catch (error) {
-      console.error('Error deleting order:', error);
+    } catch (error: unknown) {
+      logger.error('Error deleting order:', error);
       return false;
     }
   },

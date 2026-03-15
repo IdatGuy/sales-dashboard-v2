@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MoreVertical, X } from 'lucide-react';
 import { Order, ordersService, can_transition, UserRole } from '../../services/api/orders';
+import { logger } from '../../lib/logger';
 import { ALL_STATUSES } from '../../lib/orderStatusConfig';
 import CancelOrderModal from './CancelOrderModal';
 
@@ -63,8 +64,8 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
         onDelete(order.id);
         setIsMenuOpen(false);
       }
-    } catch (error) {
-      console.error('Error deleting order:', error);
+    } catch (error: unknown) {
+      logger.error('Error deleting order:', error);
       alert('Failed to delete order');
     } finally {
       setIsDeleting(false);
@@ -96,8 +97,8 @@ const OrderActionMenu: React.FC<OrderActionMenuProps> = ({
         setIsStatusModalOpen(false);
         setIsMenuOpen(false);
       }
-    } catch (error) {
-      console.error('Error updating order status:', error);
+    } catch (error: unknown) {
+      logger.error('Error updating order status:', error);
       alert('Failed to update order status');
     } finally {
       setIsUpdating(false);

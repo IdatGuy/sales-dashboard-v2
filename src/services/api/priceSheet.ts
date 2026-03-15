@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { logger } from '../../lib/logger';
 
 export interface PriceSheetRow {
   id: string;
@@ -30,13 +31,13 @@ export const priceSheetService = {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching price sheet:', error);
+        logger.error('Error fetching price sheet:', error);
         return [];
       }
 
       return (data || []) as PriceSheetRow[];
-    } catch (err) {
-      console.error('Error fetching price sheet:', err);
+    } catch (error: unknown) {
+      logger.error('Error fetching price sheet:', error);
       return [];
     }
   },
@@ -70,8 +71,8 @@ export const priceSheetService = {
         device_name: deviceMap[r.device_id] ?? null,
         service_name: serviceMap[r.service_id] ?? null,
       }));
-    } catch (err) {
-      console.error('Error fetching price sheets with names:', err);
+    } catch (error: unknown) {
+      logger.error('Error fetching price sheets with names:', error);
       return [];
     }
   },
@@ -82,12 +83,12 @@ export const priceSheetService = {
         search_term: searchTerm.trim(),
       });
       if (error) {
-        console.error('Error searching price sheet:', error);
+        logger.error('Error searching price sheet:', error);
         return [];
       }
       return (data || []) as PriceSheetRowWithNames[];
-    } catch (err) {
-      console.error('Error searching price sheet:', err);
+    } catch (error: unknown) {
+      logger.error('Error searching price sheet:', error);
       return [];
     }
   },

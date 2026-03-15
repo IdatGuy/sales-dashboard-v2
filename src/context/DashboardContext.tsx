@@ -7,6 +7,8 @@ import React, {
   useMemo,
 } from "react";
 import { Store, TimeFrame, Sale, CacheEntry } from "../types";
+import { CACHE_TTL_MS, LOCALE, STORAGE_KEYS, DEFAULT_SHOW_ACCUMULATED } from "../lib/constants";
+import { logger } from "../lib/logger";
 import {
   getStoreDailySales,
   getStoreMonthlySales,
@@ -48,6 +50,8 @@ interface DashboardContextType {
   goalDefinitions: GoalDefinition[];
   activeGoalDefinitions: GoalDefinition[];
   refreshGoalDefinitions: () => void;
+  showAccumulated: boolean;
+  setShowAccumulated: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -71,12 +75,14 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const [stores, setStores] = useState<Store[]>([]);
-  const [selectedStore, setSelectedStore] = useState<Store | null>(
-    stores[0] || null
-  );
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const [showAccumulated, setShowAccumulated] = useState<boolean>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED);
+    return saved !== null ? JSON.parse(saved) : DEFAULT_SHOW_ACCUMULATED;
+  });
   const [timeFrame, setTimeFrame] = useState<TimeFrame>({
     period: "month",
-    label: new Date().toLocaleDateString("en-US", {
+    label: new Date().toLocaleDateString(LOCALE, {
       month: "long",
       year: "numeric",
     }),
@@ -149,14 +155,13 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   const getCachedData = (
     cache: Map<string, CacheEntry>,
     key: string
   ): Sale[] | null => {
     const entry = cache.get(key);
-    if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
+    if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) {
       return entry.data;
     }
     return null;
@@ -206,8 +211,8 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
         }
 
         setSalesData({ daily, monthly });
-      } catch (error) {
-        console.error("Error fetching sales data:", error instanceof Error ? error.message : error);
+      } catch (error: unknown) {
+        logger.error("Error fetching sales data:", error instanceof Error ? error.message : String(error));
         setSalesData({ daily: [], monthly: [] });
       } finally {
         setIsLoading(false);
@@ -323,12 +328,17 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
   };
 
   useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED, JSON.stringify(showAccumulated));
+  }, [showAccumulated]);
+
+  useEffect(() => {
     const fetchStores = async () => {
       if (currentUser && currentUser.userStoreAccess) {
         const storeIds = currentUser.userStoreAccess.map(
           (a: { storeId: string }) => a.storeId
         );
         try {
+          let fetched: Store[];
           const assignedStores = await getStoresByIds(storeIds);
           if (currentUser.hasDepotAccess) {
             const allStores = await getAllStores();
@@ -336,31 +346,24 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
             for (const s of allStores) {
               if (!mergedMap.has(s.id)) mergedMap.set(s.id, s);
             }
-            setStores(Array.from(mergedMap.values()));
+            fetched = Array.from(mergedMap.values());
           } else {
-            setStores(assignedStores);
+            fetched = assignedStores;
           }
-        } catch (error) {
-          console.error("Error fetching stores:", error);
+          setStores(fetched);
+          setSelectedStore((prev) => prev ?? fetched[0] ?? null);
+        } catch (error: unknown) {
+          logger.error("Error fetching stores:", error);
           setStores([]);
+          setSelectedStore(null);
         }
       } else {
         setStores([]);
+        setSelectedStore(null);
       }
     };
     fetchStores();
   }, [currentUser]);
-
-  // Ensure selectedStore is set when stores are loaded
-  useEffect(() => {
-    if (stores.length > 0 && !selectedStore) {
-      setSelectedStore(stores[0]);
-    }
-    // If stores is empty, also clear selectedStore
-    if (stores.length === 0 && selectedStore) {
-      setSelectedStore(null);
-    }
-  }, [stores, selectedStore]);
 
   // Update timeFrame.label whenever currentDate or timeFrame.period changes
   useEffect(() => {
@@ -406,6 +409,8 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
     goalDefinitions,
     activeGoalDefinitions,
     refreshGoalDefinitions,
+    showAccumulated,
+    setShowAccumulated,
   };
 
   return (

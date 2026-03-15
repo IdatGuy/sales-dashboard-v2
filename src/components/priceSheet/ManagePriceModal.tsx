@@ -142,8 +142,8 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelet
 
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'An error occurred. Please try again.');
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'An error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -156,8 +156,8 @@ const ManagePriceModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, onDelet
       await priceSheetService.deletePriceEntry(editRow.id);
       onDelete?.();
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to delete entry.');
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Failed to delete entry.');
     } finally {
       setIsDeleting(false);
       setConfirmDelete(false);

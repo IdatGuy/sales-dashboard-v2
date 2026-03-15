@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { logger } from '../../lib/logger';
 
 // goalDefinitionId → targetValue
 export type StoreGoalsMap = Record<string, number>;
@@ -12,7 +13,7 @@ export const goalsService = {
       .eq('month', month);
 
     if (error) {
-      console.error('Error fetching store goals:', error);
+      logger.error('Error fetching store goals:', error);
       return {};
     }
 
@@ -49,29 +50,33 @@ export const goalsService = {
 
     if (toUpsert.length > 0) {
       ops.push(
-        supabase
-          .from('store_goals')
-          .upsert(toUpsert, { onConflict: 'store_id,month,goal_definition_id' })
-          .then((r) => ({ error: r.error }))
+        (async () => {
+          const r = await supabase
+            .from('store_goals')
+            .upsert(toUpsert, { onConflict: 'store_id,month,goal_definition_id' });
+          return { error: r.error };
+        })()
       );
     }
 
     if (toDelete.length > 0) {
       ops.push(
-        supabase
-          .from('store_goals')
-          .delete()
-          .eq('store_id', storeId)
-          .eq('month', month)
-          .in('goal_definition_id', toDelete)
-          .then((r) => ({ error: r.error }))
+        (async () => {
+          const r = await supabase
+            .from('store_goals')
+            .delete()
+            .eq('store_id', storeId)
+            .eq('month', month)
+            .in('goal_definition_id', toDelete);
+          return { error: r.error };
+        })()
       );
     }
 
     const results = await Promise.all(ops);
     const failed = results.find((r) => r.error);
     if (failed?.error) {
-      console.error('Error saving store goals:', failed.error);
+      logger.error('Error saving store goals:', failed.error);
       return { success: false };
     }
 

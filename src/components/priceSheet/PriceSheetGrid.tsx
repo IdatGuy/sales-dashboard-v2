@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { priceSheetService, PriceSheetRowWithNames, DeviceWithMeta } from '../../services/api/priceSheet';
+import { logger } from '../../lib/logger';
 
 interface PrePopulate {
   deviceId: string;
@@ -71,7 +72,7 @@ const PriceSheetGrid: React.FC<PriceSheetGridProps> = ({ refreshKey, onCellClick
         setDevices(devs);
         setServices(svcs);
       })
-      .catch((err) => console.error('Error loading grid data:', err))
+      .catch((err: unknown) => logger.error('Error loading grid data:', err))
       .finally(() => setIsLoading(false));
   }, [refreshKey]);
 

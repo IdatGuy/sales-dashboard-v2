@@ -8,6 +8,31 @@ import { ordersService, Order, can_transition, UserRole } from '../services/api/
 import { ALL_STATUSES, TERMINAL_STATUSES, getTransitionWarning } from '../lib/orderStatusConfig';
 import { useDashboard } from '../context/DashboardContext';
 import { Plus, Grid2x2, X, Search, AlertTriangle } from 'lucide-react';
+import { User } from '../types';
+
+interface OrderScope {
+  storeId?: string;
+  storeIds?: string[];
+  includeAllDepotOrders?: boolean;
+  depotOnlyStoreId?: string;
+}
+
+function resolveOrderScope(
+  user: User | null,
+  viewAllStores: boolean,
+  depotViewStoreId: string | null,
+  selectedStore: { id: string } | null,
+  isDepotUser: boolean
+): OrderScope {
+  if (viewAllStores && user?.userStoreAccess) {
+    const storeIds = user.userStoreAccess.map((a) => a.storeId);
+    return { storeIds, includeAllDepotOrders: isDepotUser };
+  } else if (depotViewStoreId) {
+    return { depotOnlyStoreId: depotViewStoreId };
+  } else {
+    return { storeId: selectedStore?.id };
+  }
+}
 
 const FALLBACK_STATUSES: Order['status'][] = ALL_STATUSES;
 const defaultActiveStatuses = (all: Order['status'][]) => all.filter(s => !TERMINAL_STATUSES.has(s));
@@ -94,14 +119,8 @@ const OrdersPage: React.FC = () => {
       setIsLoading(true);
       try {
         let result: { orders: Order[]; total: number };
-        if (viewAllStores && currentUser?.userStoreAccess) {
-          const storeIds = currentUser.userStoreAccess.map((access) => access.storeId);
-          result = await ordersService.getOrders(undefined, storeIds, statusFilters, currentPage, pageSize, debouncedSearchTerm, isDepotUser);
-        } else if (depotViewStoreId) {
-          result = await ordersService.getOrders(undefined, undefined, statusFilters, currentPage, pageSize, debouncedSearchTerm, false, depotViewStoreId);
-        } else {
-          result = await ordersService.getOrders(selectedStore?.id, undefined, statusFilters, currentPage, pageSize, debouncedSearchTerm);
-        }
+        const scope = resolveOrderScope(currentUser, viewAllStores, depotViewStoreId, selectedStore, isDepotUser);
+        result = await ordersService.getOrders(scope.storeId, scope.storeIds, statusFilters, currentPage, pageSize, debouncedSearchTerm, scope.includeAllDepotOrders, scope.depotOnlyStoreId);
         if (!aborted) {
           setOrders(result.orders);
           setTotalOrders(result.total);
@@ -127,14 +146,8 @@ const OrdersPage: React.FC = () => {
       setStatusesLoading(true);
       try {
         let fetched: Order['status'][];
-        if (viewAllStores && currentUser?.userStoreAccess) {
-          const storeIds = currentUser.userStoreAccess.map(a => a.storeId);
-          fetched = await ordersService.getDistinctStatuses(undefined, storeIds, isDepotUser);
-        } else if (depotViewStoreId) {
-          fetched = await ordersService.getDistinctStatuses(undefined, undefined, false, depotViewStoreId);
-        } else {
-          fetched = await ordersService.getDistinctStatuses(selectedStore?.id);
-        }
+        const scope = resolveOrderScope(currentUser, viewAllStores, depotViewStoreId, selectedStore, isDepotUser);
+        fetched = await ordersService.getDistinctStatuses(scope.storeId, scope.storeIds, scope.includeAllDepotOrders, scope.depotOnlyStoreId);
         if (!aborted) {
           const merged = Array.from(new Set([...fetched, ...FALLBACK_STATUSES])) as Order['status'][];
           setAvailableStatuses(merged);

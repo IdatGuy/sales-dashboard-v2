@@ -6,6 +6,7 @@ import React, {
   ReactNode,
 } from "react";
 import { supabase } from "../lib/supabase";
+import { logger } from "../lib/logger";
 import { User } from "../types";
 import { STORAGE_KEYS, ROLES } from "../lib/constants";
 import type { Session } from "@supabase/supabase-js";
@@ -128,8 +129,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const user = await buildUserFromSupabase(authData.user.id, email);
       setCurrentUser(user);
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch (error: unknown) {
+      logger.error("Login error:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -144,8 +145,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const appUser = await buildUserFromSupabase(user.id, user.email ?? "");
       setCurrentUser(appUser);
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(appUser));
-    } catch (error) {
-      console.error("loginWithSession error:", error);
+    } catch (error: unknown) {
+      logger.error("loginWithSession error:", error);
       throw error;
     } finally {
       setLoading(false);

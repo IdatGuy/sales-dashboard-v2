@@ -2,7 +2,6 @@ import React, { useMemo, useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { useDashboard } from "../context/DashboardContext";
 import { useAuth } from "../context/AuthContext";
-import { STORAGE_KEYS } from "../lib/constants";
 import Navbar from "../components/common/Navbar";
 import StoreSelector from "../components/common/StoreSelector";
 import PeriodNavigator from "../components/common/PeriodNavigator";
@@ -13,7 +12,7 @@ import SalesProjection from "../components/dashboard/SalesProjection";
 import EnterSalesModal from "../components/dashboard/EnterSalesModal";
 import GoalSettingsModal from "../components/dashboard/GoalSettingsModal";
 import { goalsService, StoreGoalsMap } from "../services/api/goals";
-import { getSaleValueForMetric } from "../lib/metricUtils";
+import { getSaleValueForMetric } from "../lib/salesUtils";
 
 const DashboardPage: React.FC = () => {
   const {
@@ -29,20 +28,14 @@ const DashboardPage: React.FC = () => {
     deprecatedMetrics,
     metricDefinitions,
     activeGoalDefinitions,
+    showAccumulated,
+    setShowAccumulated,
   } = useDashboard();
   const { currentUser } = useAuth();
 
   const [storeGoalsMap, setStoreGoalsMap] = useState<StoreGoalsMap>({});
   const [isEnterSalesOpen, setIsEnterSalesOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
-
-  const [showAccumulated, setShowAccumulated] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED);
-    return saved !== null ? JSON.parse(saved) : true;
-  });
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SALES_CHART_ACCUMULATED, JSON.stringify(showAccumulated));
-  }, [showAccumulated]);
 
   const currentMonthStr = useMemo(
     () =>

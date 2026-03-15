@@ -10,13 +10,16 @@ import {
   Tooltip,
   Legend,
   Filler,
+  TooltipItem,
+  ScriptableContext,
+  ScriptableLineSegmentContext,
 } from "chart.js";
 import { Line, Bar } from "react-chartjs-2";
 import { Sale } from "../../types";
 import { MetricDefinition } from "../../services/api/metricDefinitions";
 import { useDashboard } from "../../context/DashboardContext";
 import { useTheme } from "../../context/ThemeContext";
-import { getSaleValueForMetric } from "../../lib/metricUtils";
+import { getSaleValueForMetric, aggregateDailySalesToMonthly, accumulateSales } from "../../lib/salesUtils";
 import { countBusinessDays } from "../../lib/dateUtils";
 
 ChartJS.register(
@@ -52,26 +55,7 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
     // For yearly: aggregate daily sales into monthly totals
     let displaySales = sales;
     if (timeFrame.period === "year") {
-      const monthlyMap: { [key: string]: Sale } = {};
-      sales.forEach((sale) => {
-        const monthKey = sale.date.substring(0, 7);
-        if (!monthlyMap[monthKey]) {
-          monthlyMap[monthKey] = {
-            id: `${sale.storeId}-${monthKey}`,
-            storeId: sale.storeId,
-            date: `${monthKey}-01`,
-            metrics: {},
-          };
-        }
-        metrics.forEach((metric) => {
-          const val = getSaleValueForMetric(sale, metric);
-          monthlyMap[monthKey].metrics[metric.key] =
-            (monthlyMap[monthKey].metrics[metric.key] ?? 0) + val;
-        });
-      });
-      displaySales = Object.values(monthlyMap).sort((a, b) =>
-        a.date.localeCompare(b.date)
-      );
+      displaySales = aggregateDailySalesToMonthly(sales, metrics);
     }
 
     // Apply accumulated toggle to gross_revenue
@@ -80,11 +64,7 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
       (timeFrame.period === "month" || timeFrame.period === "year") &&
       showAccumulated
     ) {
-      let runningTotal = 0;
-      accumulatedSales = displaySales.map((sale) => {
-        runningTotal += sale.metrics['gross_revenue'] ?? 0;
-        return { ...sale, metrics: { ...sale.metrics, gross_revenue: runningTotal } };
-      });
+      accumulatedSales = accumulateSales(displaySales);
     }
 
     // Pre-compute accumulated values per metric key
@@ -92,11 +72,8 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
     if (showAccumulated && (timeFrame.period === "month" || timeFrame.period === "year")) {
       metrics.forEach((metric) => {
         if (metric.unitType === "percentage") return;
-        let runningTotal = 0;
-        accumulatedMetricData[metric.key] = displaySales.map((sale) => {
-          runningTotal += getSaleValueForMetric(sale, metric);
-          return runningTotal;
-        });
+        accumulatedMetricData[metric.key] = accumulateSales(displaySales, metric.key)
+          .map((sale) => sale.metrics[metric.key] ?? 0);
       });
     }
 
@@ -178,7 +155,7 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
       return value.toLocaleString();
     };
 
-    const formatTick = (value: any) => formatValue(Number(value));
+    const formatTick = (value: number | string) => formatValue(Number(value));
 
     let data, ChartComponent, dateLabels: string[];
 
@@ -257,17 +234,17 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
               tension: 0.4,
               fill: false,
               pointRadius: isIncomplete
-                ? (ctx: any) => ctx.dataIndex === projectedIdx ? 3 : 4
+                ? (ctx: ScriptableContext<"line">) => ctx.dataIndex === projectedIdx ? 3 : 4
                 : 4,
               pointBackgroundColor: isIncomplete
-                ? (ctx: any) => ctx.dataIndex === projectedIdx ? color + "80" : color
+                ? (ctx: ScriptableContext<"line">) => ctx.dataIndex === projectedIdx ? color + "80" : color
                 : color,
               pointBorderColor: "white",
               pointBorderWidth: 2,
               segment: isIncomplete ? {
-                borderDash: (ctx: any) =>
+                borderDash: (ctx: ScriptableLineSegmentContext) =>
                   ctx.p1DataIndex === projectedIdx ? [6, 4] : undefined,
-                borderColor: (ctx: any) =>
+                borderColor: (ctx: ScriptableLineSegmentContext) =>
                   ctx.p1DataIndex === projectedIdx ? color + "99" : undefined,
               } : undefined,
             };
@@ -296,7 +273,7 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
           borderWidth: 1,
           displayColors: true,
           callbacks: {
-            title: function (context: any) {
+            title: function (context: TooltipItem<"line" | "bar">[]) {
               const idx = context[0].dataIndex;
               const dateStr = dateLabels[idx];
               const [year, month, day] = dateStr.split("-").map(Number);
@@ -308,7 +285,7 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
                 ? `${dateLabel} (Projected)`
                 : dateLabel;
             },
-            label: function (context: any) {
+            label: function (context: TooltipItem<"line" | "bar">) {
               let label = context.dataset.label || "";
               if (label) label += ": ";
               if (context.parsed.y !== null) {
@@ -381,9 +358,9 @@ const MetricGroupChart: React.FC<MetricGroupChartProps> = React.memo(
         </div>
         <div className="h-64">
           <ChartComponent
-            ref={chartRef as any}
+            ref={chartRef as React.Ref<ChartJS<"line" | "bar", number[], string>>}
             data={data}
-            options={options as any}
+            options={options}
             className="animate-fade-in"
           />
         </div>

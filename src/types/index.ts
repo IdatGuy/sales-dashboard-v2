@@ -43,14 +43,6 @@ export interface Commission {
   };
 }
 
-export interface Document {
-  id: string;
-  name: string;
-  category: 'price' | 'training' | 'policy' | 'schedule';
-  fileUrl: string;
-  uploadedBy: string;
-  uploadedAt: string;
-}
 
 export interface GoalProgress {
   current: number;
@@ -72,8 +64,8 @@ export interface TimeFrame {
   label: string;
 }
 
-export interface CacheEntry<T = Sale[]> {
-  data: T;
+export interface CacheEntry {
+  data: Sale[];
   timestamp: number;
 }
 
