@@ -7,8 +7,7 @@ import StoreSelector from "../components/common/StoreSelector";
 import PeriodNavigator from "../components/common/PeriodNavigator";
 import TimeFrameToggle from "../components/common/TimeFrameToggle";
 import MetricGroupChart from "../components/dashboard/MetricGroupChart";
-import GoalsProgress, { GoalProgressItem } from "../components/dashboard/GoalsProgress";
-import SalesProjection from "../components/dashboard/SalesProjection";
+import SalesProjection, { GoalProgressItem } from "../components/dashboard/SalesProjection";
 import EnterSalesModal from "../components/dashboard/EnterSalesModal";
 import GoalSettingsModal from "../components/dashboard/GoalSettingsModal";
 import { goalsService, StoreGoalsMap } from "../services/api/goals";
@@ -121,16 +120,6 @@ const DashboardPage: React.FC = () => {
       });
   }, [activeGoalDefinitions, storeGoalsMap, metricTotals, timeFrame.period]);
 
-  // Find the gross revenue goal (a goal definition whose only metric key is 'gross_revenue')
-  const projectionGoalValue = useMemo(() => {
-    const totalSalesGoal = activeGoalDefinitions.find(
-      (g) => g.metricKeys.length === 1 && g.metricKeys[0] === "gross_revenue"
-    );
-    if (!totalSalesGoal) return null;
-    const target = storeGoalsMap[totalSalesGoal.id] ?? 0;
-    return target > 0 ? target : null;
-  }, [activeGoalDefinitions, storeGoalsMap]);
-
   const periodLabel = useMemo(() => {
     if (timeFrame.period === "day") {
       return currentDate.toLocaleString("default", {
@@ -204,7 +193,7 @@ const DashboardPage: React.FC = () => {
           ) : (
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Left Column */}
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col order-2 lg:order-1">
                 {/* Global chart controls */}
                 {(timeFrame.period === "month" || timeFrame.period === "year") && (
                   <div className="flex items-center gap-4 mb-4">
@@ -245,16 +234,12 @@ const DashboardPage: React.FC = () => {
               </div>
 
               {/* Right Column */}
-              <div className="w-full lg:w-80 flex flex-col gap-6">
+              <div className="w-full lg:w-80 flex flex-col gap-6 order-1 lg:order-2">
                 <div className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
-                  <SalesProjection projectionGoalValue={projectionGoalValue} />
+                  <SalesProjection
+                    goalProgressItems={timeFrame.period !== "year" ? goalProgressItems : []}
+                  />
                 </div>
-                {/* Goals Progress - show for daily and monthly views */}
-                {timeFrame.period !== "year" && (
-                  <div className="animate-slide-up" style={{ animationDelay: "0.2s" }}>
-                    <GoalsProgress items={goalProgressItems} />
-                  </div>
-                )}
               </div>
             </div>
           )}

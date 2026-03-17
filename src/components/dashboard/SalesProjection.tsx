@@ -1,279 +1,172 @@
 import React, { useMemo } from "react";
-import { TrendingUp, CheckCircle } from "lucide-react";
+import { TrendingUp, CheckCircle, AlertTriangle } from "lucide-react";
 import { useDashboard } from "../../context/DashboardContext";
-import { parseDateString, countBusinessDays } from "../../lib/dateUtils";
+import { formatDateToYMD } from "../../lib/dateUtils";
+import { GoalDefinition } from "../../services/api/goalDefinitions";
+
+export interface GoalProgressItem {
+  goalDefinition: GoalDefinition;
+  current: number;
+  target: number;
+  percentage: number;
+}
 
 interface SalesProjectionProps {
-  projectionGoalValue?: number | null;
+  goalProgressItems?: GoalProgressItem[];
+}
+
+const BAR_COLORS = [
+  "bg-primary-500 dark:bg-primary-400",
+  "bg-secondary-500 dark:bg-secondary-400",
+  "bg-accent-500 dark:bg-accent-400",
+  "bg-indigo-500 dark:bg-indigo-400",
+  "bg-teal-500 dark:bg-teal-400",
+];
+
+function formatValue(value: number, unitType: string): string {
+  if (unitType === "currency") return `$${value.toLocaleString()}`;
+  if (unitType === "percentage") return `${value.toLocaleString()}%`;
+  return value.toLocaleString();
 }
 
 const SalesProjection: React.FC<SalesProjectionProps> = React.memo(
-  ({ projectionGoalValue }) => {
-    const { timeFrame, currentDate, salesData } = useDashboard();
+  ({ goalProgressItems = [] }) => {
+    const { salesData, visibleMetrics } = useDashboard();
 
-    // Calculate projections based on timeframe and selected date
-    const projectionData = useMemo(() => {
-      const today = new Date();
-      const selectedYear = currentDate.getFullYear();
-      const selectedMonth = currentDate.getMonth();
+    const yesterday = useMemo(() => {
+      const t = new Date();
+      return new Date(t.getFullYear(), t.getMonth(), t.getDate() - 1);
+    }, []);
 
-      if (timeFrame.period === "day" || timeFrame.period === "month") {
-        // Both daily and monthly views show the same monthly projection
-        const daysInMonth = new Date(
-          selectedYear,
-          selectedMonth + 1,
-          0
-        ).getDate();
-        const isCurrentMonth =
-          selectedYear === today.getFullYear() &&
-          selectedMonth === today.getMonth();
-        const currentDay = isCurrentMonth ? today.getDate() : daysInMonth;
+    const yesterdayStr = formatDateToYMD(yesterday);
 
-        // Calculate month's total from daily sales data
-        const monthSales = salesData.daily.filter((sale) => {
-          const saleDate = parseDateString(sale.date);
-          return (
-            saleDate.getFullYear() === selectedYear &&
-            saleDate.getMonth() === selectedMonth
-          );
-        });
+    const yesterdayLabel = yesterday.toLocaleDateString("default", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
 
-        const currentTotal = monthSales.reduce(
-          (sum, sale) => sum + (sale.metrics['gross_revenue'] ?? 0),
-          0
-        );
+    const yesterdaySale = salesData.daily.find((s) => s.date === yesterdayStr) ?? null;
 
-        // If month is complete or we're viewing a past/future month
-        if (!isCurrentMonth || currentDay >= daysInMonth) {
-          return {
-            currentTotal,
-            projectedTotal: currentTotal,
-            isComplete: true,
-            period: "month",
-          };
-        }
+    const sortedMetrics = useMemo(
+      () => [...visibleMetrics].sort((a, b) => a.sortOrder - b.sortOrder),
+      [visibleMetrics]
+    );
 
-        // Calculate projection for incomplete current month
-        if (currentDay === 0) {
-          return {
-            currentTotal: 0,
-            projectedTotal: 0,
-            isComplete: false,
-            period: "month",
-          };
-        }
+    // Pace-based status: compare goal completion % against elapsed month %
+    const today = new Date();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const monthElapsedPct = ((today.getDate() - 1) / daysInMonth) * 100;
 
-        // Only count completed days (exclude today since it might not be complete)
-        const completedDay = currentDay - 1;
-
-        if (completedDay <= 0) {
-          // If no completed days yet, use current total as projection
-          return {
-            currentTotal,
-            projectedTotal: currentTotal,
-            isComplete: false,
-            period: "month",
-          };
-        }
-
-        // Count business days in completed period (excluding Sundays)
-        const completedBusinessDays = countBusinessDays(
-          1,
-          completedDay,
-          selectedYear,
-          selectedMonth
-        );
-
-        if (completedBusinessDays === 0) {
-          // If no completed business days, use current total as projection
-          return {
-            currentTotal,
-            projectedTotal: currentTotal,
-            isComplete: false,
-            period: "month",
-          };
-        }
-
-        // Calculate business day average (excluding Sundays from sales data)
-        // Formula: Total Sales ÷ Completed Business Days = Daily Average
-        // Then: Daily Average × Remaining Business Days = Additional Projected Sales
-        const businessDayAverage = currentTotal / completedBusinessDays;
-
-        // Count remaining business days in the month (excluding Sundays)
-        const remainingBusinessDays = countBusinessDays(
-          currentDay,
-          daysInMonth,
-          selectedYear,
-          selectedMonth
-        );
-
-        const projectedTotal =
-          currentTotal + businessDayAverage * remainingBusinessDays;
-
-        return {
-          currentTotal,
-          projectedTotal: Math.round(projectedTotal),
-          isComplete: false,
-          period: "month",
-        };
-      } else if (timeFrame.period === "year") {
-        // Yearly projection logic
-        const isCurrentYear = selectedYear === today.getFullYear();
-        const currentMonth = isCurrentYear ? today.getMonth() : 11; // 0-indexed, so 11 = December
-
-        // Calculate year's total from monthly sales data
-        const yearSales = salesData.monthly.filter((sale) => {
-          const saleDate = parseDateString(sale.date);
-          return saleDate.getFullYear() === selectedYear;
-        });
-
-        const currentTotal = yearSales.reduce(
-          (sum, sale) => sum + (sale.metrics['gross_revenue'] ?? 0),
-          0
-        );
-
-        // If year is complete or we're viewing a past/future year
-        if (!isCurrentYear || currentMonth >= 11) {
-          return {
-            currentTotal,
-            projectedTotal: currentTotal,
-            isComplete: true,
-            period: "year",
-          };
-        }
-
-        // Calculate projection for incomplete current year
-        // Only count completed months (exclude current month if it's not complete)
-        const isCurrentMonthComplete =
-          isCurrentYear &&
-          selectedYear === today.getFullYear() &&
-          currentMonth === today.getMonth();
-        const completedMonths = isCurrentMonthComplete
-          ? currentMonth
-          : currentMonth + 1; // Don't count incomplete current month
-
-        if (completedMonths === 0) {
-          return {
-            currentTotal: 0,
-            projectedTotal: 0,
-            isComplete: false,
-            period: "year",
-          };
-        }
-
-        const monthlyAverage = currentTotal / completedMonths;
-        const remainingMonths = 12 - (currentMonth + 1); // Remaining months after current month
-        const projectedTotal = currentTotal + monthlyAverage * remainingMonths;
-
-        return {
-          currentTotal,
-          projectedTotal: Math.round(projectedTotal),
-          isComplete: false,
-          period: "year",
-        };
-      }
-
-      // Default fallback
-      return {
-        currentTotal: 0,
-        projectedTotal: 0,
-        isComplete: true,
-        period: timeFrame.period,
-      };
-    }, [timeFrame, currentDate, salesData]);
-
-    const { currentTotal, projectedTotal, isComplete, period } = projectionData;
-
-    // Handle no data
-    if (!currentTotal && !projectedTotal) {
-      return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-64 flex flex-col items-center justify-center">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-            {timeFrame.period === "year" ? "Yearly" : "Monthly"} Projection
-          </h3>
-          <div className="flex items-center justify-center h-32">
-            <p className="text-gray-500">No sales data available</p>
-          </div>
-        </div>
-      );
-    }
-
-    // Determine status for incomplete periods
-    let statusColor = "text-gray-500";
-    let statusText = "Complete";
-    let StatusIcon = CheckCircle;
-
-    if (!isComplete) {
-      // For incomplete periods, compare projected total against the total sales goal
-      let targetGoal = 0;
-
-      if (projectionGoalValue && projectionGoalValue > 0) {
-        targetGoal = period === "year" ? projectionGoalValue * 12 : projectionGoalValue;
-      }
-
-      const projectedPercentage =
-        targetGoal > 0 ? (projectedTotal / targetGoal) * 100 : null;
-
-      if (projectedPercentage === null) {
-        statusColor = "text-gray-400";
-        statusText = "No Goal Set";
-      } else if (projectedPercentage >= 110) {
-        statusColor = "text-green-500";
-        statusText = "Ahead of Goal";
-      } else if (projectedPercentage >= 90) {
-        statusColor = "text-blue-500";
-        statusText = "On Track";
-      } else {
-        statusColor = "text-red-500";
-        statusText = "Behind Goal";
-      }
-      StatusIcon = TrendingUp;
-    }
+    const [featuredMetric, ...restMetrics] = sortedMetrics;
 
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-            {timeFrame.period === "year" ? "Yearly" : "Monthly"} Projection
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            Yesterday
           </h3>
-          <div
-            className={`flex items-center ${statusColor} dark:text-inherit text-sm font-medium`}
-          >
-            <StatusIcon size={16} className="mr-1" />
-            {statusText}
-          </div>
+          <span className="text-sm text-gray-500 dark:text-gray-400">{yesterdayLabel}</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-300 mb-1">
-              {period === "month" ? "Month to Date" : "Year to Date"}
-            </p>
-            <p className="text-2xl font-bold text-gray-800 dark:text-white">
-              ${currentTotal.toLocaleString()}
-            </p>
-          </div>
+        {!yesterdaySale ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500 py-2">
+            No data entered for yesterday
+          </p>
+        ) : (
+          <>
+            {/* Featured metric */}
+            {featuredMetric && (
+              <div className="mb-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                  {featuredMetric.label}
+                </p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  {formatValue(
+                    yesterdaySale.metrics[featuredMetric.key] ?? 0,
+                    featuredMetric.unitType
+                  )}
+                </p>
+              </div>
+            )}
 
-          <div className="text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-300 mb-1">
-              {isComplete
-                ? period === "month"
-                  ? "Month Total"
-                  : "Year Total"
-                : "Projected Total"}
-            </p>
-            <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-              ${projectedTotal.toLocaleString()}
-            </p>
-          </div>
-        </div>
+            {/* Remaining metrics grid */}
+            {restMetrics.length > 0 && (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2">
+                {restMetrics.map((metric) => (
+                  <div key={metric.key}>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {metric.label}
+                    </p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                      {formatValue(
+                        yesterdaySale.metrics[metric.key] ?? 0,
+                        metric.unitType
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
 
-        {isComplete && (
-          <div className="mt-4 text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {period === "month" ? "Month" : "Year"} completed - showing final
-              totals
+        {/* Goals section */}
+        {goalProgressItems.length > 0 && (
+          <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-4">
+            <p className="text-base font-bold text-gray-800 dark:text-gray-100 mb-4">
+              Goals Progress
             </p>
+            <div className="space-y-4">
+              {goalProgressItems.map((item, i) => {
+                let Icon = AlertTriangle;
+                let iconClass = "text-orange-500";
+                let valueClass = "text-orange-600 dark:text-orange-400";
+
+                if (item.percentage >= 100) {
+                  Icon = CheckCircle;
+                  iconClass = "text-green-500";
+                  valueClass = "text-green-600 dark:text-green-400";
+                } else if (item.percentage >= monthElapsedPct) {
+                  Icon = TrendingUp;
+                  iconClass = "text-blue-500";
+                  valueClass = "text-blue-600 dark:text-blue-400";
+                }
+
+                const clamped = Math.min(100, Math.max(0, item.percentage));
+                return (
+                  <div key={item.goalDefinition.id}>
+                    {/* Label row with icon */}
+                    <div className="flex justify-between items-center mb-1">
+                      <div className="flex items-center gap-2">
+                        <Icon size={16} className={`${iconClass} shrink-0`} />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                          {item.goalDefinition.name}
+                        </span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                        {clamped}%
+                      </span>
+                    </div>
+                    {/* Bar row */}
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                      <div
+                        className={`h-2.5 rounded-full ${BAR_COLORS[i % BAR_COLORS.length]} transition-all duration-1000 ease-out`}
+                        style={{ width: `${clamped}%` }}
+                      />
+                    </div>
+                    {/* Values row */}
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-300 mt-1">
+                      <span className={`font-semibold ${valueClass}`}>
+                        {formatValue(item.current, item.goalDefinition.unitType)}
+                      </span>
+                      <span>Goal: {formatValue(item.target, item.goalDefinition.unitType)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
