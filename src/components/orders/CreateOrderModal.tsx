@@ -54,10 +54,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     const { name, value, type } = e.target;
     if (type === 'checkbox') {
       const target = e.target as HTMLInputElement;
-      setFormData((prev) => ({
-        ...prev,
-        [name]: target.checked,
-      }));
+      setFormData((prev) => {
+        const updates: Partial<typeof prev> = { [name]: target.checked };
+        if (name === 'isDepotRepair' && target.checked) {
+          updates.part_description = '';
+          updates.part_link = '';
+        }
+        return { ...prev, ...updates };
+      });
     } else {
       setFormData((prev) => ({
         ...prev,
