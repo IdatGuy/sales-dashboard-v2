@@ -246,20 +246,22 @@ const OrderList: React.FC<OrderListProps> = ({
                   <div className="text-sm text-gray-900 dark:text-white">{order.cx_name}</div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">{order.cx_phone}</div>
                 </td>
-                <td className="px-6 py-4 text-sm max-w-xs truncate">
-                  {order.part_link ? (
-                    <a
-                      href={order.part_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {order.part_description ?? '-'}
-                    </a>
-                  ) : (
-                    <span className="text-gray-400">{order.part_description ?? '-'}</span>
-                  )}
+                <td className="px-6 py-4 text-sm max-w-xs">
+                  <span className="line-clamp-2">
+                    {order.part_link ? (
+                      <a
+                        href={order.part_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {order.part_description ?? '-'}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">{order.part_description ?? '-'}</span>
+                    )}
+                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                   {order.technician}
@@ -343,9 +345,9 @@ const OrderList: React.FC<OrderListProps> = ({
                     <span className="text-gray-400">No</span>
                   )}
                 </td>
-                <td className="px-6 py-4 text-sm max-w-xs truncate text-gray-700 dark:text-gray-300">
+                <td className="px-6 py-4 text-sm max-w-xs text-gray-700 dark:text-gray-300">
                   {order.notes ? (
-                    <span className="block truncate max-w-[18rem]" title={order.notes}>{order.notes}</span>
+                    <span className="line-clamp-2 max-w-[18rem]" title={order.notes}>{order.notes}</span>
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}
