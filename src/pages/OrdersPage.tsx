@@ -6,6 +6,7 @@ import OrderList from '../components/orders/OrderList';
 import CreateOrderModal from '../components/orders/CreateOrderModal';
 import { ordersService, Order, can_transition, UserRole } from '../services/api/orders';
 import { ALL_STATUSES, TERMINAL_STATUSES, getTransitionWarning } from '../lib/orderStatusConfig';
+import { formatDateToYMD } from '../lib/dateUtils';
 import { useDashboard } from '../context/DashboardContext';
 import { Plus, Grid2x2, X, Search, AlertTriangle } from 'lucide-react';
 import { User } from '../types';
@@ -281,15 +282,18 @@ const OrdersPage: React.FC = () => {
       }
       setIsUpdating(true);
       try {
+        const today = formatDateToYMD(new Date());
+        const orderDateUpdate = activeOrder.order_date ? {} : { order_date: today };
         await ordersService.updateOrder(activeOrder.id, {
           status: 'need to order',
           part_link: depotPartLink.trim() || activeOrder.part_link,
           part_description: depotPartDescription.trim() || activeOrder.part_description,
+          ...orderDateUpdate,
         });
         setOrders(prev =>
           prev
             .map(o => o.id === activeOrder.id
-              ? { ...o, status: 'need to order' as const, part_link: depotPartLink.trim() || activeOrder.part_link, part_description: depotPartDescription.trim() || activeOrder.part_description }
+              ? { ...o, status: 'need to order' as const, part_link: depotPartLink.trim() || activeOrder.part_link, part_description: depotPartDescription.trim() || activeOrder.part_description, ...orderDateUpdate }
               : o
             )
             .filter(o => statusFilters.includes(o.status))
