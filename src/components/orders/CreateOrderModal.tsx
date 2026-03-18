@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Order, ordersService } from '../../services/api/orders';
-import { Store } from '../../types';
+import { Store, AllowedDomain } from '../../types';
+import { allowedDomainsService, normalizeDomain } from '../../services/api/allowedDomains';
 
 type CopyableFields = Pick<Order, 'wo_number' | 'store_id' | 'check_in_date' | 'cx_name' | 'cx_phone' | 'home_connect' | 'wo_link'>;
 
@@ -40,11 +41,13 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState(() => getInitialFormData(initialData, availableStores));
+  const [allowedDomains, setAllowedDomains] = useState<AllowedDomain[]>([]);
 
   useEffect(() => {
     if (isOpen) {
       setFormData(getInitialFormData(initialData, availableStores));
       setError(null);
+      allowedDomainsService.getAllowedDomains().then(setAllowedDomains);
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -115,6 +118,22 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     } catch {
       setError('Links must be valid URLs');
       return;
+    }
+
+    // Validate part_link against allowlist
+    if (formData.part_link && allowedDomains.length > 0) {
+      let hostname: string;
+      try {
+        hostname = normalizeDomain(formData.part_link);
+      } catch {
+        setError('Part link must be a valid URL');
+        return;
+      }
+      if (!allowedDomains.some((d) => d.domain === hostname)) {
+        const names = allowedDomains.map((d) => d.label).join(', ');
+        setError(`Only links from the following sources are allowed: ${names}`);
+        return;
+      }
     }
 
     setIsLoading(true);

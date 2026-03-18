@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      allowed_part_link_domains: {
+        Row: {
+          id: string
+          domain: string
+          label: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          domain: string
+          label: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          domain?: string
+          label?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       commissions: {
         Row: {
           accessory_sales: number | null

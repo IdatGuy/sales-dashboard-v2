@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import MetricDefinitionsPanel from '../components/admin/MetricDefinitionsPanel';
 import GoalDefinitionsPanel from '../components/admin/GoalDefinitionsPanel';
 import CsvImportPanel from '../components/admin/CsvImportPanel';
+import AllowedDomainsPanel from '../components/admin/AllowedDomainsPanel';
 
 const AdminPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -23,6 +24,10 @@ const AdminPage: React.FC = () => {
 
           <div className="mt-6">
             <GoalDefinitionsPanel />
+          </div>
+
+          <div className="mt-6">
+            <AllowedDomainsPanel />
           </div>
 
           <div className="mt-6">

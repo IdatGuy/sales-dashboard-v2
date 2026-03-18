@@ -73,3 +73,10 @@ export interface UserStoreAccess {
   userId: string;
   storeId: string;
 }
+
+export interface AllowedDomain {
+  id: string;
+  domain: string;
+  label: string;
+  createdAt: string;
+}
