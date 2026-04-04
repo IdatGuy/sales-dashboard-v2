@@ -86,6 +86,7 @@ Key tables: `profiles`, `stores`, `sales`, `store_goals`, `goal_definitions`, `s
 - `/admin` — `admin` only; renders metric/goal definition panels and CSV import.
 - `/users` — `manager` + `admin`; list, edit, deactivate/reactivate users.
 - `StoreSelector` is hidden when the user has only one store.
+- Admins can move any order from any status to any other status. `canTransition()` (`src/lib/orderStatusConfig.ts`) bypasses all transition rules for admins (`role === 'admin'`), and the `"Admins may edit all"` RLS policy on `order_list` enforces this at the DB layer.
 
 ### Date Handling
 Dates stored as `YYYY-MM-DD`. Always parse as `new Date(year, month - 1, day)` — never pass ISO strings to `new Date()` to avoid timezone off-by-one errors. Utilities in `src/lib/dateUtils.ts`: `parseDateString`, `formatDateToYMD`, `countBusinessDays`.

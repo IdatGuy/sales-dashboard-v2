@@ -23,11 +23,6 @@ export const STATUS_CONFIG: OrderStatusConfig[] = [
     transitions: [
       { to: 'need to order', allowedRoles: ['employee', 'manager', 'admin'] },
       { to: 'cancelled',     allowedRoles: ['employee', 'manager', 'admin'] },
-      {
-        to: 'completed',
-        allowedRoles: ['employee', 'manager', 'admin'],
-        warning: 'This action is not reversible. The order will be permanently marked as completed.',
-      },
     ],
   },
   {
