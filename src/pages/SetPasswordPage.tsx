@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { logger } from "../lib/logger";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
@@ -85,7 +86,7 @@ const SetPasswordPage: React.FC = () => {
         password,
       });
       if (updateError) {
-        console.error("updateUser error:", updateError);
+        logger.error("updateUser error:", updateError);
         throw new Error(
           "Failed to set password. Your invite link may have expired — please request a new invitation."
         );

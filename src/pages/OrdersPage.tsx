@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { logger } from '../lib/logger';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/common/Navbar';
 import StoreSelector from '../components/common/StoreSelector';
@@ -137,7 +138,7 @@ const OrdersPage: React.FC = () => {
           setTotalOrders(result.total);
         }
       } catch (error) {
-        console.error('Error loading orders:', error);
+        logger.error('Error loading orders:', error);
         if (!aborted) {
           setOrders([]);
           setTotalOrders(0);

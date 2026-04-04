@@ -1,4 +1,5 @@
 import React from "react";
+import { logger } from "./lib/logger";
 import {
   BrowserRouter as Router,
   Routes,
@@ -17,7 +18,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, Error
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('ErrorBoundary caught:', error, info);
+    logger.error('ErrorBoundary caught:', error, info);
   }
 
   static getDerivedStateFromError(): ErrorBoundaryState {

@@ -112,7 +112,7 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
   const refreshMetricDefinitions = React.useCallback(() => {
     getMetricDefinitions().then((defs) => {
       setMetricDefinitions(defs);
-    });
+    }).catch((err) => logger.error('Failed to refresh metric definitions:', err));
   }, []);
 
   useEffect(() => {
@@ -133,7 +133,7 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({
   const refreshGoalDefinitions = React.useCallback(() => {
     listGoalDefinitions().then((defs) => {
       setGoalDefinitions(defs);
-    });
+    }).catch((err) => logger.error('Failed to refresh goal definitions:', err));
   }, []);
 
   useEffect(() => {
