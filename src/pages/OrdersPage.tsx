@@ -73,6 +73,16 @@ const OrdersPage: React.FC = () => {
   const isDepotUser = currentUser?.hasDepotAccess ?? false;
   const userAssignedStoreIds = new Set(currentUser?.userStoreAccess?.map((a) => a.storeId) ?? []);
   const createOrderStores = availableStores.filter((s) => userAssignedStoreIds.has(s.id));
+  const modalAvailableStores = (() => {
+    if (isDepotUser && copySource?.is_depot_repair && copySource.store_id) {
+      const alreadyIncluded = createOrderStores.some(s => s.id === copySource.store_id);
+      if (!alreadyIncluded) {
+        const sourceStore = availableStores.find(s => s.id === copySource.store_id);
+        return sourceStore ? [...createOrderStores, sourceStore] : createOrderStores;
+      }
+    }
+    return createOrderStores;
+  })();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorNotification, setShowErrorNotification] = useState(false);
   const [viewAllStores, setViewAllStores] = useState(false);
@@ -752,7 +762,7 @@ const OrdersPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); setCopySource(null); }}
         onSuccess={handleOrderCreated}
-        availableStores={createOrderStores}
+        availableStores={modalAvailableStores}
         technicianName={currentUser.name}
         initialData={copySource ?? undefined}
       />

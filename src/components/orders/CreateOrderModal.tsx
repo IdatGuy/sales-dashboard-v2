@@ -4,7 +4,7 @@ import { Order, ordersService } from '../../services/api/orders';
 import { Store, AllowedDomain } from '../../types';
 import { allowedDomainsService, normalizeDomain } from '../../services/api/allowedDomains';
 
-type CopyableFields = Pick<Order, 'wo_number' | 'store_id' | 'check_in_date' | 'cx_name' | 'cx_phone' | 'home_connect' | 'wo_link'>;
+type CopyableFields = Pick<Order, 'wo_number' | 'store_id' | 'check_in_date' | 'cx_name' | 'cx_phone' | 'home_connect' | 'wo_link' | 'is_depot_repair'>;
 
 interface CreateOrderModalProps {
   isOpen: boolean;
@@ -20,7 +20,7 @@ const getInitialFormData = (initialData: Partial<CopyableFields> | undefined, st
   check_in_date: initialData?.check_in_date ?? '',
   part_eta: '',
   home_connect: initialData?.home_connect ?? false,
-  isDepotRepair: false,
+  isDepotRepair: initialData?.is_depot_repair ?? false,
   part_description: '',
   store_id: initialData?.store_id ?? stores[0]?.id ?? '',
   cx_name: initialData?.cx_name ?? '',
@@ -315,13 +315,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
               {/* Depot Repair */}
               <div className="flex items-center pt-6">
-                <label className="flex items-center">
+                <label className={`flex items-center ${initialData?.is_depot_repair ? 'cursor-not-allowed' : ''}`}>
                   <input
                     type="checkbox"
                     name="isDepotRepair"
                     checked={formData.isDepotRepair}
                     onChange={handleInputChange}
-                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                    disabled={!!initialData?.is_depot_repair}
+                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 disabled:cursor-not-allowed"
                   />
                   <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                     Depot Repair
